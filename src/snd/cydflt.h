@@ -1,6 +1,6 @@
 #ifndef CYDFLT_H
 #define CYDFLT_H
-
+#endif
 /*
 Copyright (c) 2009-2010 Tero Lindeman (kometbomb)
 
@@ -26,21 +26,56 @@ FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 OTHER DEALINGS IN THE SOFTWARE.
 */
 
-
 #include "cydtypes.h"
 
-typedef struct
+
+// Bi-Quad Module
+
+typedef struct {
+	double a0;
+	double a1;
+	double a2;
+	double b0;
+	double b1;
+	double b2;
+	double prev_input_1;
+	double prev_input_2;
+	double prev_output_1;
+	double prev_output_2;
+	
+	double inputf;
+	double outputf;
+	
+	double cs;
+	double alpha;
+	
+	Uint8 resonance;
+	Uint16 frequency;
+	
+	Sint32 output;
+	Sint32 input;
+} CydFilter;
+
+void cydflt_cycle(CydFilter *flt, Sint32 input);
+
+void cydflt_set_coeff(CydFilter *flt, Uint16 frequency, Uint16 cutoff);
+
+Sint32 cydflt_output_lp(CydFilter *flt);
+Sint32 cydflt_output_hp(CydFilter *flt);
+Sint32 cydflt_output_bp(CydFilter *flt);
+
+/*typedef struct
 {
 	Sint32 f, q, p;
 	Sint32 b0, b1, b2, b3, b4;             //filter coefficients
-} CydFilter;
+} CydFilter;*/
 
-/* 0..2047 */
-void cydflt_set_coeff(CydFilter *flt, Uint16 frequency, Uint16 cutoff);
+//0..2047
+/*void cydflt_set_coeff(CydFilter *flt, Uint16 frequency, Uint16 cutoff);
 
 void cydflt_cycle(CydFilter *flt, Sint32 input);
 Sint32 cydflt_output_lp(CydFilter *flt);
 Sint32 cydflt_output_hp(CydFilter *flt);
 Sint32 cydflt_output_bp(CydFilter *flt);
 
-#endif
+#endif*/

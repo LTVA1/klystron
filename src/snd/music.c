@@ -529,6 +529,12 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 					}
 				}
 				break;
+				
+				case MUS_FX_OSC_MIX: //wasn't there
+				{
+					cydchn->mixmode = (inst & 0xf);
+				}
+				break;
 			}
 		}
 		break;
@@ -749,8 +755,8 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 
 				case MUS_FX_RESONANCE_SET:
 				{
-					track_status->filter_resonance = inst & 3;
-					cyd_set_filter_coeffs(mus->cyd, cydchn, track_status->filter_cutoff, inst & 3);
+					track_status->filter_resonance = inst & 15; //was `inst & 3;`
+					cyd_set_filter_coeffs(mus->cyd, cydchn, track_status->filter_cutoff, inst & 15); //cyd_set_filter_coeffs(mus->cyd, cydchn, track_status->filter_cutoff, inst & 3);
 				}
 				break;
 #endif
@@ -1154,6 +1160,9 @@ int mus_trigger_instrument_internal(MusEngine* mus, int chan, MusInstrument *ins
 		chn->program_loop = 1;
 	}
 	cydchn->flags = ins->cydflags;
+	
+	cydchn->mixmode = ins->mixmode; //wasn't there
+	
 	chn->arpeggio_note = 0;
 	chn->fixed_note = 0xffff;
 	cydchn->fx_bus = ins->fx_bus;
@@ -1825,7 +1834,35 @@ static void load_wavetable_entry(Uint8 version, CydWavetableEntry * e, RWops *ct
 
 static int find_and_load_wavetable(Uint8 version, RWops *ctx, CydWavetableEntry *wavetable_entries)
 {
-	for (int i = 0 ; i < CYD_WAVE_MAX_ENTRIES ; ++i)
+	if(version < 28)
+	{
+		for (int i = 0 ; i < 128; ++i)
+		{
+			CydWavetableEntry *e = &wavetable_entries[i];
+
+			if (e->samples == 0)
+			{
+				load_wavetable_entry(version, e, ctx);
+				return i;
+			}
+		}
+	}
+	
+	else
+	{
+		for (int i = 0 ; i < CYD_WAVE_MAX_ENTRIES; ++i)
+		{
+			CydWavetableEntry *e = &wavetable_entries[i];
+
+			if (e->samples == 0)
+			{
+				load_wavetable_entry(version, e, ctx);
+				return i;
+			}
+		}
+	}	
+	
+	/*for (int i = 0 ; i < CYD_WAVE_MAX_ENTRIES ; ++i)
 	{
 		CydWavetableEntry *e = &wavetable_entries[i];
 
@@ -1834,7 +1871,7 @@ static int find_and_load_wavetable(Uint8 version, RWops *ctx, CydWavetableEntry 
 			load_wavetable_entry(version, e, ctx);
 			return i;
 		}
-	}
+	}*/
 
 	return 0;
 }
@@ -1887,6 +1924,9 @@ int mus_load_instrument_RW(Uint8 version, RWops *ctx, MusInstrument *inst, CydWa
 	VER_READ(version, 11, 0xff, &inst->vib_delay, 0);
 	VER_READ(version, 11, 0xff, &inst->pwm_shape, 0);
 	VER_READ(version, 18, 0xff, &inst->lfsr_type, 0);
+	
+	VER_READ(version, 28, 0xff, &inst->mixmode, 0); //wasn't there
+	
 	VER_READ(version, 12, 0xff, &inst->wavetable_entry, 0);
 
 	VER_READ(version, 23, 0xff, &inst->fm_flags, 0);
@@ -2028,8 +2068,8 @@ static void inner_load_fx(RWops *ctx, CydFxSerialized *fx, int version)
 		if (len)
 		{
 			memset(fx->name, 0, sizeof(fx->name));
-			_VER_READ(fx->name, my_min(len, sizeof(fx->name)));
-			fx->name[sizeof(fx->name) - 1] = '\0';
+			_VER_READ(fx->name, my_min(len, (version < 28 ? (sizeof(fx->name) - 32) : sizeof(fx->name)))); //_VER_READ(fx->name, my_min(len, sizeof(fx->name)));
+			fx->name[(version < 28 ? (sizeof(fx->name) - 32) : sizeof(fx->name)) - 1] = '\0'; //fx->name[sizeof(fx->name) - 1] = '\0';
 		}
 	}
 
@@ -2053,7 +2093,7 @@ static void inner_load_fx(RWops *ctx, CydFxSerialized *fx, int version)
 	if (version < 27)
 		taps = 8;
 
-	for (int i = 0 ; i < taps ; ++i)
+	/*for (int i = 0 ; i < taps ; ++i)
 	{
 		my_RWread(ctx, &fx->rvb.tap[i].delay, 2, 1);
 		my_RWread(ctx, &fx->rvb.tap[i].gain, 2, 1);
@@ -2075,30 +2115,130 @@ static void inner_load_fx(RWops *ctx, CydFxSerialized *fx, int version)
 
 		FIX_ENDIAN(fx->rvb.tap[i].gain);
 		FIX_ENDIAN(fx->rvb.tap[i].delay);
-	}
-
-	if (version < 27)
+	} */
+	
+	if(version < 28)
 	{
-		if (spread == 0)
+		for (int i = 0 ; i < 16; ++i)
 		{
-			for (int i = 8 ; i < CYDRVB_TAPS ; ++i)
+			my_RWread(ctx, &fx->rvb.tap[i].delay, 2, 1);
+			my_RWread(ctx, &fx->rvb.tap[i].gain, 2, 1);
+
+			if (version >= 27)
 			{
-				fx->rvb.tap[i].flags = 0;
-				fx->rvb.tap[i].delay = 1000;
-				fx->rvb.tap[i].gain = CYDRVB_LOW_LIMIT;
+				my_RWread(ctx, &fx->rvb.tap[i].panning, 1, 1);
+				my_RWread(ctx, &fx->rvb.tap[i].flags, 1, 1);
 			}
-		}
-		else
-		{
-			for (int i = 8 ; i < CYDRVB_TAPS ; ++i)
+			else
 			{
 				fx->rvb.tap[i].flags = 1;
-				fx->rvb.tap[i].panning = CYD_PAN_RIGHT;
-				fx->rvb.tap[i].delay = my_min(CYDRVB_SIZE, fx->rvb.tap[i - 8].delay + (fx->rvb.tap[i - 8].delay * spread) / 2000);
-				fx->rvb.tap[i].gain = fx->rvb.tap[i - 8].gain;
+
+				if (spread > 0)
+					fx->rvb.tap[i].panning = CYD_PAN_LEFT;
+				else
+					fx->rvb.tap[i].panning = CYD_PAN_CENTER;
+			}
+
+			FIX_ENDIAN(fx->rvb.tap[i].gain);
+			FIX_ENDIAN(fx->rvb.tap[i].delay);
+		}
+		
+		if (version < 27)
+		{
+			if (spread == 0)
+			{
+				for (int i = 8 ; i < 16; ++i)
+				{
+					fx->rvb.tap[i].flags = 0;
+					fx->rvb.tap[i].delay = 1000;
+					fx->rvb.tap[i].gain = CYDRVB_LOW_LIMIT;
+				}
+			}
+			else
+			{
+				for (int i = 8 ; i < 16; ++i)
+				{
+					fx->rvb.tap[i].flags = 1;
+					fx->rvb.tap[i].panning = CYD_PAN_RIGHT;
+					fx->rvb.tap[i].delay = my_min(2000, fx->rvb.tap[i - 8].delay + (fx->rvb.tap[i - 8].delay * spread) / 2000);
+					fx->rvb.tap[i].gain = fx->rvb.tap[i - 8].gain;
+				}
 			}
 		}
 	}
+	
+	else
+	{
+		for (int i = 0 ; i < taps ; ++i)
+		{
+			my_RWread(ctx, &fx->rvb.tap[i].delay, 2, 1);
+			my_RWread(ctx, &fx->rvb.tap[i].gain, 2, 1);
+
+			if (version >= 27)
+			{
+				my_RWread(ctx, &fx->rvb.tap[i].panning, 1, 1);
+				my_RWread(ctx, &fx->rvb.tap[i].flags, 1, 1);
+			}
+			else
+			{
+				fx->rvb.tap[i].flags = 1;
+
+				if (spread > 0)
+					fx->rvb.tap[i].panning = CYD_PAN_LEFT;
+				else
+					fx->rvb.tap[i].panning = CYD_PAN_CENTER;
+			}
+
+			FIX_ENDIAN(fx->rvb.tap[i].gain);
+			FIX_ENDIAN(fx->rvb.tap[i].delay);
+		}
+	
+		if (version < 27)
+		{
+			if (spread == 0)
+			{
+				for (int i = 8 ; i < CYDRVB_TAPS ; ++i)
+				{
+					fx->rvb.tap[i].flags = 0;
+					fx->rvb.tap[i].delay = 1000;
+					fx->rvb.tap[i].gain = CYDRVB_LOW_LIMIT;
+				}
+			}
+			else
+			{
+				for (int i = 8 ; i < CYDRVB_TAPS ; ++i)
+				{
+					fx->rvb.tap[i].flags = 1;
+					fx->rvb.tap[i].panning = CYD_PAN_RIGHT;
+					fx->rvb.tap[i].delay = my_min(CYDRVB_SIZE, fx->rvb.tap[i - 8].delay + (fx->rvb.tap[i - 8].delay * spread) / 2000);
+					fx->rvb.tap[i].gain = fx->rvb.tap[i - 8].gain;
+				}
+			}
+		}
+	}
+
+		/*if (version < 27)
+		{
+			if (spread == 0)
+			{
+				for (int i = 8 ; i < CYDRVB_TAPS ; ++i)
+				{
+					fx->rvb.tap[i].flags = 0;
+					fx->rvb.tap[i].delay = 1000;
+					fx->rvb.tap[i].gain = CYDRVB_LOW_LIMIT;
+				}
+			}
+			else
+			{
+				for (int i = 8 ; i < CYDRVB_TAPS ; ++i)
+				{
+					fx->rvb.tap[i].flags = 1;
+					fx->rvb.tap[i].panning = CYD_PAN_RIGHT;
+					fx->rvb.tap[i].delay = my_min(CYDRVB_SIZE, fx->rvb.tap[i - 8].delay + (fx->rvb.tap[i - 8].delay * spread) / 2000);
+					fx->rvb.tap[i].gain = fx->rvb.tap[i - 8].gain;
+				}
+			}
+		}*/
 
 	my_RWread(ctx, &fx->crushex.downsample, 1, 1);
 
@@ -2251,8 +2391,38 @@ int mus_load_song_RW(RWops *ctx, MusSong *song, CydWavetableEntry *wavetable_ent
 			FIX_ENDIAN(song->num_sequences[i]);
 
 		Uint8 title_len = 16 + 1; // old length
+		
+		if(version < 28)
+		{
+			if (version >= 11)
+			{
+				my_RWread(ctx, &title_len, 1, 1);
+			}
 
-		if (version >= 11)
+			if (version >= 5)
+			{
+				memset(song->title, 0, sizeof(song->title) / 2);
+				my_RWread(ctx, song->title, 1, my_min(sizeof(song->title) / 2, title_len));
+				song->title[sizeof(song->title) / 2 - 1] = '\0';
+			}
+		}
+		
+		else
+		{
+			if (version >= 11)
+			{
+				my_RWread(ctx, &title_len, 1, 1);
+			}
+
+			if (version >= 5)
+			{
+				memset(song->title, 0, sizeof(song->title));
+				my_RWread(ctx, song->title, 1, my_min(sizeof(song->title), title_len));
+				song->title[sizeof(song->title) - 1] = '\0';
+			}
+		}
+
+		/*if (version >= 11)
 		{
 			my_RWread(ctx, &title_len, 1, 1);
 		}
@@ -2262,7 +2432,7 @@ int mus_load_song_RW(RWops *ctx, MusSong *song, CydWavetableEntry *wavetable_ent
 			memset(song->title, 0, sizeof(song->title));
 			my_RWread(ctx, song->title, 1, my_min(sizeof(song->title), title_len));
 			song->title[sizeof(song->title) - 1] = '\0';
-		}
+		}*/
 
 		Uint8 n_fx = 0;
 
@@ -2283,6 +2453,7 @@ int mus_load_song_RW(RWops *ctx, MusSong *song, CydWavetableEntry *wavetable_ent
 				for (int fx = 0 ; fx < n_fx ; ++fx)
 					inner_load_fx(ctx, &song->fx[fx], version);
 			}
+			
 			else
 			{
 				for (int fx = 0 ; fx < n_fx ; ++fx)
@@ -2459,13 +2630,111 @@ int mus_load_song_RW(RWops *ctx, MusSong *song, CydWavetableEntry *wavetable_ent
 				free(packed);
 			}
 		}
-
-		for (int i = 0 ; i < CYD_WAVE_MAX_ENTRIES ; ++i)
+		
+		if(version < 28)
 		{
-			cyd_wave_entry_init(&wavetable_entries[i], NULL, 0, 0, 0, 0, 0);
+			for (int i = 0 ; i < 128; ++i)
+			{
+				cyd_wave_entry_init(&wavetable_entries[i], NULL, 0, 0, 0, 0, 0);
+			}
+		}
+		
+		else
+		{
+			for (int i = 0; i < CYD_WAVE_MAX_ENTRIES; ++i)
+			{
+				cyd_wave_entry_init(&wavetable_entries[i], NULL, 0, 0, 0, 0, 0);
+			}
 		}
 
-		if (version >= 12)
+		/*for (int i = 0 ; i < CYD_WAVE_MAX_ENTRIES ; ++i)
+		{
+			cyd_wave_entry_init(&wavetable_entries[i], NULL, 0, 0, 0, 0, 0);
+		}*/
+		
+		if(version < 28)
+		{
+			if (version >= 12)
+			{
+				Uint8 max_wt = 0;
+				my_RWread(ctx, &max_wt, 1, sizeof(Uint8));
+
+				for (int i = 0 ; i < max_wt ; ++i)
+				{
+					load_wavetable_entry(version, &wavetable_entries[i], ctx);
+				}
+
+				song->wavetable_names = malloc(max_wt * sizeof(char*));
+
+				if (version >= 26)
+				{
+					for (int i = 0 ; i < max_wt ; ++i)
+					{
+						Uint8 len = 0;
+						song->wavetable_names[i] = malloc(32 + 1);
+						memset(song->wavetable_names[i], 0, 32 + 1);
+
+						my_RWread(ctx, &len, 1, 1);
+						my_RWread(ctx, song->wavetable_names[i], len, sizeof(char));
+					}
+				}
+				else
+				{
+					for (int i = 0 ; i < max_wt ; ++i)
+					{
+						song->wavetable_names[i] = malloc(32 + 1);
+						memset(song->wavetable_names[i], 0, 32 + 1);
+					}
+				}
+
+				song->num_wavetables = max_wt;
+			}
+			else
+				song->num_wavetables = 0;
+		}
+		
+		else
+		{
+			if (version >= 12)
+			{
+				Uint8 max_wt = 0;
+				my_RWread(ctx, &max_wt, 1, sizeof(Uint8));
+
+				for (int i = 0 ; i < max_wt ; ++i)
+				{
+					load_wavetable_entry(version, &wavetable_entries[i], ctx);
+				}
+
+				song->wavetable_names = malloc(max_wt * sizeof(char*));
+
+				if (version >= 26)
+				{
+					for (int i = 0 ; i < max_wt ; ++i)
+					{
+						Uint8 len = 0;
+						song->wavetable_names[i] = malloc(MUS_WAVETABLE_NAME_LEN + 1);
+						memset(song->wavetable_names[i], 0, MUS_WAVETABLE_NAME_LEN + 1);
+
+						my_RWread(ctx, &len, 1, 1);
+						my_RWread(ctx, song->wavetable_names[i], len, sizeof(char));
+					}
+				}
+				else
+				{
+					for (int i = 0 ; i < max_wt ; ++i)
+					{
+						song->wavetable_names[i] = malloc(MUS_WAVETABLE_NAME_LEN + 1);
+						memset(song->wavetable_names[i], 0, MUS_WAVETABLE_NAME_LEN + 1);
+					}
+				}
+
+				song->num_wavetables = max_wt;
+			}
+			else
+				song->num_wavetables = 0;
+		}
+
+		/*if (version >= 12)
 		{
 			Uint8 max_wt = 0;
 			my_RWread(ctx, &max_wt, 1, sizeof(Uint8));
@@ -2501,7 +2770,7 @@ int mus_load_song_RW(RWops *ctx, MusSong *song, CydWavetableEntry *wavetable_ent
 			song->num_wavetables = max_wt;
 		}
 		else
-			song->num_wavetables = 0;
+			song->num_wavetables = 0;*/
 
 		return 1;
 	}
@@ -2610,6 +2879,61 @@ int mus_load_song_file(FILE *f, MusSong *song, CydWavetableEntry *wavetable_entr
 	return 0;
 }
 
+int mus_load_patch_RW(RWops *ctx, WgSettings *settings) //wasn't there
+{
+	char id[15];
+	id[14] = '\0';
+
+	my_RWread(ctx, id, 14, sizeof(id[0]));
+
+	if (strcmp(id, MUS_WAVEGEN_PATCH_SIG) == 0)
+	{
+		Uint8 version = 0;
+		my_RWread(ctx, &version, 1, sizeof(version));
+		
+		if(version == 28)
+		{
+			my_RWread(ctx, &settings->num_oscs, sizeof(settings->num_oscs), 1);
+			my_RWread(ctx, &settings->length, sizeof(settings->length), 1);
+			
+			int num_osc_value = *(&settings->num_oscs);
+			
+			for(int i = 0; i < num_osc_value; i++)
+			{
+				my_RWread(ctx, &settings->chain[i].osc, sizeof(settings->chain[i].osc), 1);
+				my_RWread(ctx, &settings->chain[i].op, sizeof(settings->chain[i].op), 1);
+				my_RWread(ctx, &settings->chain[i].mult, sizeof(settings->chain[i].mult), 1);
+				my_RWread(ctx, &settings->chain[i].shift, sizeof(settings->chain[i].shift), 1);
+				my_RWread(ctx, &settings->chain[i].exp, sizeof(settings->chain[i].exp), 1);
+				my_RWread(ctx, &settings->chain[i].vol, sizeof(settings->chain[i].vol), 1);
+				my_RWread(ctx, &settings->chain[i].exp_c, sizeof(settings->chain[i].exp_c), 1);
+				my_RWread(ctx, &settings->chain[i].flags, sizeof(settings->chain[i].flags), 1);
+			}
+		}
+		
+		return 1;
+	}
+	
+	
+	
+	return 0;
+}
+
+int mus_load_wavepatch(FILE *f, WgSettings *settings) //wasn't there
+{
+	RWops *rw = RWFromFP(f, 0);
+
+	if (rw)
+	{
+		int r = mus_load_patch_RW(rw, settings);
+
+		my_RWclose(rw);
+
+		return r;
+	}
+	
+	return 0;
+}
 
 Uint32 mus_get_playtime_at(MusSong *song, int position)
 {

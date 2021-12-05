@@ -2,7 +2,7 @@ TARGET=editor.exe
 VPATH=src:src
 ECHO = echo
 CFG = debug
-MACHINE = -march=pentium2 
+MACHINE = 
 
 # The directories containing the source files, separated by ':'
 
@@ -37,7 +37,7 @@ CXXFLAGS = $(MACHINE) -ftree-vectorize
 
 ifdef COMSPEC
 	CXXFLAGS += -mthreads
-	INCLUDEFLAGS := -I ../Common -I src -I /MinGW/include/SDL2 -I ../../src 
+	INCLUDEFLAGS := -I ../Common -I src -I /MinGW/include/SDL2 -I ../../src `pkg-config --cflags sdl2`
 else
 	INCLUDEFLAGS := `sdl-config --cflags` -U_FORTIFY_SOURCE -I ../../src 
 endif

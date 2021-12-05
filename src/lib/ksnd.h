@@ -31,7 +31,7 @@ typedef struct KPlayer_t KPlayer;
 typedef struct 
 {
 	char *song_title; 			/**< Song title as a null-terminated string */
-	char *instrument_name[128]; /**< Instrument names as an array */
+	char *instrument_name[255]; /**< Instrument names as an array */
 	int n_instruments;			/**< Number of instruments used by the song */
 	int n_channels;				/**< Number of channels used by the song */
 } KSongInfo;

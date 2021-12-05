@@ -44,11 +44,11 @@ OTHER DEALINGS IN THE SOFTWARE.
 #define ACC_LENGTH (1 << (ACC_BITS - 1)) // Osc counter length
 #define YM_LENGTH (ACC_LENGTH) // YM envelope counter length
 #define MAX_VOLUME 128
-#define CYD_WAVE_MAX_ENTRIES 128
+#define CYD_WAVE_MAX_ENTRIES 255 //was 128
 
 #define CYD_BASE_FREQ 22050
-#define CYD_MAX_CHANNELS 32
-#define CYD_MAX_FX_CHANNELS 8
+#define CYD_MAX_CHANNELS 64
+#define CYD_MAX_FX_CHANNELS 64
 #define CYD_SUB_OSCS 3
 
 #define CYD_PAN_CENTER 64

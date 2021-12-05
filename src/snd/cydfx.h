@@ -30,7 +30,7 @@ OTHER DEALINGS IN THE SOFTWARE.
 #include "cydchr.h"
 #include "cydcrush.h"
 
-#define CYD_FX_NAME_LEN 32
+#define CYD_FX_NAME_LEN 64 //was 32
 
 typedef struct
 {

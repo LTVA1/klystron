@@ -30,18 +30,20 @@ OTHER DEALINGS IN THE SOFTWARE.
 #include "cydfx.h"
 #include <stdio.h>
 
-#define MUS_PROG_LEN 32
+#include "../../../src/wavegen.h"
+
+#define MUS_PROG_LEN 64
 #define MUS_MAX_CHANNELS CYD_MAX_CHANNELS
 
-#define MUS_VERSION 27
+#define MUS_VERSION 28
 
 #define MUS_SONG_TITLE_LEN 64
-#define MUS_INSTRUMENT_NAME_LEN 32
+#define MUS_INSTRUMENT_NAME_LEN 64
 #define MUS_WAVETABLE_NAME_LEN MUS_INSTRUMENT_NAME_LEN
 
 typedef struct
 {
-	Uint8 a, d, s, r; // 0-15
+	Uint8 a, d, s, r; // 0-63 for a, d, r; 0-31 for s
 } MusAdsr;
 
 typedef struct
@@ -57,7 +59,7 @@ typedef struct
 	Uint8 vibrato_speed, vibrato_depth, slide_speed, pwm_speed, pwm_depth;
 	Uint8 base_note;
 	Uint16 cutoff;
-	Uint8 resonance;
+	Uint8 resonance; //was 0-3, trying to get 0-15
 	Uint8 flttype;
 	Uint8 ym_env_shape;
 	Sint16 buzz_offset;
@@ -70,6 +72,8 @@ typedef struct
 	Uint8 fm_modulation, fm_feedback, fm_wave, fm_harmonic;
 	MusAdsr fm_adsr;
 	Uint8 fm_attack_start;
+	
+	Uint8 mixmode; //wasn't there
 } MusInstrument;
 
 enum
@@ -277,6 +281,7 @@ enum
 	MUS_FX_FM_SET_FEEDBACK = 0x3400,
 	MUS_FX_FM_SET_HARMONIC = 0x3500,
 	MUS_FX_FM_SET_WAVEFORM = 0x3600,
+	MUS_FX_OSC_MIX = 0x0ee0, //wasn't there
 	MUS_FX_PW_DN = 0x0700,
 	MUS_FX_PW_UP = 0x0800,
 	MUS_FX_PW_SET = 0x0900,
@@ -294,7 +299,7 @@ enum
 	MUS_FX_LOOP = 0xfe00,
 	MUS_FX_TRIGGER_RELEASE = 0x7c00,
 	MUS_FX_RESTART_PROGRAM = 0x7d00,
-	MUS_FX_NOP = 0xfffe
+	MUS_FX_NOP = 0xfffe,
 };
 
 enum
@@ -326,6 +331,7 @@ enum
 #define MUS_INST_SIG "cyd!inst"
 #define MUS_SONG_SIG "cyd!song"
 #define MUS_FX_SIG "cyd!efex"
+#define MUS_WAVEGEN_PATCH_SIG "cyd!wave_patch"
 
 #ifdef USESDL_RWOPS
 #include "SDL_rwops.h"
@@ -367,6 +373,9 @@ int mus_load_song_file(FILE *f, MusSong *song, CydWavetableEntry *wavetable_entr
 int mus_load_song_RW(RWops *rw, MusSong *song, CydWavetableEntry *wavetable_entries);
 int mus_load_fx_RW(RWops *ctx, CydFxSerialized *fx);
 int mus_load_fx_file(FILE *f, CydFxSerialized *fx);
+
+int mus_load_wavepatch(FILE *f, WgSettings *settings); //wasn't there
+
 int mus_load_fx(const char *path, CydFxSerialized *fx);
 void mus_free_song(MusSong *song);
 void mus_set_fx(MusEngine *mus, MusSong *song);
