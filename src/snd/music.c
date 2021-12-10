@@ -2402,9 +2402,16 @@ int mus_load_song_RW(RWops *ctx, MusSong *song, CydWavetableEntry *wavetable_ent
 			if (version >= 5)
 			{
 				memset(song->title, 0, sizeof(song->title) / 2);
+				my_RWread(ctx, song->title, 1, my_min(32, title_len));
+				song->title[32 - 1] = '\0';
+			}
+			
+			/*if (version >= 5)
+			{
+				memset(song->title, 0, sizeof(song->title) / 2);
 				my_RWread(ctx, song->title, 1, my_min(sizeof(song->title) / 2, title_len));
 				song->title[sizeof(song->title) / 2 - 1] = '\0';
-			}
+			}*/
 		}
 		
 		else

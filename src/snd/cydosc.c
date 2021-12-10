@@ -36,7 +36,7 @@ Uint32 cyd_lfsr(Uint32 bits)
 
 Sint32 cyd_osc(Uint32 flags, Uint32 accumulator, Uint32 pw, Uint32 random, Uint32 lfsr_acc, Uint8 mixmode) //Sint32 cyd_osc(Uint32 flags, Uint32 accumulator, Uint32 pw, Uint32 random, Uint32 lfsr_acc)
 {
-	switch (flags & WAVEFORMS & ~CYD_CHN_ENABLE_WAVE) //TODO: add C64 waves
+	switch (flags & WAVEFORMS & ~CYD_CHN_ENABLE_WAVE)
 	{
 		case CYD_CHN_ENABLE_PULSE:
 		return cyd_pulse(accumulator, pw);

@@ -59,7 +59,7 @@ typedef struct
 	Uint8 vibrato_speed, vibrato_depth, slide_speed, pwm_speed, pwm_depth;
 	Uint8 base_note;
 	Uint16 cutoff;
-	Uint8 resonance; //was 0-3, trying to get 0-15
+	Uint8 resonance; //was 0-3, now 0-15
 	Uint8 flttype;
 	Uint8 ym_env_shape;
 	Sint16 buzz_offset;
