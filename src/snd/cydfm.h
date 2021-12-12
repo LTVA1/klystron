@@ -19,6 +19,11 @@ typedef struct
 	Uint32 fb1, fb2, env_output;
 	Uint32 current_modulation;
 	Uint8 attack_start;
+	
+	Uint8 fm_base_note; //weren't there
+	Sint8 fm_finetune;
+	Uint8 fm_carrier_base_note;
+	Sint8 fm_carrier_finetune;
 } CydFm;
 
 #include "cyd.h"

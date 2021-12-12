@@ -69,14 +69,14 @@ void cydfm_cycle(const CydEngine *cyd, CydFm *fm)
 void cydfm_set_frequency(const CydEngine *cyd, CydFm *fm, Uint32 base_frequency)
 {
 	const int MUL = 2;
-	static Sint32 harmonic[16] = { 0.5 * MUL, 1.0 * MUL, 2.0 * MUL, 3 * MUL, 4 * MUL, 5 * MUL, 6 * MUL, 7 * MUL, 8 * MUL, 9 * MUL, 10 * MUL, 10 * MUL, 12 * MUL, 12 * MUL, 15 * MUL, 15 * MUL };
+	static Sint32 harmonic[16] = { 0.5 * MUL, 1.0 * MUL, 2.0 * MUL, 3 * MUL, 4 * MUL, 5 * MUL, 6 * MUL, 7 * MUL, 8 * MUL, 9 * MUL, 10 * MUL, 10 * MUL, 12 * MUL, 12 * MUL, 15 * MUL, 15 * MUL }; //fm->period = ((Uint64)(ACC_LENGTH)/16 * (Uint64)((fm->flags & CYD_FM_LOCKNOTE) ? (((fm->fm_carrier_base_note) << 8) + fm->fm_finetune) : (base_frequency + ((fm->fm_base_note - fm->fm_carrier_base_note) << 8) + fm->fm_finetune)) / (Uint64)cyd->sample_rate) * (Uint64)harmonic[fm->harmonic & 15] / (Uint64)harmonic[fm->harmonic >> 4];
 
-	fm->period = ((Uint64)(ACC_LENGTH)/16 * (Uint64)base_frequency / (Uint64)cyd->sample_rate) * (Uint64)harmonic[fm->harmonic & 15] / (Uint64)harmonic[fm->harmonic >> 4];
+	fm->period = ((Uint64)(ACC_LENGTH)/16 * (Uint64)(base_frequency + ((fm->fm_base_note - fm->fm_carrier_base_note) << 8) + fm->fm_finetune) / (Uint64)cyd->sample_rate) * (Uint64)harmonic[fm->harmonic & 15] / (Uint64)harmonic[fm->harmonic >> 4];
 	
 	if (fm->wave_entry)
 	{
-		fm->wave.playing = true;
-		fm->wave.frequency = ((Uint64)(WAVETABLE_RESOLUTION) * (Uint64)fm->wave_entry->sample_rate / (Uint64)cyd->sample_rate * (Uint64)base_frequency / (Uint64)get_freq(fm->wave_entry->base_note)) * (Uint64)harmonic[fm->harmonic & 15] / (Uint64)harmonic[fm->harmonic >> 4];
+		fm->wave.playing = true; //fm->wave.frequency = ((Uint64)(WAVETABLE_RESOLUTION) * (Uint64)fm->wave_entry->sample_rate / (Uint64)((fm->flags & CYD_FM_LOCKNOTE) ? (((fm->fm_carrier_base_note) << 8) + fm->fm_finetune) : (base_frequency + ((fm->fm_base_note - fm->fm_carrier_base_note) << 8) + fm->fm_finetune)) / (Uint64)get_freq(fm->wave_entry->base_note)) * (Uint64)harmonic[fm->harmonic & 15] / (Uint64)harmonic[fm->harmonic >> 4];
+		fm->wave.frequency = ((Uint64)(WAVETABLE_RESOLUTION) * (Uint64)fm->wave_entry->sample_rate / (Uint64)cyd->sample_rate * (Uint64)(base_frequency + ((fm->fm_base_note - fm->fm_carrier_base_note) << 8) + fm->fm_finetune) / (Uint64)get_freq(fm->wave_entry->base_note)) * (Uint64)harmonic[fm->harmonic & 15] / (Uint64)harmonic[fm->harmonic >> 4];
 	}
 }
 

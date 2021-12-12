@@ -35,7 +35,7 @@ OTHER DEALINGS IN THE SOFTWARE.
 #define MUS_PROG_LEN 255
 #define MUS_MAX_CHANNELS CYD_MAX_CHANNELS
 
-#define MUS_VERSION 28
+#define MUS_VERSION 29
 
 #define MUS_SONG_TITLE_LEN 255
 #define MUS_INSTRUMENT_NAME_LEN 255
@@ -54,6 +54,9 @@ typedef struct
 	Uint8 sync_source, ring_mod; // 0xff == self
 	Uint16 pw;
 	Uint8 volume;
+	
+	Uint8 mixmode; //wasn't there
+	
 	Uint16 program[MUS_PROG_LEN];
 	Uint8 prog_period; 
 	Uint8 vibrato_speed, vibrato_depth, slide_speed, pwm_speed, pwm_depth;
@@ -73,7 +76,9 @@ typedef struct
 	MusAdsr fm_adsr;
 	Uint8 fm_attack_start;
 	
-	Uint8 mixmode; //wasn't there
+	Uint8 fm_base_note; //weren't there
+	Sint8 fm_finetune;
+
 } MusInstrument;
 
 enum

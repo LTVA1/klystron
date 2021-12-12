@@ -25,6 +25,8 @@ OTHER DEALINGS IN THE SOFTWARE.
 
 #define GENERATE_VIBRATO_TABLES
 
+#include <time.h>
+
 #include "music.h"
 #include <assert.h>
 #include <stdio.h>
@@ -1285,6 +1287,11 @@ int mus_trigger_instrument_internal(MusEngine* mus, int chan, MusInstrument *ins
 	fm->adsr.volume = ins->fm_modulation;
 	fm->feedback = ins->fm_feedback;
 	fm->attack_start = ins->fm_attack_start;
+	
+	fm->fm_base_note = ins->fm_base_note; //weren't there
+	fm->fm_finetune = ins->fm_finetune;
+	fm->fm_carrier_base_note = ins->base_note;
+	fm->fm_carrier_finetune = ins->finetune;
 #endif
 
 	//cyd_set_frequency(mus->cyd, cydchn, chn->frequency);
@@ -1935,7 +1942,17 @@ int mus_load_instrument_RW(Uint8 version, RWops *ctx, MusInstrument *inst, CydWa
 	VER_READ(version, 23, 0xff, &inst->fm_harmonic, 0);
 	VER_READ(version, 23, 0xff, &inst->fm_adsr, 0);
 	VER_READ(version, 25, 0xff, &inst->fm_attack_start, 0);
+	
+	VER_READ(version, 29, 0xff, &inst->fm_base_note, 0); //wasn't there
+	VER_READ(version, 29, 0xff, &inst->fm_finetune, 0); //wasn't there
+	
 	VER_READ(version, 23, 0xff, &inst->fm_wave, 0);
+	
+	if(version < 29)
+	{
+		inst->fm_base_note = inst->base_note;
+		inst->fm_finetune = 0;
+	}
 
 #ifndef CYD_DISABLE_WAVETABLE
 	if (wavetable_entries)
@@ -2025,6 +2042,9 @@ void mus_get_default_instrument(MusInstrument *inst)
 	inst->adsr.d = 12 * ENVELOPE_SCALE;
 	inst->volume = MAX_VOLUME;
 	inst->base_note = MIDDLE_C;
+	
+	inst->fm_base_note = MIDDLE_C; //wasn't there
+	
 	inst->finetune = 0;
 	inst->prog_period = 2;
 	inst->cutoff = 2047;
@@ -2068,8 +2088,8 @@ static void inner_load_fx(RWops *ctx, CydFxSerialized *fx, int version)
 		if (len)
 		{
 			memset(fx->name, 0, sizeof(fx->name));
-			_VER_READ(fx->name, my_min(len, (version < 28 ? (sizeof(fx->name) - 32) : sizeof(fx->name)))); //_VER_READ(fx->name, my_min(len, sizeof(fx->name)));
-			fx->name[(version < 28 ? (sizeof(fx->name) - 32) : sizeof(fx->name)) - 1] = '\0'; //fx->name[sizeof(fx->name) - 1] = '\0';
+			_VER_READ(fx->name, my_min(len, (version < 28 ? (32 * sizeof(char)) : sizeof(fx->name)))); //_VER_READ(fx->name, my_min(len, sizeof(fx->name)));
+			fx->name[(version < 28 ? (32 * sizeof(char)) : sizeof(fx->name)) - 1] = '\0'; //fx->name[sizeof(fx->name) - 1] = '\0';
 		}
 	}
 
@@ -2312,6 +2332,18 @@ int mus_load_fx(const char *path, CydFxSerialized *fx)
 }
 
 
+void delay(int milliseconds)
+{
+    long pause;
+    clock_t now,then;
+
+    pause = milliseconds*(CLOCKS_PER_SEC/1000);
+    now = then = clock();
+    while( (now-then) < pause )
+        now = clock();
+}
+
+
 int mus_load_song_RW(RWops *ctx, MusSong *song, CydWavetableEntry *wavetable_entries)
 {
 	char id[9];
@@ -2351,7 +2383,7 @@ int mus_load_song_RW(RWops *ctx, MusSong *song, CydWavetableEntry *wavetable_ent
 
 		my_RWread(ctx, &song->num_instruments, 1, sizeof(song->num_instruments));
 		my_RWread(ctx, &song->num_patterns, 1, sizeof(song->num_patterns));
-		my_RWread(ctx, song->num_sequences, 1, sizeof(song->num_sequences[0]) * (int)song->num_channels);
+		my_RWread(ctx, &song->num_sequences, 1, sizeof(song->num_sequences[0]) * (int)song->num_channels); //my_RWread(ctx, song->num_sequences, 1, sizeof(song->num_sequences[0]) * (int)song->num_channels);
 		my_RWread(ctx, &song->song_length, 1, sizeof(song->song_length));
 
 		my_RWread(ctx, &song->loop_point, 1, sizeof(song->loop_point));
@@ -2401,9 +2433,9 @@ int mus_load_song_RW(RWops *ctx, MusSong *song, CydWavetableEntry *wavetable_ent
 
 			if (version >= 5)
 			{
-				memset(song->title, 0, sizeof(song->title) / 2);
-				my_RWread(ctx, song->title, 1, my_min(32, title_len));
-				song->title[32 - 1] = '\0';
+				memset(song->title, 0, sizeof(song->title)); //memset(song->title, 0, sizeof(song->title) / 2);
+				my_RWread(ctx, song->title, 1, my_min(320, title_len)); //my_RWread(ctx, song->title, 1, my_min(32, title_len));
+				song->title[title_len] = '\0'; //song->title[32 - 1] = '\0';
 			}
 			
 			/*if (version >= 5)
@@ -2428,6 +2460,10 @@ int mus_load_song_RW(RWops *ctx, MusSong *song, CydWavetableEntry *wavetable_ent
 				song->title[sizeof(song->title) - 1] = '\0';
 			}
 		}
+		
+		debug("Name: \"%s\"", song->title);
+		
+		//delay(25000);
 
 		/*if (version >= 11)
 		{
