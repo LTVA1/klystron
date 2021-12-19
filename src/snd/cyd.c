@@ -660,11 +660,17 @@ static Sint32 cyd_output(CydEngine *cyd)
 						}				
 #endif	
 						o += cyd_wave_get_sample(&cyd->channel[i].subosc[s].wave, chn->wave_entry, accumulator) * (Sint32)(chn->adsr.volume) / MAX_VOLUME;
+						
+						
 					}
 				}
 			}
-#endif
-
+#endif		
+			/*if ((cyd->channel[i].fm.flags & CYD_FM_ENABLE_ADDITIVE) && (cyd->channel[i].flags & CYD_CHN_ENABLE_FM))
+			{
+				o += (cyd->channel[i].fm.current_modulation) * 64 - 65536 * 64;
+			}*/
+			
 #ifndef CYD_DISABLE_FILTER
 			if (chn->flags & CYD_CHN_ENABLE_FILTER) 
 			{

@@ -2934,7 +2934,7 @@ int mus_load_patch_RW(RWops *ctx, WgSettings *settings) //wasn't there
 		Uint8 version = 0;
 		my_RWread(ctx, &version, 1, sizeof(version));
 		
-		if(version == 28)
+		if(version <= 228)
 		{
 			my_RWread(ctx, &settings->num_oscs, sizeof(settings->num_oscs), 1);
 			my_RWread(ctx, &settings->length, sizeof(settings->length), 1);
