@@ -1,6 +1,8 @@
 #ifndef MUSIC_H
 #define MUSIC_H
 
+#pragma once
+
 /*
 Copyright (c) 2009-2011 Tero Lindeman (kometbomb)
 
@@ -32,10 +34,12 @@ OTHER DEALINGS IN THE SOFTWARE.
 
 #include "../../../src/wavegen.h"
 
+#include "music_defs.h"
+
 #define MUS_PROG_LEN 255
 #define MUS_MAX_CHANNELS CYD_MAX_CHANNELS
 
-#define MUS_VERSION 29
+#define MUS_VERSION 30
 
 #define MUS_SONG_TITLE_LEN 255
 #define MUS_INSTRUMENT_NAME_LEN 255
@@ -56,17 +60,22 @@ typedef struct
 	Uint8 volume;
 	
 	Uint8 mixmode; //wasn't there
+	Uint8 slope;
 	
 	Uint16 program[MUS_PROG_LEN];
 	Uint8 prog_period; 
 	Uint8 vibrato_speed, vibrato_depth, slide_speed, pwm_speed, pwm_depth;
+	
+	Uint8 tremolo_speed, tremolo_delay, tremolo_shape, tremolo_depth; //wasn't there
+	Uint8 pwm_delay;
+	
 	Uint8 base_note;
 	Uint16 cutoff;
 	Uint8 resonance; //was 0-3, now 0-15
 	Uint8 flttype;
 	Uint8 ym_env_shape;
 	Sint16 buzz_offset;
-	Uint8 fx_bus, vib_shape, vib_delay, pwm_shape;
+	Uint8 fx_bus, vibrato_shape, vibrato_delay, pwm_shape;
 	char name[MUS_INSTRUMENT_NAME_LEN + 1];
 	Uint8 wavetable_entry;
 	Uint8 lfsr_type;
@@ -172,13 +181,15 @@ typedef struct
 	MusPattern *pattern;
 	Uint8 last_ctrl;
 	Uint16 pw, pattern_step, sequence_position, slide_speed;
-	Uint16 vibrato_position, pwm_position;
+	Uint16 vibrato_position, pwm_position, tremolo_position;
 	Sint8 note_offset;
 	Uint16 filter_cutoff;
 	Uint8 filter_resonance;
 	Uint8 extarp1, extarp2;
 	Uint8 volume;
-	Uint8 vib_delay;
+	Uint8 vibrato_delay;
+	
+	Uint8 pwm_delay, tremolo_delay; //wasn't there
 } MusTrackStatus;
 
 typedef struct
@@ -311,8 +322,8 @@ enum
 {
 	MUS_CTRL_LEGATO = MUS_CTRL_BIT,
 	MUS_CTRL_SLIDE = MUS_CTRL_BIT << 1,
-	MUS_CTRL_VIB = MUS_CTRL_BIT << 2
-	
+	MUS_CTRL_VIB = MUS_CTRL_BIT << 2,
+	MUS_CTRL_TREMOLO = MUS_CTRL_BIT << 4 //wasn't there
 };
 
 enum

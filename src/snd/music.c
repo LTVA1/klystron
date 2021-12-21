@@ -412,14 +412,15 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 		case MUS_FX_PW_DN:
 		{
 			track_status->pw -= inst & 0xff;
-			if (track_status->pw > 0xf000) track_status->pw = 0;
+			if (track_status->pw > 0xf000) track_status->pw = 0xfff - (track_status->pw - 0xf000);
 		}
 		break;
 
 		case MUS_FX_PW_UP:
 		{
 			track_status->pw += inst & 0xff;
-			if (track_status->pw > 0x7ff) track_status->pw = 0x7ff;
+			if (track_status->pw > 0xfff) track_status->pw = track_status->pw - 0xfff; //was if (track_status->pw > 0x7ff) track_status->pw = 0x7ff;
+			//track_status->pw = track_status->pw >= 0x800 ? 0x800 - (track_status->pw - 0x800) : track_status->pw;
 		}
 		break;
 
@@ -435,7 +436,7 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 		case MUS_FX_CUTOFF_UP:
 		{
 			track_status->filter_cutoff += inst & 0xff;
-			if (track_status->filter_cutoff > 0x7ff) track_status->filter_cutoff = 0x7ff;
+			if (track_status->filter_cutoff > 0xfff) track_status->filter_cutoff = 0xfff;
 			cyd_set_filter_coeffs(mus->cyd, cydchn, track_status->filter_cutoff, track_status->filter_resonance);
 		}
 		break;
@@ -611,7 +612,7 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 				case MUS_FX_CUTOFF_FINE_SET:
 				{
 					track_status->filter_cutoff = (inst & 0xfff);
-					if (track_status->filter_cutoff > 0x7ff) track_status->filter_cutoff = 0x7ff;
+					if (track_status->filter_cutoff > 0xfff) track_status->filter_cutoff = 0xfff; //if (track_status->filter_cutoff > 0x7ff) track_status->filter_cutoff = 0x7ff;
 					cyd_set_filter_coeffs(mus->cyd, cydchn, track_status->filter_cutoff, track_status->filter_resonance);
 				}
 				break;
@@ -732,8 +733,8 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 
 				case MUS_FX_CUTOFF_SET:
 				{
-					track_status->filter_cutoff = (inst & 0xff) << 3;
-					if (track_status->filter_cutoff > 0x7ff) track_status->filter_cutoff = 0x7ff;
+					track_status->filter_cutoff = (inst & 0xff) << 4; //track_status->filter_cutoff = (inst & 0xff) << 3;
+					if (track_status->filter_cutoff > 0xfff) track_status->filter_cutoff = 0xfff; //if (track_status->filter_cutoff > 0x7ff) track_status->filter_cutoff = 0x7ff;
 					cyd_set_filter_coeffs(mus->cyd, cydchn, track_status->filter_cutoff, track_status->filter_resonance);
 				}
 				break;
@@ -742,7 +743,7 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 				{
 					if ((inst & 0xff) < 0x80)
 					{
-						track_status->filter_cutoff = (inst & 0xff) << 4;
+						track_status->filter_cutoff = (inst & 0xff) << 5;
 						cydchn->flttype = FLT_LP;
 						cyd_set_filter_coeffs(mus->cyd, cydchn, track_status->filter_cutoff, track_status->filter_resonance);
 					}
@@ -1164,6 +1165,7 @@ int mus_trigger_instrument_internal(MusEngine* mus, int chan, MusInstrument *ins
 	cydchn->flags = ins->cydflags;
 	
 	cydchn->mixmode = ins->mixmode; //wasn't there
+	cydchn->flt_slope = ins->slope;
 	
 	chn->arpeggio_note = 0;
 	chn->fixed_note = 0xffff;
@@ -1188,7 +1190,12 @@ int mus_trigger_instrument_internal(MusEngine* mus, int chan, MusInstrument *ins
 	chn->current_tick = 0;
 
 	track->vibrato_position = 0;
-	track->vib_delay = ins->vib_delay;
+	track->tremolo_position = 0;
+	
+	track->vibrato_delay = ins->vibrato_delay;
+	
+	track->pwm_delay = ins->pwm_delay; //wasn't there
+	track->tremolo_delay = ins->tremolo_delay;
 
 	track->slide_speed = 0;
 
@@ -1224,7 +1231,10 @@ int mus_trigger_instrument_internal(MusEngine* mus, int chan, MusInstrument *ins
 	{
 		track->pw = ins->pw;
 #ifndef CYD_DISABLE_PWM
-		do_pwm(mus,chan);
+		if(track->pwm_delay == 0)
+		{
+			do_pwm(mus,chan);
+		}
 #endif
 	}
 
@@ -1368,7 +1378,7 @@ static void mus_advance_channel(MusEngine* mus, int chan)
 #ifndef CYD_DISABLE_VIBRATO
 
 	Uint8 ctrl = 0;
-	int vibdep = my_max(0, (int)ins->vibrato_depth - (int)track_status->vib_delay);
+	int vibdep = my_max(0, (int)ins->vibrato_depth - (int)track_status->vibrato_delay);
 	int vibspd = ins->vibrato_speed;
 
 	if (track_status->pattern)
@@ -1401,19 +1411,43 @@ static void mus_advance_channel(MusEngine* mus, int chan)
 
 #endif
 
+	int tremdep = my_max(0, (int)ins->tremolo_depth - (int)track_status->tremolo_delay);
+	int tremspd = ins->tremolo_speed;
+
 	Sint16 vib = 0;
+	
+	Sint16 trem = 0;
 
 #ifndef CYD_DISABLE_VIBRATO
 	if (((ctrl & MUS_CTRL_VIB) && !(ins->flags & MUS_INST_INVERT_VIBRATO_BIT)) || (!(ctrl & MUS_CTRL_VIB) && (ins->flags & MUS_INST_INVERT_VIBRATO_BIT)))
 	{
 		track_status->vibrato_position += vibspd;
-		vib = mus_shape(track_status->vibrato_position >> 1, ins->vib_shape) * vibdep / 64;
-		if (track_status->vib_delay) --track_status->vib_delay;
+		vib = mus_shape(track_status->vibrato_position >> 1, ins->vibrato_shape) * vibdep / 64;
+		if (track_status->vibrato_delay) --track_status->vibrato_delay;
 	}
 #endif
 
+	if(track_status->tremolo_delay != 0)
+	{
+		--track_status->tremolo_delay;
+	}
+
+	if(track_status->tremolo_delay == 0)
+	{
+		track_status->tremolo_position += tremspd;
+		trem = mus_shape(track_status->tremolo_position >> 1, ins->tremolo_shape) * tremdep / 64;
+	}
+	
 #ifndef CYD_DISABLE_PWM
-	do_pwm(mus, chan);
+	if(track_status->pwm_delay == 0)
+	{
+		do_pwm(mus, chan);
+	}
+	
+	else
+	{
+		--track_status->pwm_delay;
+	}
 #endif
 
 	Sint32 note = (mus->channel[chan].fixed_note != 0xffff ? mus->channel[chan].fixed_note : mus->channel[chan].note) + vib + ((Uint16)mus->channel[chan].arpeggio_note << 8);
@@ -1422,6 +1456,15 @@ static void mus_advance_channel(MusEngine* mus, int chan)
 	if (note > FREQ_TAB_SIZE << 8) note = (FREQ_TAB_SIZE - 1) << 8;
 
 	mus_set_note(mus, chan, note, 0, ins->flags & MUS_INST_QUARTER_FREQ ? 4 : 1);
+	
+	CydChannel *cydchn = &mus->cyd->channel[chan];
+	
+	//chn->volume += trem / 64;
+	
+	if(track_status->tremolo_delay == 0 && track_status->volume + (trem * ins->volume / 255) - (trem * ins->volume / 255) / 2 <= 255 && ins->tremolo_depth != 0)
+	{
+		update_volumes(mus, track_status, chn, cydchn, track_status->volume + (trem * ins->volume / 255) - (trem * ins->volume / 255) / 2);
+	}
 }
 
 
@@ -1906,6 +1949,15 @@ int mus_load_instrument_RW(Uint8 version, RWops *ctx, MusInstrument *inst, CydWa
 	_VER_READ(&inst->vibrato_depth, 0);
 	_VER_READ(&inst->pwm_speed, 0);
 	_VER_READ(&inst->pwm_depth, 0);
+	
+	
+	VER_READ(version, 30, 0xff, &inst->pwm_delay, 0); //wasn't there
+	VER_READ(version, 30, 0xff, &inst->tremolo_speed, 0); //wasn't there
+	VER_READ(version, 30, 0xff, &inst->tremolo_depth, 0); //wasn't there
+	VER_READ(version, 30, 0xff, &inst->tremolo_shape, 0); //wasn't there
+	VER_READ(version, 30, 0xff, &inst->tremolo_delay, 0); //wasn't there
+	
+	
 	_VER_READ(&inst->slide_speed, 0);
 	_VER_READ(&inst->base_note, 0);
 
@@ -1924,11 +1976,14 @@ int mus_load_instrument_RW(Uint8 version, RWops *ctx, MusInstrument *inst, CydWa
 	VER_READ(version, 1, 0xff, &inst->cutoff, 0);
 	VER_READ(version, 1, 0xff, &inst->resonance, 0);
 	VER_READ(version, 1, 0xff, &inst->flttype, 0);
+	
+	VER_READ(version, 30, 0xff, &inst->slope, 0); //wasn't there
+	
 	VER_READ(version, 7, 0xff, &inst->ym_env_shape, 0);
 	VER_READ(version, 7, 0xff, &inst->buzz_offset, 0);
 	VER_READ(version, 10, 0xff, &inst->fx_bus, 0);
-	VER_READ(version, 11, 0xff, &inst->vib_shape, 0);
-	VER_READ(version, 11, 0xff, &inst->vib_delay, 0);
+	VER_READ(version, 11, 0xff, &inst->vibrato_shape, 0);
+	VER_READ(version, 11, 0xff, &inst->vibrato_delay, 0);
 	VER_READ(version, 11, 0xff, &inst->pwm_shape, 0);
 	VER_READ(version, 18, 0xff, &inst->lfsr_type, 0);
 	
@@ -1952,6 +2007,11 @@ int mus_load_instrument_RW(Uint8 version, RWops *ctx, MusInstrument *inst, CydWa
 	{
 		inst->fm_base_note = inst->base_note;
 		inst->fm_finetune = 0;
+	}
+	
+	if(version < 30)
+	{
+		inst->cutoff *= 2;
 	}
 
 #ifndef CYD_DISABLE_WAVETABLE
@@ -2037,7 +2097,7 @@ void mus_get_default_instrument(MusInstrument *inst)
 	memset(inst, 0, sizeof(*inst));
 	inst->flags = MUS_INST_DRUM|MUS_INST_SET_PW|MUS_INST_SET_CUTOFF;
 	inst->pw = 0x600;
-	inst->cydflags = CYD_CHN_ENABLE_TRIANGLE;
+	inst->cydflags = CYD_CHN_ENABLE_TRIANGLE|CYD_CHN_ENABLE_KEY_SYNC;
 	inst->adsr.a = 1 * ENVELOPE_SCALE;
 	inst->adsr.d = 12 * ENVELOPE_SCALE;
 	inst->volume = MAX_VOLUME;
@@ -2047,12 +2107,12 @@ void mus_get_default_instrument(MusInstrument *inst)
 	
 	inst->finetune = 0;
 	inst->prog_period = 2;
-	inst->cutoff = 2047;
+	inst->cutoff = 4095;
 	inst->slide_speed = 0x80;
 	inst->vibrato_speed = 0x20;
 	inst->vibrato_depth = 0x20;
-	inst->vib_shape = MUS_SHAPE_SINE;
-	inst->vib_delay = 0;
+	inst->vibrato_shape = MUS_SHAPE_SINE;
+	inst->vibrato_delay = 0;
 
 	for (int p = 0 ; p < MUS_PROG_LEN; ++p)
 		inst->program[p] = MUS_FX_NOP;

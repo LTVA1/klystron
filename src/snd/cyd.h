@@ -64,13 +64,14 @@ typedef struct
 	Uint32 lfsr_type;
 	const CydWavetableEntry *wave_entry;
 	CydOscState subosc[CYD_SUB_OSCS];
-	CydFilter flt;
+	CydFilter flt, flt2, flt3, flt4;
 	int fx_bus;
 #ifndef CYD_DISABLE_FM
 	CydFm fm;
 #endif
 
 	Uint8 mixmode; //wasn't there
+	Uint8 flt_slope;
 	
 } CydChannel;
 
