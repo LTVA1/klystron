@@ -412,15 +412,14 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 		case MUS_FX_PW_DN:
 		{
 			track_status->pw -= inst & 0xff;
-			if (track_status->pw > 0xf000) track_status->pw = 0xfff - (track_status->pw - 0xf000);
+			if (track_status->pw > 0xf000) track_status->pw = 0;
 		}
 		break;
 
 		case MUS_FX_PW_UP:
 		{
 			track_status->pw += inst & 0xff;
-			if (track_status->pw > 0xfff) track_status->pw = track_status->pw - 0xfff; //was if (track_status->pw > 0x7ff) track_status->pw = 0x7ff;
-			//track_status->pw = track_status->pw >= 0x800 ? 0x800 - (track_status->pw - 0x800) : track_status->pw;
+			if (track_status->pw > 0xfff) track_status->pw = 0xfff;
 		}
 		break;
 
@@ -1167,6 +1166,10 @@ int mus_trigger_instrument_internal(MusEngine* mus, int chan, MusInstrument *ins
 	cydchn->mixmode = ins->mixmode; //wasn't there
 	cydchn->flt_slope = ins->slope;
 	
+	cydchn->curr_tremolo = 0;
+	cydchn->tremolo = 0;
+	cydchn->prev_tremolo = 0;
+	
 	chn->arpeggio_note = 0;
 	chn->fixed_note = 0xffff;
 	cydchn->fx_bus = ins->fx_bus;
@@ -1411,7 +1414,7 @@ static void mus_advance_channel(MusEngine* mus, int chan)
 
 #endif
 
-	int tremdep = my_max(0, (int)ins->tremolo_depth - (int)track_status->tremolo_delay);
+	int tremdep = ins->tremolo_depth;
 	int tremspd = ins->tremolo_speed;
 
 	Sint16 vib = 0;
@@ -1461,9 +1464,17 @@ static void mus_advance_channel(MusEngine* mus, int chan)
 	
 	//chn->volume += trem / 64;
 	
-	if(track_status->tremolo_delay == 0 && track_status->volume + (trem * ins->volume / 255) - (trem * ins->volume / 255) / 2 <= 255 && ins->tremolo_depth != 0)
+	/*if(track_status->tremolo_delay == 0 && track_status->volume + (trem * ins->volume / 255) - (trem * ins->volume / 255) / 2 <= 255 && ins->tremolo_depth != 0)
 	{
 		update_volumes(mus, track_status, chn, cydchn, track_status->volume + (trem * ins->volume / 255) - (trem * ins->volume / 255) / 2);
+	}*/
+	if(track_status->tremolo_delay == 0)
+	{
+		cydchn->prev_tremolo = cydchn->tremolo;
+		cydchn->tremolo = trem;
+		cydchn->tremolo_interpolation_counter = 0;
+		
+		//debug("oh yeah %d", cydchn->tremolo);
 	}
 }
 
@@ -2874,6 +2885,33 @@ int mus_load_song_RW(RWops *ctx, MusSong *song, CydWavetableEntry *wavetable_ent
 		}
 		else
 			song->num_wavetables = 0;*/
+		
+		
+		
+		if(version < 30) //to account for cutoff range extended from 000-7ff to 000-fff
+		{
+			for (int h = 0; h < song->num_instruments; ++h)
+			{
+				for (int p = 0; p < MUS_PROG_LEN; ++p)
+				{
+					if ((song->instrument[h].program[p] & 0xF000) == 0x6000)
+					{
+						song->instrument[h].program[p] = 0x6000 + (song->instrument[h].program[p] & 0x0FFF) * 2;
+					}
+				}
+			}
+
+			for (int p = 0; p < song->num_patterns; ++p)
+			{
+				for (int w = 0; w < song->pattern[p].num_steps; ++w)
+				{
+					if ((song->pattern[p].step[w].command & 0xF000) == 0x6000)
+					{
+						song->pattern[p].step[w].command = 0x6000 + (song->pattern[p].step[w].command & 0x0FFF) * 2;
+					}
+				}
+			}
+		}
 
 		return 1;
 	}

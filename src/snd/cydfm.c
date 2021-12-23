@@ -43,6 +43,33 @@ Uint32 get_modulator(const CydEngine *cyd, const CydFm *fm) //static Uint32 get_
 	}
 }
 
+Uint32 get_modulator_no_envelope(const CydEngine *cyd, const CydFm *fm) //static Uint32 get_modulator(const CydEngine *cyd, const CydFm *fm)
+{
+	const static Uint32 fbtab[] = { 0, 64, 32, 16, 8, 4, 2, 1 };
+
+	if ((fm->flags & CYD_FM_ENABLE_WAVE) && fm->wave_entry)
+	{
+		Uint32 acc = fm->wave.acc;
+		CydWaveAcc length = (CydWaveAcc)(fm->wave_entry->loop_end - fm->wave_entry->loop_begin) * WAVETABLE_RESOLUTION;
+		
+		if (length == 0) return 0;
+		
+		if (fm->feedback) 
+		{
+			acc = acc + ((Uint64)(fm->fb1 + fm->fb2) / 2 * (length * 4 / fbtab[fm->feedback]) / MODULATOR_MAX);
+		}
+		
+		return (Sint64)(cyd_wave_get_sample(&fm->wave, fm->wave_entry, acc % length)) / 64 + 65536;
+	}
+	
+	else
+	{
+		Uint32 acc = fm->accumulator;
+		if (fm->feedback) acc += ((Uint64)(fm->fb1 + fm->fb2) / 2 * (ACC_LENGTH * 4 / fbtab[fm->feedback]) / MODULATOR_MAX);
+		return (Uint64)cyd_osc(CYD_CHN_ENABLE_TRIANGLE, acc % ACC_LENGTH, 0, 0, 0, 0) * fm->env_output / WAVE_AMP + WAVE_AMP / 2; //was return (Uint64)cyd_osc(CYD_CHN_ENABLE_TRIANGLE, acc % ACC_LENGTH, 0, 0, 0) * fm->env_output / WAVE_AMP + WAVE_AMP / 2;
+	}
+}
+
 void cydfm_cycle_oversample(const CydEngine *cyd, CydFm *fm)
 {
 	

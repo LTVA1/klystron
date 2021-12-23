@@ -73,6 +73,11 @@ typedef struct
 	Uint8 mixmode; //wasn't there
 	Uint8 flt_slope;
 	
+	Sint16 tremolo; //wasn't there
+	Sint16 prev_tremolo;
+	Uint8 tremolo_interpolation_counter;
+	Sint16 curr_tremolo;
+	
 } CydChannel;
 
 enum

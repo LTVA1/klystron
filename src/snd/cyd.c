@@ -529,6 +529,8 @@ static Sint32 cyd_output_channel(CydEngine *cyd, CydChannel *chn)
 				}
 #endif
 				ovr += cyd_osc(chn->flags, accumulator % ACC_LENGTH, chn->pw, chn->subosc[s].random, chn->subosc[s].lfsr_acc, chn->mixmode) - WAVE_AMP / 2; //ovr += cyd_osc(chn->flags, accumulator % ACC_LENGTH, chn->pw, chn->subosc[s].random, chn->subosc[s].lfsr_acc) - WAVE_AMP / 2;
+				
+				
 			}
 		}
 		
@@ -588,7 +590,7 @@ static Sint32 cyd_output(CydEngine *cyd)
 #ifndef CYD_DISABLE_WAVETABLE
 		if ((cyd->channel[i].flags & CYD_CHN_ENABLE_WAVE) && cyd->channel[i].wave_entry && !(cyd->channel[i].flags & CYD_CHN_WAVE_OVERRIDE_ENV))
 		{
-			for (int sub = 0 ; sub < CYD_SUB_OSCS ; ++sub)
+			for (int sub = 0; sub < CYD_SUB_OSCS; ++sub)
 			{
 				if (cyd->channel[i].subosc[sub].wave.playing && cyd->channel[i].subosc[sub].wave.frequency != 0)
 				{
@@ -622,20 +624,38 @@ static Sint32 cyd_output(CydEngine *cyd)
 #endif
 	}
 	
-	for (int i = 0 ; i < cyd->n_channels ; ++i)
+	for (int i = 0; i < cyd->n_channels; ++i)
 	{
 		CydChannel *chn = &cyd->channel[i];
 		Sint32 o = 0;
 		if (chn->flags & CYD_CHN_ENABLE_GATE)
 		{
+			if(chn->tremolo_interpolation_counter < 64)
+			{
+				chn->curr_tremolo = chn->prev_tremolo + (chn->tremolo - chn->prev_tremolo) * chn->tremolo_interpolation_counter / 64;
+				chn->tremolo_interpolation_counter++;
+			}
+				
+			else
+			{
+				chn->curr_tremolo = chn->tremolo;
+			}
+			
+			
+			
 			if (chn->flags & CYD_CHN_ENABLE_RING_MODULATION)
 			{
-				o = cyd_env_output(cyd, chn->flags, &chn->adsr, s[i] * (s[chn->ring_mod] + (WAVE_AMP / 2)) / WAVE_AMP);
+				o = cyd_env_output(cyd, chn->flags, &chn->adsr, s[i] * (s[chn->ring_mod] + (WAVE_AMP / 2)) / WAVE_AMP) * (cyd->channel[i].curr_tremolo + 512) / 512;
 			}
 			else
 			{
-				o = cyd_env_output(cyd, chn->flags, &chn->adsr, s[i]);
+				o = cyd_env_output(cyd, chn->flags, &chn->adsr, s[i]) * (cyd->channel[i].curr_tremolo + 512) / 512;
 			}
+			
+			/*if ((cyd->channel[i].fm.flags & CYD_FM_ENABLE_ADDITIVE) && (cyd->channel[i].flags & CYD_CHN_ENABLE_FM)) //new additive fm 2-op design
+			{
+				o += (cyd->channel[i].fm.current_modulation) * 16 - 65536 * 16;
+			}*/
 
 #ifndef CYD_DISABLE_WAVETABLE			
 			if ((cyd->channel[i].flags & CYD_CHN_ENABLE_WAVE) && cyd->channel[i].wave_entry && (cyd->channel[i].flags & CYD_CHN_WAVE_OVERRIDE_ENV))
@@ -661,7 +681,10 @@ static Sint32 cyd_output(CydEngine *cyd)
 #endif	
 						o += cyd_wave_get_sample(&cyd->channel[i].subosc[s].wave, chn->wave_entry, accumulator) * (Sint32)(chn->adsr.volume) / MAX_VOLUME;
 						
-						
+						/*if ((cyd->channel[i].fm.flags & CYD_FM_ENABLE_ADDITIVE) && (cyd->channel[i].flags & CYD_CHN_ENABLE_FM))
+						{
+							o += (cyd->channel[i].fm.current_modulation) * 64 - 65536 * 64;
+						}*/
 					}
 				}
 			}
