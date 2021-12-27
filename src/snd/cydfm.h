@@ -21,7 +21,9 @@ typedef struct //wasn't there
     Uint8 mixmode; 
     
     Uint16 program[MUS_PROG_LEN];
+	
 	Uint8 env_offset, program_offset; //<-----
+	
     Uint8 prog_period; 
     Uint8 slide_speed;
     Uint8 tremolo_speed, tremolo_delay, tremolo_shape, tremolo_depth;
@@ -49,7 +51,7 @@ typedef struct
 	CydAdsr adsr;
 	Uint32 period;
 	Uint32 wave_period;
-	Uint32 accumulator;
+	Uint64 accumulator;
 	const CydWavetableEntry *wave_entry;
 	CydWaveState wave;
 	Uint32 fb1, fb2, env_output;
@@ -62,6 +64,16 @@ typedef struct
 	Sint8 fm_carrier_finetune;
 	
 	CydFmOp ops[MUS_FM_NUM_OPS];
+	
+	Uint8 fm_freq_LUT;
+	
+	Sint16 fm_tremolo; //wasn't there
+	Sint16 fm_prev_tremolo;
+	Uint8 fm_tremolo_interpolation_counter;
+	Sint16 fm_curr_tremolo;
+	
+	Sint16 fm_vib;
+	
 } CydFm;
 
 #include "cyd.h"

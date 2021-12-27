@@ -628,11 +628,12 @@ static Sint32 cyd_output(CydEngine *cyd)
 	{
 		CydChannel *chn = &cyd->channel[i];
 		Sint32 o = 0;
+
 		if (chn->flags & CYD_CHN_ENABLE_GATE)
 		{
-			if(chn->tremolo_interpolation_counter < 64)
+			if(chn->tremolo_interpolation_counter < 171)
 			{
-				chn->curr_tremolo = chn->prev_tremolo + (chn->tremolo - chn->prev_tremolo) * chn->tremolo_interpolation_counter / 64;
+				chn->curr_tremolo = chn->prev_tremolo + (chn->tremolo - chn->prev_tremolo) * chn->tremolo_interpolation_counter / 171;
 				chn->tremolo_interpolation_counter++;
 			}
 				
@@ -641,6 +642,17 @@ static Sint32 cyd_output(CydEngine *cyd)
 				chn->curr_tremolo = chn->tremolo;
 			}
 			
+			
+			if(chn->fm.fm_tremolo_interpolation_counter < 171)
+			{
+				chn->fm.fm_curr_tremolo = chn->fm.fm_prev_tremolo + (chn->fm.fm_tremolo - chn->fm.fm_prev_tremolo) * chn->fm.fm_tremolo_interpolation_counter / 171;
+				chn->fm.fm_tremolo_interpolation_counter++;
+			}
+			
+			else
+			{
+				chn->fm.fm_curr_tremolo = chn->fm.fm_tremolo;
+			}
 			
 			
 			if (chn->flags & CYD_CHN_ENABLE_RING_MODULATION)
@@ -660,7 +672,7 @@ static Sint32 cyd_output(CydEngine *cyd)
 #ifndef CYD_DISABLE_WAVETABLE			
 			if ((cyd->channel[i].flags & CYD_CHN_ENABLE_WAVE) && cyd->channel[i].wave_entry && (cyd->channel[i].flags & CYD_CHN_WAVE_OVERRIDE_ENV))
 			{
-				for (int s = 0 ; s < CYD_SUB_OSCS ; ++s)
+				for (int s = 0; s < CYD_SUB_OSCS; ++s)
 				{
 					if (cyd->channel[i].subosc[s].wave.playing && cyd->channel[i].subosc[s].wave.frequency != 0)
 					{

@@ -33,8 +33,8 @@ typedef CRITICAL_SECTION CydMutex;
 #endif
 
 #ifdef LOWRESWAVETABLE
-typedef Uint32 CydWaveAcc;
-typedef Sint32 CydWaveAccSigned;
+typedef Uint64 CydWaveAcc;
+typedef Sint64 CydWaveAccSigned;
 #else
 typedef Uint64 CydWaveAcc;
 typedef Sint64 CydWaveAccSigned;

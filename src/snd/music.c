@@ -1195,10 +1195,15 @@ int mus_trigger_instrument_internal(MusEngine* mus, int chan, MusInstrument *ins
 	track->vibrato_position = 0;
 	track->tremolo_position = 0;
 	
+	track->fm_vibrato_position = 0;
+	track->fm_tremolo_position = 0;
+	
 	track->vibrato_delay = ins->vibrato_delay;
+	track->fm_vibrato_delay = ins->fm_vibrato_delay;
 	
 	track->pwm_delay = ins->pwm_delay; //wasn't there
 	track->tremolo_delay = ins->tremolo_delay;
+	track->fm_tremolo_delay = ins->fm_tremolo_delay;
 
 	track->slide_speed = 0;
 
@@ -1293,6 +1298,9 @@ int mus_trigger_instrument_internal(MusEngine* mus, int chan, MusInstrument *ins
 
 	fm->flags = ins->fm_flags;
 	fm->harmonic = ins->fm_harmonic;
+	
+	fm->fm_freq_LUT = ins->fm_freq_LUT;
+	
 	fm->adsr.a = ins->fm_adsr.a;
 	fm->adsr.d = ins->fm_adsr.d;
 	fm->adsr.s = ins->fm_adsr.s;
@@ -1305,6 +1313,10 @@ int mus_trigger_instrument_internal(MusEngine* mus, int chan, MusInstrument *ins
 	fm->fm_finetune = ins->fm_finetune;
 	fm->fm_carrier_base_note = ins->base_note;
 	fm->fm_carrier_finetune = ins->finetune;
+	
+	fm->fm_curr_tremolo = 0;
+	fm->fm_tremolo = 0;
+	fm->fm_prev_tremolo = 0;
 #endif
 
 	//cyd_set_frequency(mus->cyd, cydchn, chn->frequency);
@@ -1381,8 +1393,12 @@ static void mus_advance_channel(MusEngine* mus, int chan)
 #ifndef CYD_DISABLE_VIBRATO
 
 	Uint8 ctrl = 0;
+	
 	int vibdep = my_max(0, (int)ins->vibrato_depth - (int)track_status->vibrato_delay);
 	int vibspd = ins->vibrato_speed;
+	
+	int fm_vibdep = my_max(0, (int)ins->fm_vibrato_depth - (int)track_status->fm_vibrato_delay);
+	int fm_vibspd = ins->fm_vibrato_speed;
 
 	if (track_status->pattern)
 	{
@@ -1416,10 +1432,15 @@ static void mus_advance_channel(MusEngine* mus, int chan)
 
 	int tremdep = ins->tremolo_depth;
 	int tremspd = ins->tremolo_speed;
+	
+	int fm_tremdep = ins->fm_tremolo_depth;
+	int fm_tremspd = ins->fm_tremolo_speed;
 
 	Sint16 vib = 0;
+	Sint16 fm_vib = 0;
 	
 	Sint16 trem = 0;
+	Sint16 fm_trem = 0;
 
 #ifndef CYD_DISABLE_VIBRATO
 	if (((ctrl & MUS_CTRL_VIB) && !(ins->flags & MUS_INST_INVERT_VIBRATO_BIT)) || (!(ctrl & MUS_CTRL_VIB) && (ins->flags & MUS_INST_INVERT_VIBRATO_BIT)))
@@ -1429,7 +1450,19 @@ static void mus_advance_channel(MusEngine* mus, int chan)
 		if (track_status->vibrato_delay) --track_status->vibrato_delay;
 	}
 #endif
+	
+	if(track_status->fm_vibrato_delay != 0)
+	{
+		--track_status->fm_vibrato_delay;
+	}
 
+	if(track_status->fm_vibrato_delay == 0)
+	{	
+		track_status->fm_vibrato_position += fm_vibspd;
+		fm_vib = mus_shape(track_status->fm_vibrato_position >> 1, ins->fm_vibrato_shape) * fm_vibdep / 64;
+	}
+	
+	
 	if(track_status->tremolo_delay != 0)
 	{
 		--track_status->tremolo_delay;
@@ -1439,6 +1472,20 @@ static void mus_advance_channel(MusEngine* mus, int chan)
 	{
 		track_status->tremolo_position += tremspd;
 		trem = mus_shape(track_status->tremolo_position >> 1, ins->tremolo_shape) * tremdep / 64;
+		//debug("oh yeah %d", trem);
+	}
+	
+	
+	
+	if(track_status->fm_tremolo_delay != 0)
+	{
+		--track_status->fm_tremolo_delay;
+	}
+
+	if(track_status->fm_tremolo_delay == 0)
+	{
+		track_status->fm_tremolo_position += fm_tremspd;
+		fm_trem = mus_shape(track_status->fm_tremolo_position >> 1, ins->fm_tremolo_shape) * fm_tremdep / 64;
 	}
 	
 #ifndef CYD_DISABLE_PWM
@@ -1453,6 +1500,10 @@ static void mus_advance_channel(MusEngine* mus, int chan)
 	}
 #endif
 
+	CydChannel *cydchn = &mus->cyd->channel[chan];
+	
+	cydchn->fm.fm_vib = fm_vib;
+	
 	Sint32 note = (mus->channel[chan].fixed_note != 0xffff ? mus->channel[chan].fixed_note : mus->channel[chan].note) + vib + ((Uint16)mus->channel[chan].arpeggio_note << 8);
 
 	if (note < 0) note = 0;
@@ -1460,7 +1511,7 @@ static void mus_advance_channel(MusEngine* mus, int chan)
 
 	mus_set_note(mus, chan, note, 0, ins->flags & MUS_INST_QUARTER_FREQ ? 4 : 1);
 	
-	CydChannel *cydchn = &mus->cyd->channel[chan];
+	
 	
 	//chn->volume += trem / 64;
 	
@@ -1473,6 +1524,15 @@ static void mus_advance_channel(MusEngine* mus, int chan)
 		cydchn->prev_tremolo = cydchn->tremolo;
 		cydchn->tremolo = trem;
 		cydchn->tremolo_interpolation_counter = 0;
+		
+		
+	}
+	
+	if(track_status->fm_tremolo_delay == 0)
+	{
+		cydchn->fm.fm_prev_tremolo = cydchn->fm.fm_tremolo;
+		cydchn->fm.fm_tremolo = fm_trem;
+		cydchn->fm.fm_tremolo_interpolation_counter = 0;
 		
 		//debug("oh yeah %d", cydchn->tremolo);
 	}
@@ -1947,8 +2007,17 @@ int mus_load_instrument_RW(Uint8 version, RWops *ctx, MusInstrument *inst, CydWa
 	_VER_READ(&inst->flags, 0);
 	_VER_READ(&inst->cydflags, 0);
 	_VER_READ(&inst->adsr, 0);
-	_VER_READ(&inst->sync_source, 0);
-	_VER_READ(&inst->ring_mod, 0);
+	
+	if(((inst->cydflags & CYD_CHN_ENABLE_SYNC) && version >= 31) || version < 31)
+	{
+		_VER_READ(&inst->sync_source, 0);
+	}
+	
+	if(((inst->cydflags & CYD_CHN_ENABLE_RING_MODULATION) && version >= 31) || version < 31)
+	{
+		_VER_READ(&inst->ring_mod, 0);
+	}
+	
 	_VER_READ(&inst->pw, 0);
 	_VER_READ(&inst->volume, 0);
 	Uint8 progsteps = 0;
@@ -1956,18 +2025,21 @@ int mus_load_instrument_RW(Uint8 version, RWops *ctx, MusInstrument *inst, CydWa
 	if (progsteps)
 		_VER_READ(&inst->program, (int)progsteps*sizeof(inst->program[0]));
 	_VER_READ(&inst->prog_period, 0);
-	_VER_READ(&inst->vibrato_speed, 0);
-	_VER_READ(&inst->vibrato_depth, 0);
-	_VER_READ(&inst->pwm_speed, 0);
-	_VER_READ(&inst->pwm_depth, 0);
 	
-	
-	VER_READ(version, 30, 0xff, &inst->pwm_delay, 0); //wasn't there
-	VER_READ(version, 30, 0xff, &inst->tremolo_speed, 0); //wasn't there
-	VER_READ(version, 30, 0xff, &inst->tremolo_depth, 0); //wasn't there
-	VER_READ(version, 30, 0xff, &inst->tremolo_shape, 0); //wasn't there
-	VER_READ(version, 30, 0xff, &inst->tremolo_delay, 0); //wasn't there
-	
+	if(((inst->flags & MUS_INST_SAVE_LFO_SETTINGS) && version >= 31) || version < 31)
+	{
+		_VER_READ(&inst->vibrato_speed, 0);
+		_VER_READ(&inst->vibrato_depth, 0);
+		_VER_READ(&inst->pwm_speed, 0);
+		_VER_READ(&inst->pwm_depth, 0);
+		
+		VER_READ(version, 30, 0xff, &inst->pwm_delay, 0); //wasn't there
+		
+		VER_READ(version, 30, 0xff, &inst->tremolo_speed, 0); //wasn't there
+		VER_READ(version, 30, 0xff, &inst->tremolo_depth, 0); //wasn't there
+		VER_READ(version, 30, 0xff, &inst->tremolo_shape, 0); //wasn't there
+		VER_READ(version, 30, 0xff, &inst->tremolo_delay, 0); //wasn't there
+	}
 	
 	_VER_READ(&inst->slide_speed, 0);
 	_VER_READ(&inst->base_note, 0);
@@ -1977,6 +2049,7 @@ int mus_load_instrument_RW(Uint8 version, RWops *ctx, MusInstrument *inst, CydWa
 
 	Uint8 len = 16;
 	VER_READ(version, 11, 0xff, &len, 0);
+	
 	if (len)
 	{
 		memset(inst->name, 0, sizeof(inst->name));
@@ -1984,34 +2057,70 @@ int mus_load_instrument_RW(Uint8 version, RWops *ctx, MusInstrument *inst, CydWa
 		inst->name[sizeof(inst->name) - 1] = '\0';
 	}
 
-	VER_READ(version, 1, 0xff, &inst->cutoff, 0);
-	VER_READ(version, 1, 0xff, &inst->resonance, 0);
-	VER_READ(version, 1, 0xff, &inst->flttype, 0);
+	if(((inst->cydflags & CYD_CHN_ENABLE_FILTER) && version >= 31) || version < 31)
+	{
+		VER_READ(version, 1, 0xff, &inst->cutoff, 0);
+		VER_READ(version, 1, 0xff, &inst->resonance, 0);
+		VER_READ(version, 1, 0xff, &inst->flttype, 0);
+		
+		VER_READ(version, 30, 0xff, &inst->slope, 0); //wasn't there
+	}
 	
-	VER_READ(version, 30, 0xff, &inst->slope, 0); //wasn't there
+	if(((inst->flags & MUS_INST_YM_BUZZ) && version >= 31) || version < 31)
+	{
+		VER_READ(version, 7, 0xff, &inst->ym_env_shape, 0);
+		VER_READ(version, 7, 0xff, &inst->buzz_offset, 0);
+	}
 	
-	VER_READ(version, 7, 0xff, &inst->ym_env_shape, 0);
-	VER_READ(version, 7, 0xff, &inst->buzz_offset, 0);
-	VER_READ(version, 10, 0xff, &inst->fx_bus, 0);
-	VER_READ(version, 11, 0xff, &inst->vibrato_shape, 0);
-	VER_READ(version, 11, 0xff, &inst->vibrato_delay, 0);
-	VER_READ(version, 11, 0xff, &inst->pwm_shape, 0);
-	VER_READ(version, 18, 0xff, &inst->lfsr_type, 0);
+	if(((inst->cydflags & CYD_CHN_ENABLE_FX) && version >= 31) || version < 31)
+	{
+		VER_READ(version, 10, 0xff, &inst->fx_bus, 0);
+	}
+	
+	if(((inst->flags & MUS_INST_SAVE_LFO_SETTINGS) && version >= 31) || version < 31)
+	{
+		VER_READ(version, 11, 0xff, &inst->vibrato_shape, 0);
+		VER_READ(version, 11, 0xff, &inst->vibrato_delay, 0);
+		VER_READ(version, 11, 0xff, &inst->pwm_shape, 0);
+	}
+	
+	if(((inst->cydflags & CYD_CHN_ENABLE_LFSR) && version >= 31) || version < 31)
+	{
+		VER_READ(version, 18, 0xff, &inst->lfsr_type, 0);
+	}
 	
 	VER_READ(version, 28, 0xff, &inst->mixmode, 0); //wasn't there
 	
 	VER_READ(version, 12, 0xff, &inst->wavetable_entry, 0);
+	
+	if(((inst->cydflags & CYD_CHN_ENABLE_FM) && version >= 31) || version < 31)
+	{
+		VER_READ(version, 23, 0xff, &inst->fm_flags, 0);
+		VER_READ(version, 23, 0xff, &inst->fm_modulation, 0);
+		VER_READ(version, 23, 0xff, &inst->fm_feedback, 0);
+		VER_READ(version, 23, 0xff, &inst->fm_harmonic, 0);
+		VER_READ(version, 23, 0xff, &inst->fm_adsr, 0);
+		VER_READ(version, 25, 0xff, &inst->fm_attack_start, 0);
+		
+		VER_READ(version, 29, 0xff, &inst->fm_base_note, 0); //wasn't there
+		VER_READ(version, 29, 0xff, &inst->fm_finetune, 0); //wasn't there
+		
+		VER_READ(version, 31, 0xff, &inst->fm_freq_LUT, 0);
+		
+		if(inst->fm_flags & CYD_FM_SAVE_LFO_SETTINGS)
+		{
+			VER_READ(version, 31, 0xff, &inst->fm_vibrato_speed, 0); //wasn't there
+			VER_READ(version, 31, 0xff, &inst->fm_vibrato_depth, 0); //wasn't there
+			VER_READ(version, 31, 0xff, &inst->fm_vibrato_shape, 0); //wasn't there
+			VER_READ(version, 31, 0xff, &inst->fm_vibrato_delay, 0);
+			
+			VER_READ(version, 31, 0xff, &inst->fm_tremolo_speed, 0); //wasn't there
+			VER_READ(version, 31, 0xff, &inst->fm_tremolo_depth, 0); //wasn't there
+			VER_READ(version, 31, 0xff, &inst->fm_tremolo_shape, 0); //wasn't there
+			VER_READ(version, 31, 0xff, &inst->fm_tremolo_delay, 0);
+		}
+	}
 
-	VER_READ(version, 23, 0xff, &inst->fm_flags, 0);
-	VER_READ(version, 23, 0xff, &inst->fm_modulation, 0);
-	VER_READ(version, 23, 0xff, &inst->fm_feedback, 0);
-	VER_READ(version, 23, 0xff, &inst->fm_harmonic, 0);
-	VER_READ(version, 23, 0xff, &inst->fm_adsr, 0);
-	VER_READ(version, 25, 0xff, &inst->fm_attack_start, 0);
-	
-	VER_READ(version, 29, 0xff, &inst->fm_base_note, 0); //wasn't there
-	VER_READ(version, 29, 0xff, &inst->fm_finetune, 0); //wasn't there
-	
 	VER_READ(version, 23, 0xff, &inst->fm_wave, 0);
 	
 	if(version < 29)
@@ -2022,7 +2131,15 @@ int mus_load_instrument_RW(Uint8 version, RWops *ctx, MusInstrument *inst, CydWa
 	
 	if(version < 30)
 	{
-		inst->cutoff *= 2;
+		if(inst->cutoff == 0x7ff)
+		{
+			inst->cutoff = 0xfff;
+		}
+		
+		else
+		{
+			inst->cutoff *= 2;
+		}
 	}
 
 #ifndef CYD_DISABLE_WAVETABLE
@@ -2059,6 +2176,19 @@ int mus_load_instrument_RW(Uint8 version, RWops *ctx, MusInstrument *inst, CydWa
 		FIX_ENDIAN(inst->program[i]);
 
 	FIX_ENDIAN(inst->fm_flags);
+	
+	
+	if(version < 31)
+	{
+		if((inst->vibrato_speed != 0) || (inst->vibrato_depth != 0) || 
+		(inst->pwm_speed != 0) || (inst->pwm_depth != 0) || 
+		(inst->pwm_delay != 0) || (inst->tremolo_speed != 0) || 
+		(inst->tremolo_depth != 0) || (inst->vibrato_delay != 0) || 
+		(inst->tremolo_delay != 0))
+		{
+			inst->flags |= MUS_INST_SAVE_LFO_SETTINGS;
+		}
+	}
 
 	if (version < 26)
 	{
@@ -2106,9 +2236,12 @@ int mus_load_instrument_RW2(RWops *ctx, MusInstrument *inst, CydWavetableEntry *
 void mus_get_default_instrument(MusInstrument *inst)
 {
 	memset(inst, 0, sizeof(*inst));
-	inst->flags = MUS_INST_DRUM|MUS_INST_SET_PW|MUS_INST_SET_CUTOFF;
+	inst->flags = MUS_INST_DRUM|MUS_INST_SET_PW|MUS_INST_SET_CUTOFF|MUS_INST_SAVE_LFO_SETTINGS;
 	inst->pw = 0x600;
 	inst->cydflags = CYD_CHN_ENABLE_TRIANGLE|CYD_CHN_ENABLE_KEY_SYNC;
+	
+	inst->fm_flags = CYD_FM_SAVE_LFO_SETTINGS;
+	
 	inst->adsr.a = 1 * ENVELOPE_SCALE;
 	inst->adsr.d = 12 * ENVELOPE_SCALE;
 	inst->volume = MAX_VOLUME;
@@ -2159,7 +2292,18 @@ static void inner_load_fx(RWops *ctx, CydFxSerialized *fx, int version)
 		if (len)
 		{
 			memset(fx->name, 0, sizeof(fx->name));
-			_VER_READ(fx->name, my_min(len, (version < 28 ? (32 * sizeof(char)) : sizeof(fx->name)))); //_VER_READ(fx->name, my_min(len, sizeof(fx->name)));
+			//_VER_READ(fx->name, my_min(len, (version < 28 ? (32 * sizeof(char)) : sizeof(fx->name)))); //_VER_READ(fx->name, my_min(len, sizeof(fx->name)));
+			
+			if(version < 28)
+			{
+				_VER_READ(fx->name, my_min(len, 32));
+			}
+			
+			else
+			{
+				_VER_READ(fx->name, my_min(len, sizeof(fx->name)));
+			}
+			
 			fx->name[(version < 28 ? (32 * sizeof(char)) : sizeof(fx->name)) - 1] = '\0'; //fx->name[sizeof(fx->name) - 1] = '\0';
 		}
 	}
@@ -2210,7 +2354,17 @@ static void inner_load_fx(RWops *ctx, CydFxSerialized *fx, int version)
 	
 	if(version < 28)
 	{
-		for (int i = 0 ; i < 16; ++i)
+		if (version < 27)
+		{
+			taps = 8;
+		}
+		
+		else
+		{
+			taps = 16;
+		}
+		
+		for (int i = 0 ; i < taps; ++i)
 		{
 			my_RWread(ctx, &fx->rvb.tap[i].delay, 2, 1);
 			my_RWread(ctx, &fx->rvb.tap[i].gain, 2, 1);
@@ -2220,6 +2374,7 @@ static void inner_load_fx(RWops *ctx, CydFxSerialized *fx, int version)
 				my_RWread(ctx, &fx->rvb.tap[i].panning, 1, 1);
 				my_RWread(ctx, &fx->rvb.tap[i].flags, 1, 1);
 			}
+			
 			else
 			{
 				fx->rvb.tap[i].flags = 1;
@@ -2238,7 +2393,7 @@ static void inner_load_fx(RWops *ctx, CydFxSerialized *fx, int version)
 		{
 			if (spread == 0)
 			{
-				for (int i = 8 ; i < 16; ++i)
+				for (int i = 8 ; i < taps; ++i)
 				{
 					fx->rvb.tap[i].flags = 0;
 					fx->rvb.tap[i].delay = 1000;
@@ -2247,7 +2402,7 @@ static void inner_load_fx(RWops *ctx, CydFxSerialized *fx, int version)
 			}
 			else
 			{
-				for (int i = 8 ; i < 16; ++i)
+				for (int i = 8 ; i < taps; ++i)
 				{
 					fx->rvb.tap[i].flags = 1;
 					fx->rvb.tap[i].panning = CYD_PAN_RIGHT;

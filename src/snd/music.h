@@ -39,7 +39,7 @@ OTHER DEALINGS IN THE SOFTWARE.
 #define MUS_PROG_LEN 255
 #define MUS_MAX_CHANNELS CYD_MAX_CHANNELS
 
-#define MUS_VERSION 30
+#define MUS_VERSION 31
 
 #define MUS_SONG_TITLE_LEN 255
 #define MUS_INSTRUMENT_NAME_LEN 255
@@ -69,6 +69,9 @@ typedef struct
 	Uint8 tremolo_speed, tremolo_delay, tremolo_shape, tremolo_depth; //wasn't there
 	Uint8 pwm_delay;
 	
+	Uint8 fm_vibrato_speed, fm_vibrato_delay, fm_vibrato_shape, fm_vibrato_depth;
+	Uint8 fm_tremolo_speed, fm_tremolo_delay, fm_tremolo_shape, fm_tremolo_depth; //wasn't there
+	
 	Uint8 base_note;
 	Uint16 cutoff;
 	Uint8 resonance; //was 0-3, now 0-15
@@ -81,7 +84,7 @@ typedef struct
 	Uint8 lfsr_type;
 	Sint8 finetune;
 	Uint32 fm_flags;
-	Uint8 fm_modulation, fm_feedback, fm_wave, fm_harmonic;
+	Uint8 fm_modulation, fm_feedback, fm_wave, fm_harmonic, fm_freq_LUT;
 	MusAdsr fm_adsr;
 	Uint8 fm_attack_start;
 	
@@ -105,6 +108,8 @@ enum
 	MUS_INST_WAVE_LOCK_NOTE = 512,
 	MUS_INST_NO_PROG_RESTART = 1024,
 	MUS_INST_MULTIOSC = 2048,
+	
+	MUS_INST_SAVE_LFO_SETTINGS = 4096,
 };
 
 enum
@@ -190,6 +195,11 @@ typedef struct
 	Uint8 vibrato_delay;
 	
 	Uint8 pwm_delay, tremolo_delay; //wasn't there
+	
+	Uint8 fm_tremolo_delay, fm_vibrato_delay;
+	Uint8 fm_tremolo_speed, fm_tremolo_depth, fm_tremolo_shape;
+	Uint8 fm_vibrato_speed, fm_vibrato_depth, fm_vibrato_shape;
+	Uint16 fm_vibrato_position, fm_tremolo_position;
 } MusTrackStatus;
 
 typedef struct

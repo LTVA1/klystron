@@ -22,7 +22,7 @@ Uint32 get_modulator(const CydEngine *cyd, const CydFm *fm) //static Uint32 get_
 
 	if ((fm->flags & CYD_FM_ENABLE_WAVE) && fm->wave_entry)
 	{
-		Uint32 acc = fm->wave.acc;
+		Uint64 acc = fm->wave.acc;
 		CydWaveAcc length = (CydWaveAcc)(fm->wave_entry->loop_end - fm->wave_entry->loop_begin) * WAVETABLE_RESOLUTION;
 		
 		if (length == 0) return 0;
@@ -32,14 +32,14 @@ Uint32 get_modulator(const CydEngine *cyd, const CydFm *fm) //static Uint32 get_
 			acc = acc + ((Uint64)(fm->fb1 + fm->fb2) / 2 * (length * 4 / fbtab[fm->feedback]) / MODULATOR_MAX);
 		}
 		
-		return (Sint64)(cyd_wave_get_sample(&fm->wave, fm->wave_entry, acc % length)) * fm->env_output / 32768 + 65536;
+		return (Sint64)(cyd_wave_get_sample(&fm->wave, fm->wave_entry, acc % length)) * fm->env_output * (fm->fm_curr_tremolo + 512) / 512 / 32768 + 65536;
 	}
 	
 	else
 	{
-		Uint32 acc = fm->accumulator;
+		Uint64 acc = fm->accumulator;
 		if (fm->feedback) acc += ((Uint64)(fm->fb1 + fm->fb2) / 2 * (ACC_LENGTH * 4 / fbtab[fm->feedback]) / MODULATOR_MAX);
-		return (Uint64)cyd_osc(CYD_CHN_ENABLE_TRIANGLE, acc % ACC_LENGTH, 0, 0, 0, 0) * fm->env_output / WAVE_AMP + WAVE_AMP / 2; //was return (Uint64)cyd_osc(CYD_CHN_ENABLE_TRIANGLE, acc % ACC_LENGTH, 0, 0, 0) * fm->env_output / WAVE_AMP + WAVE_AMP / 2;
+		return (Uint64)cyd_osc(CYD_CHN_ENABLE_TRIANGLE, acc % ACC_LENGTH, 0, 0, 0, 0) * fm->env_output * (fm->fm_curr_tremolo + 512) / 512 / WAVE_AMP + WAVE_AMP / 2; //was return (Uint64)cyd_osc(CYD_CHN_ENABLE_TRIANGLE, acc % ACC_LENGTH, 0, 0, 0) * fm->env_output / WAVE_AMP + WAVE_AMP / 2;
 	}
 }
 
@@ -49,7 +49,7 @@ Uint32 get_modulator_no_envelope(const CydEngine *cyd, const CydFm *fm) //static
 
 	if ((fm->flags & CYD_FM_ENABLE_WAVE) && fm->wave_entry)
 	{
-		Uint32 acc = fm->wave.acc;
+		Uint64 acc = fm->wave.acc;
 		CydWaveAcc length = (CydWaveAcc)(fm->wave_entry->loop_end - fm->wave_entry->loop_begin) * WAVETABLE_RESOLUTION;
 		
 		if (length == 0) return 0;
@@ -59,14 +59,14 @@ Uint32 get_modulator_no_envelope(const CydEngine *cyd, const CydFm *fm) //static
 			acc = acc + ((Uint64)(fm->fb1 + fm->fb2) / 2 * (length * 4 / fbtab[fm->feedback]) / MODULATOR_MAX);
 		}
 		
-		return (Sint64)(cyd_wave_get_sample(&fm->wave, fm->wave_entry, acc % length)) / 64 + 65536;
+		return (Sint64)(cyd_wave_get_sample(&fm->wave, fm->wave_entry, acc % length)) * (fm->fm_curr_tremolo + 512) / 512 + 65536;
 	}
 	
 	else
 	{
-		Uint32 acc = fm->accumulator;
+		Uint64 acc = fm->accumulator;
 		if (fm->feedback) acc += ((Uint64)(fm->fb1 + fm->fb2) / 2 * (ACC_LENGTH * 4 / fbtab[fm->feedback]) / MODULATOR_MAX);
-		return (Uint64)cyd_osc(CYD_CHN_ENABLE_TRIANGLE, acc % ACC_LENGTH, 0, 0, 0, 0) * fm->env_output / WAVE_AMP + WAVE_AMP / 2; //was return (Uint64)cyd_osc(CYD_CHN_ENABLE_TRIANGLE, acc % ACC_LENGTH, 0, 0, 0) * fm->env_output / WAVE_AMP + WAVE_AMP / 2;
+		return (Uint64)cyd_osc(CYD_CHN_ENABLE_TRIANGLE, acc % ACC_LENGTH, 0, 0, 0, 0) * fm->env_output * (fm->fm_curr_tremolo + 512) / 512 / WAVE_AMP + WAVE_AMP / 2; //was return (Uint64)cyd_osc(CYD_CHN_ENABLE_TRIANGLE, acc % ACC_LENGTH, 0, 0, 0) * fm->env_output / WAVE_AMP + WAVE_AMP / 2;
 	}
 }
 
@@ -100,12 +100,29 @@ void cydfm_set_frequency(const CydEngine *cyd, CydFm *fm, Uint32 base_frequency)
 	static Sint32 harmonicOPN[16] = { 0.5 * MUL, 1.0 * MUL, 2.0 * MUL, 3 * MUL, 4 * MUL, 5 * MUL, 6 * MUL, 7 * MUL, 8 * MUL, 9 * MUL, 10 * MUL, 11 * MUL, 12 * MUL, 13 * MUL, 14 * MUL, 15 * MUL }; //TODO: add OPL <-> OPN <-> Sys64 custom LUT switch
 	static Sint32 harmonicSys64[16] = { 0.0625 * MUL, 0.125 * MUL, 0.5 * MUL, 1.0 * MUL, 2 * MUL, 3 * MUL, 4 * MUL, 5 * MUL, 6 * MUL, 7 * MUL, 8 * MUL, 9 * MUL, 10 * MUL, 12 * MUL, 15 * MUL, 31 * MUL };
 
-	fm->period = ((Uint64)(ACC_LENGTH)/16 * (Uint64)(base_frequency + ((fm->fm_base_note - fm->fm_carrier_base_note) << 8) + fm->fm_finetune) / (Uint64)cyd->sample_rate) * (Uint64)harmonic[fm->harmonic & 15] / (Uint64)harmonic[fm->harmonic >> 4];
+	if(fm->fm_freq_LUT == 0)
+	{
+		fm->period = ((Uint64)(ACC_LENGTH)/16 * (Uint64)(base_frequency + ((fm->fm_base_note - fm->fm_carrier_base_note) << 8) + fm->fm_finetune + fm->fm_vib) / (Uint64)cyd->sample_rate) * (Uint64)harmonic[fm->harmonic & 15] / (Uint64)harmonic[fm->harmonic >> 4];
+	}
+	
+	else
+	{
+		fm->period = ((Uint64)(ACC_LENGTH)/16 * (Uint64)(base_frequency + ((fm->fm_base_note - fm->fm_carrier_base_note) << 8) + fm->fm_finetune + fm->fm_vib) / (Uint64)cyd->sample_rate) * (Uint64)harmonicOPN[fm->harmonic & 15] / (Uint64)harmonicOPN[fm->harmonic >> 4];
+	}
 	
 	if (fm->wave_entry)
 	{
 		fm->wave.playing = true;
-		fm->wave.frequency = ((Uint64)(WAVETABLE_RESOLUTION) * (Uint64)fm->wave_entry->sample_rate / (Uint64)cyd->sample_rate * (Uint64)(base_frequency + ((fm->fm_base_note - fm->fm_carrier_base_note) << 8) + fm->fm_finetune) / (Uint64)get_freq(fm->wave_entry->base_note)) * (Uint64)harmonic[fm->harmonic & 15] / (Uint64)harmonic[fm->harmonic >> 4];
+		
+		if(fm->fm_freq_LUT == 0)
+		{
+			fm->wave.frequency = ((Uint64)(WAVETABLE_RESOLUTION) * (Uint64)fm->wave_entry->sample_rate / (Uint64)cyd->sample_rate * (Uint64)(base_frequency + ((fm->fm_base_note - fm->fm_carrier_base_note) << 8) + fm->fm_finetune + fm->fm_vib) / (Uint64)get_freq(fm->wave_entry->base_note)) * (Uint64)harmonic[fm->harmonic & 15] / (Uint64)harmonic[fm->harmonic >> 4];
+		}
+		
+		else
+		{
+			fm->wave.frequency = ((Uint64)(WAVETABLE_RESOLUTION) * (Uint64)fm->wave_entry->sample_rate / (Uint64)cyd->sample_rate * (Uint64)(base_frequency + ((fm->fm_base_note - fm->fm_carrier_base_note) << 8) + fm->fm_finetune + fm->fm_vib) / (Uint64)get_freq(fm->wave_entry->base_note)) * (Uint64)harmonicOPN[fm->harmonic & 15] / (Uint64)harmonicOPN[fm->harmonic >> 4];
+		}
 	}
 }
 
@@ -125,7 +142,7 @@ CydWaveAcc cydfm_modulate_wave(const CydEngine *cyd, const CydFm *fm, const CydW
 		
 	CydWaveAcc length = (CydWaveAcc)(wave->loop_end - wave->loop_begin) * WAVETABLE_RESOLUTION;
 	CydWaveAcc mod = (CydWaveAcc)fm->current_modulation * length * 8 / MODULATOR_MAX;
-		
+	
 	return (mod + accumulator) % length;
 }
 
