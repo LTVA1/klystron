@@ -36,6 +36,7 @@ KLYSAPI KSong* KSND_LoadSong(KPlayer* player, const char *path)
 	{
 		return song;
 	}
+	
 	else
 	{
 		free(song);

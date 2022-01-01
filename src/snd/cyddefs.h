@@ -63,4 +63,6 @@ OTHER DEALINGS IN THE SOFTWARE.
 #define WAVE_AMP (1 << OUTPUT_BITS)
 #define BUFFER_GRANULARITY 150 // mutex is locked and audio generated in 150 sample blocks
 
+#define CYD_NUMBER_OF_FILTER_MODULES 32
+
 #endif

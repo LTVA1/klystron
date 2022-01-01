@@ -54,6 +54,9 @@ typedef struct
 	Uint8 sync_source, ring_mod; // channel
 	Uint8 flttype;
 	CydAdsr adsr;
+	
+	Uint8 ksl_level;
+	
 	Uint8 ym_env_shape;
 #ifdef STEREOOUTPUT
 	Uint8 panning; // 0-128, 64 = center
@@ -64,7 +67,7 @@ typedef struct
 	Uint32 lfsr_type;
 	const CydWavetableEntry *wave_entry;
 	CydOscState subosc[CYD_SUB_OSCS];
-	CydFilter flt, flt2, flt3, flt4;
+	CydFilter flts[CYD_NUMBER_OF_FILTER_MODULES];
 	int fx_bus;
 #ifndef CYD_DISABLE_FM
 	CydFm fm;
@@ -117,7 +120,8 @@ enum
 	CYD_CHN_ENABLE_WAVE = 4096,
 	CYD_CHN_WAVE_OVERRIDE_ENV = 8192,
 	CYD_CHN_ENABLE_LFSR = 16384,
-	CYD_CHN_ENABLE_FM = 32768
+	CYD_CHN_ENABLE_FM = 32768,
+	CYD_CHN_ENABLE_KEY_SCALING = 65536,
 };
 
 enum

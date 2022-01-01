@@ -39,7 +39,7 @@ OTHER DEALINGS IN THE SOFTWARE.
 #define MUS_PROG_LEN 255
 #define MUS_MAX_CHANNELS CYD_MAX_CHANNELS
 
-#define MUS_VERSION 31
+#define MUS_VERSION 32
 
 #define MUS_SONG_TITLE_LEN 255
 #define MUS_INSTRUMENT_NAME_LEN 255
@@ -58,6 +58,8 @@ typedef struct
 	Uint8 sync_source, ring_mod; // 0xff == self
 	Uint16 pw;
 	Uint8 volume;
+	
+	Uint8 ksl_level;
 	
 	Uint8 mixmode; //wasn't there
 	Uint8 slope;
@@ -110,6 +112,7 @@ enum
 	MUS_INST_MULTIOSC = 2048,
 	
 	MUS_INST_SAVE_LFO_SETTINGS = 4096,
+	MUS_INST_INVERT_TREMOLO_BIT = 8192,
 };
 
 enum
@@ -190,6 +193,7 @@ typedef struct
 	Sint8 note_offset;
 	Uint16 filter_cutoff;
 	Uint8 filter_resonance;
+	Uint8 filter_slope;
 	Uint8 extarp1, extarp2;
 	Uint8 volume;
 	Uint8 vibrato_delay;
@@ -197,6 +201,10 @@ typedef struct
 	Uint8 pwm_delay, tremolo_delay; //wasn't there
 	
 	Uint8 fm_tremolo_delay, fm_vibrato_delay;
+	
+	Uint8 tremolo_speed, tremolo_depth;
+	Uint8 vibrato_speed, vibrato_depth;
+	
 	Uint8 fm_tremolo_speed, fm_tremolo_depth, fm_tremolo_shape;
 	Uint8 fm_vibrato_speed, fm_vibrato_depth, fm_vibrato_shape;
 	Uint16 fm_vibrato_position, fm_tremolo_position;
@@ -270,6 +278,7 @@ enum
 	MUS_FX_PORTA_DN_LOG = 0x0600,
 	MUS_FX_SLIDE = 0x0300,
 	MUS_FX_VIBRATO = 0x0400,
+	MUS_FX_TREMOLO = 0x2400, //wasn't there
 	MUS_FX_FADE_VOLUME = 0x0a00,
 	MUS_FX_SET_VOLUME = 0x0c00,
 	MUS_FX_LOOP_PATTERN = 0x0d00,
@@ -297,6 +306,7 @@ enum
 	MUS_FX_CUTOFF_SET = 0x2900,
 	MUS_FX_RESONANCE_SET = 0x2a00,
 	MUS_FX_FILTER_TYPE = 0x2b00,
+	MUS_FX_FILTER_SLOPE = 0x0e30, //wasn't there
 	MUS_FX_CUTOFF_SET_COMBINED = 0x2c00,
 	MUS_FX_BUZZ_UP = 0x3100,
 	MUS_FX_BUZZ_DN = 0x3200,
@@ -333,7 +343,7 @@ enum
 	MUS_CTRL_LEGATO = MUS_CTRL_BIT,
 	MUS_CTRL_SLIDE = MUS_CTRL_BIT << 1,
 	MUS_CTRL_VIB = MUS_CTRL_BIT << 2,
-	MUS_CTRL_TREMOLO = MUS_CTRL_BIT << 4 //wasn't there
+	MUS_CTRL_TREM = MUS_CTRL_BIT << 3 //wasn't there
 };
 
 enum

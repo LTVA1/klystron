@@ -42,7 +42,7 @@ void cydflt_cycle(CydFilter *flt, Sint32 input)
 
 void cydflt_set_coeff(CydFilter *flt, Uint16 frequency, Uint16 resonance) 
 {
-	frequency = (frequency * 20000 / 4096);
+	frequency = (frequency * 20000 / 4096) + 5;
 	
 	flt->resonance = resonance;
 	flt->frequency = frequency;
