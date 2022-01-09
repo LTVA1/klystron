@@ -146,7 +146,7 @@ void cyd_init(CydEngine *cyd, Uint16 sample_rate, int channels)
 	
 	cyd_init_log_tables(cyd);
 	
-	for (int i = 0 ; i < CYD_MAX_FX_CHANNELS ; ++i)
+	for (int i = 0; i < CYD_MAX_FX_CHANNELS; ++i)
 		cydfx_init(&cyd->fx[i], sample_rate);
 #ifndef CYD_DISABLE_WAVETABLE
 	cyd->wavetable_entries = calloc(sizeof(cyd->wavetable_entries[0]), CYD_WAVE_MAX_ENTRIES);
@@ -507,9 +507,9 @@ static Sint32 cyd_output_channel(CydEngine *cyd, CydChannel *chn)
 	const Uint32 mod = (chn->flags & CYD_CHN_ENABLE_FM) ? cydfm_modulate(cyd, &chn->fm, 0) : 0;
 #endif
 	
-	for (int i = 0 ; i < (1 << cyd->oversample) ; ++i)
+	for (int i = 0; i < (1 << cyd->oversample); ++i)
 	{
-		for (int s = 0 ; s < CYD_SUB_OSCS ; ++s)
+		for (int s = 0; s < CYD_SUB_OSCS; ++s)
 		{
 			if (chn->subosc[s].frequency != 0)
 			{
@@ -562,7 +562,7 @@ Sint32 cyd_env_output(const CydEngine *cyd, Uint32 chn_flags, const CydAdsr *ads
 		if (adsr->envelope_state == ATTACK)
 			return ((Sint64)input * ((Sint32)adsr->envelope / 0x10000) / 256) * (Sint32)(adsr->volume) / MAX_VOLUME;
 		else
-			return ((Sint64)input * (cyd->lookup_table[(adsr->envelope / (65536*256 / LUT_SIZE) ) & (LUT_SIZE - 1)]) / 65536) * (Sint32)(adsr->volume) / MAX_VOLUME;
+			return ((Sint64)input * (cyd->lookup_table[(adsr->envelope / (65536 * 256 / LUT_SIZE) ) & (LUT_SIZE - 1)]) / 65536) * (Sint32)(adsr->volume) / MAX_VOLUME;
 #else
 		return input * (Sint32)(adsr->volume) / MAX_VOLUME;
 #endif
@@ -584,7 +584,7 @@ static Sint32 cyd_output(CydEngine *cyd)
 #endif
 	Sint32 s[CYD_MAX_CHANNELS];
 	
-	for (int i = 0 ; i < cyd->n_channels ; ++i)
+	for (int i = 0; i < cyd->n_channels; ++i)
 	{
 		s[i] = (Sint32)cyd_output_channel(cyd, &cyd->channel[i]);
 #ifndef CYD_DISABLE_WAVETABLE
@@ -654,16 +654,18 @@ static Sint32 cyd_output(CydEngine *cyd)
 				chn->fm.fm_curr_tremolo = chn->fm.fm_tremolo;
 			}
 			
-			int ksl_level_final = (chn->flags & CYD_CHN_ENABLE_KEY_SCALING) ? chn->ksl_level : -1;
+			Sint16 ksl_level_final = (chn->flags & CYD_CHN_ENABLE_KEY_SCALING) ? chn->ksl_level : -1;
+			
+			double ksl_mult = (ksl_level_final == -1) ? 1.0 : (pow((get_freq((chn->base_note << 8) + chn->finetune) + 1.0) / (get_freq(chn->freq_for_ksl) + 1.0), (ksl_level_final == 0 ? 0 : (ksl_level_final / 127.0))));
 			
 			if (chn->flags & CYD_CHN_ENABLE_RING_MODULATION)
 			{
-				o = cyd_env_output(cyd, chn->flags, &chn->adsr, s[i] * (s[chn->ring_mod] + (WAVE_AMP / 2)) / WAVE_AMP) * (cyd->channel[i].curr_tremolo + 512) / 512;// * (ksl_level_final == -1) ? 1 : ;
+				o = cyd_env_output(cyd, chn->flags, &chn->adsr, s[i] * (s[chn->ring_mod] + (WAVE_AMP / 2)) / WAVE_AMP) * (cyd->channel[i].curr_tremolo + 512) / 512;
 			}
 			
 			else
 			{
-				o = cyd_env_output(cyd, chn->flags, &chn->adsr, s[i]) * (cyd->channel[i].curr_tremolo + 512) / 512;
+				o = (Sint32)cyd_env_output(cyd, chn->flags, &chn->adsr, s[i]) * (cyd->channel[i].curr_tremolo + 512) / 512 * ksl_mult;
 			}
 			
 			/*if ((cyd->channel[i].fm.flags & CYD_FM_ENABLE_ADDITIVE) && (cyd->channel[i].flags & CYD_CHN_ENABLE_FM)) //new additive fm 2-op design

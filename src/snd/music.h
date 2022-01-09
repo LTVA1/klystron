@@ -88,6 +88,7 @@ typedef struct
 	Uint32 fm_flags;
 	Uint8 fm_modulation, fm_feedback, fm_wave, fm_harmonic, fm_freq_LUT;
 	MusAdsr fm_adsr;
+	Uint8 fm_ksl_level;
 	Uint8 fm_attack_start;
 	
 	Uint8 fm_base_note; //weren't there
@@ -301,6 +302,8 @@ enum
 	MUS_FX_FADE_GLOBAL_VOLUME = 0x1a00,
 	MUS_FX_SET_GLOBAL_VOLUME = 0x1d00,
 	MUS_FX_SET_CHANNEL_VOLUME = 0x1c00,
+	MUS_FX_SET_KSL_LEVEL = 0x3700, //wasn't there
+	MUS_FX_SET_FM_KSL_LEVEL = 0x3800, //wasn't there
 	MUS_FX_CUTOFF_UP = 0x2100,
 	MUS_FX_CUTOFF_DN = 0x2200,
 	MUS_FX_CUTOFF_SET = 0x2900,

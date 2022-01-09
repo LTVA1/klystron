@@ -138,6 +138,7 @@ Uint16 get_freq(int note)
 	{
 		return frequency_table[(note >> 8)];
 	}
+	
 	else
 	{
 		Uint16 f1 = frequency_table[(note >> 8)];

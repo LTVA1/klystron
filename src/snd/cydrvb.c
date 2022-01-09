@@ -44,7 +44,7 @@ void cydrvb_init(CydReverb *rvb, int rate)
 	rvb->buffer = calloc(sizeof(*rvb->buffer), bufsize);
 #endif
 	
-	for (int i = 0 ; i < CYDRVB_TAPS ; ++i)
+	for (int i = 0; i < CYDRVB_TAPS; ++i)
 	{
 		cydrvb_set_tap(rvb, i, i * 100 + 50, (i + 1) * -30, CYD_PAN_CENTER);
 	}

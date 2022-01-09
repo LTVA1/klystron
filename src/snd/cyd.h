@@ -56,6 +56,7 @@ typedef struct
 	CydAdsr adsr;
 	
 	Uint8 ksl_level;
+	Uint16 freq_for_ksl;
 	
 	Uint8 ym_env_shape;
 #ifdef STEREOOUTPUT
@@ -80,6 +81,9 @@ typedef struct
 	Sint16 prev_tremolo;
 	Uint8 tremolo_interpolation_counter;
 	Sint16 curr_tremolo;
+	
+	Uint8 base_note;
+	Sint8 finetune;
 	
 } CydChannel;
 
@@ -130,6 +134,7 @@ enum
 	CYD_FM_ENABLE_TRIANGLE = CYD_CHN_ENABLE_TRIANGLE,
 	CYD_FM_ENABLE_PULSE = CYD_CHN_ENABLE_PULSE,
 	CYD_FM_ENABLE_SAW = CYD_CHN_ENABLE_SAW,
+	CYD_FM_ENABLE_KEY_SCALING = CYD_CHN_ENABLE_KEY_SCALING,
 	
 	CYD_FM_ENABLE_ADDITIVE = 1073741824, //wasn't there
 	CYD_FM_ENABLE_4OP = 536870912,

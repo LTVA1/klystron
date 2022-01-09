@@ -307,6 +307,11 @@ static void mus_set_frequency(MusEngine *mus, int chan, Uint16 note, int divider
 		}
 
 		cyd_set_frequency(mus->cyd, &mus->cyd->channel[chan], s, frequency / divider);
+		
+		if(s == 0)
+		{
+			mus->cyd->channel[chan].freq_for_ksl = final;
+		}
 	}
 }
 
@@ -1165,6 +1170,10 @@ int mus_trigger_instrument_internal(MusEngine* mus, int chan, MusInstrument *ins
 	if (ins->prog_period > 0) chn->flags |= MUS_CHN_PROGRAM_RUNNING;
 	chn->prog_period = ins->prog_period;
 	chn->instrument = ins;
+	
+	cydchn->base_note = ins->base_note;
+	cydchn->finetune = ins->finetune;
+	
 	if (!(ins->flags & MUS_INST_NO_PROG_RESTART))
 	{
 		chn->program_counter = 0;
@@ -1173,6 +1182,8 @@ int mus_trigger_instrument_internal(MusEngine* mus, int chan, MusInstrument *ins
 	}
 	
 	cydchn->flags = ins->cydflags;
+	
+	cydchn->ksl_level = ins->ksl_level;
 	
 	cydchn->mixmode = ins->mixmode; //wasn't there
 	cydchn->flt_slope = ins->slope;
@@ -1215,6 +1226,12 @@ int mus_trigger_instrument_internal(MusEngine* mus, int chan, MusInstrument *ins
 	track->pwm_delay = ins->pwm_delay; //wasn't there
 	track->tremolo_delay = ins->tremolo_delay;
 	track->fm_tremolo_delay = ins->fm_tremolo_delay;
+	
+	track->vibrato_depth = ins->vibrato_depth;
+	track->vibrato_speed = ins->vibrato_speed;
+	
+	track->tremolo_depth = ins->tremolo_depth;
+	track->tremolo_speed = ins->tremolo_speed;
 
 	track->slide_speed = 0;
 
@@ -1283,6 +1300,7 @@ int mus_trigger_instrument_internal(MusEngine* mus, int chan, MusInstrument *ins
 	{
 		cyd_set_wave_entry(cydchn, &mus->cyd->wavetable_entries[ins->wavetable_entry]);
 	}
+	
 	else
 	{
 		cyd_set_wave_entry(cydchn, NULL);
@@ -1293,6 +1311,7 @@ int mus_trigger_instrument_internal(MusEngine* mus, int chan, MusInstrument *ins
 	{
 		cydfm_set_wave_entry(&cydchn->fm, &mus->cyd->wavetable_entries[ins->fm_wave]);
 	}
+	
 	else
 	{
 		cydfm_set_wave_entry(&cydchn->fm, NULL);
@@ -1319,6 +1338,9 @@ int mus_trigger_instrument_internal(MusEngine* mus, int chan, MusInstrument *ins
 	fm->adsr.s = ins->fm_adsr.s;
 	fm->adsr.r = ins->fm_adsr.r;
 	fm->adsr.volume = ins->fm_modulation;
+	
+	fm->fm_ksl_level = ins->fm_ksl_level;
+	
 	fm->feedback = ins->fm_feedback;
 	fm->attack_start = ins->fm_attack_start;
 	
@@ -1407,11 +1429,11 @@ static void mus_advance_channel(MusEngine* mus, int chan)
 
 	Uint8 ctrl = 0;
 	
-	int vibdep = my_max(0, (int)ins->vibrato_depth - (int)track_status->vibrato_delay);
-	int vibspd = ins->vibrato_speed;
+	int vibdep = my_max(0, (int)track_status->vibrato_depth - (int)track_status->vibrato_delay);
+	int vibspd = track_status->vibrato_speed;
 	
-	int tremdep = ins->tremolo_depth;
-	int tremspd = ins->tremolo_speed;
+	int tremdep = track_status->tremolo_depth;
+	int tremspd = track_status->tremolo_speed;
 	
 	int fm_vibdep = my_max(0, (int)ins->fm_vibrato_depth - (int)track_status->fm_vibrato_delay);
 	int fm_vibspd = ins->fm_vibrato_speed;
@@ -1427,32 +1449,56 @@ static void mus_advance_channel(MusEngine* mus, int chan)
 		{
 			ctrl |= MUS_CTRL_VIB;
 			
-			if (track_status->pattern->step[track_status->pattern_step].command & 0xff)
-			{
-				vibdep = (track_status->pattern->step[track_status->pattern_step].command & 0xf) << 2;
-				vibspd = (track_status->pattern->step[track_status->pattern_step].command & 0xf0) >> 2;
+			//if (track_status->pattern->step[track_status->pattern_step].command & 0xff)
+			//{
+				vibdep = (track_status->pattern->step[track_status->pattern_step].command & 0x000f) << 2;
+				
+				track_status->vibrato_depth = vibdep;
+				
+				vibspd = (track_status->pattern->step[track_status->pattern_step].command & 0x00f0) >> 2;
+				
+				track_status->vibrato_speed = vibspd;
 
-				if (!vibspd)
+				if (vibspd == 0)
+				{
 					vibspd = ins->vibrato_speed;
-				if (!vibdep)
+					track_status->vibrato_speed = ins->vibrato_speed;
+				}
+				
+				if (vibdep == 0)
+				{
 					vibdep = ins->vibrato_depth;
-			}
+					track_status->vibrato_depth = ins->vibrato_depth;
+				}
+			//}
 		}
 		
 		if ((track_status->pattern->step[track_status->pattern_step].command & 0xff00) == MUS_FX_TREMOLO)
 		{
 			ctrl |= MUS_CTRL_TREM;
 			
-			if (track_status->pattern->step[track_status->pattern_step].command & 0xff)
-			{
-				tremdep = (track_status->pattern->step[track_status->pattern_step].command & 0xf) << 2;
-				tremspd = (track_status->pattern->step[track_status->pattern_step].command & 0xf0) >> 2;
+			//if (track_status->pattern->step[track_status->pattern_step].command & 0xff)
+			//{
+				tremdep = (track_status->pattern->step[track_status->pattern_step].command & 0x000f) << 2;
+				
+				track_status->tremolo_depth = tremdep;
+				
+				tremspd = (track_status->pattern->step[track_status->pattern_step].command & 0x00f0) >> 2;
+				
+				track_status->tremolo_speed = tremspd;
 
 				if (!tremspd)
+				{
 					tremspd = ins->tremolo_speed;
+					track_status->tremolo_speed = ins->tremolo_speed;
+				}
+				
 				if (!tremdep)
+				{
 					tremdep = ins->tremolo_depth;
-			}
+					track_status->tremolo_depth = ins->tremolo_depth;
+				}
+			//}
 		}
 
 		/*do_vib(mus, chan, track_status->pattern->step[track_status->pattern_step].ctrl);
@@ -2146,6 +2192,12 @@ int mus_load_instrument_RW(Uint8 version, RWops *ctx, MusInstrument *inst, CydWa
 	{
 		VER_READ(version, 23, 0xff, &inst->fm_flags, 0);
 		VER_READ(version, 23, 0xff, &inst->fm_modulation, 0);
+		
+		if(inst->fm_flags & CYD_FM_ENABLE_KEY_SCALING)
+		{
+			VER_READ(version, 32, 0xff, &inst->fm_ksl_level, 0);
+		}
+		
 		VER_READ(version, 23, 0xff, &inst->fm_feedback, 0);
 		VER_READ(version, 23, 0xff, &inst->fm_harmonic, 0);
 		VER_READ(version, 23, 0xff, &inst->fm_adsr, 0);
@@ -2290,10 +2342,12 @@ void mus_get_default_instrument(MusInstrument *inst)
 	inst->cydflags = CYD_CHN_ENABLE_TRIANGLE|CYD_CHN_ENABLE_KEY_SYNC;
 	
 	inst->fm_flags = CYD_FM_SAVE_LFO_SETTINGS;
+	inst->fm_ksl_level = 0x80;
 	
 	inst->adsr.a = 1 * ENVELOPE_SCALE;
 	inst->adsr.d = 12 * ENVELOPE_SCALE;
 	inst->volume = MAX_VOLUME;
+	inst->ksl_level = 0x80;
 	inst->base_note = MIDDLE_C;
 	
 	inst->fm_base_note = MIDDLE_C; //wasn't there
