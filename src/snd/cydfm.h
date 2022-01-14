@@ -7,6 +7,8 @@
 
 #include "music_defs.h"
 
+
+
 typedef struct //wasn't there
 {
     Uint16 input, output;
@@ -65,6 +67,8 @@ typedef struct
 	Sint8 fm_carrier_finetune;
 	
 	Uint8 fm_ksl_level;
+	Uint32 freq_for_fm_ksl;
+	double fm_ksl_mult;
 	
 	CydFmOp ops[MUS_FM_NUM_OPS];
 	
@@ -77,8 +81,7 @@ typedef struct
 	
 	Sint16 fm_vib;
 	
-	Uint32 base_freq_for_ksl;
-	Uint32 counter;
+	//Uint32 counter;
 	
 } CydFm;
 

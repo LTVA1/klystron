@@ -35,6 +35,7 @@ OTHER DEALINGS IN THE SOFTWARE.
 #include "freqs.h"
 #include "macros.h"
 #include "pack.h"
+#include "cydfm.h"
 
 #ifdef GENERATE_VIBRATO_TABLES
 
@@ -311,6 +312,7 @@ static void mus_set_frequency(MusEngine *mus, int chan, Uint16 note, int divider
 		if(s == 0)
 		{
 			mus->cyd->channel[chan].freq_for_ksl = final;
+			mus->cyd->channel[chan].fm.freq_for_fm_ksl = (final + ((mus->cyd->channel[chan].fm.fm_base_note - mus->cyd->channel[chan].fm.fm_carrier_base_note) << 8) + mus->cyd->channel[chan].fm.fm_finetune + mus->cyd->channel[chan].fm.fm_vib); //* (Uint64)harmonic[mus->cyd->channel[chan].fm.harmonic & 15] / (Uint64)harmonic[mus->cyd->channel[chan].fm.harmonic >> 4];
 		}
 	}
 }
@@ -374,6 +376,12 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 		case MUS_FX_SET_KSL_LEVEL: //wasn't there
 		{
 			cydchn->ksl_level = inst & 0xff;
+		}
+		break;
+		
+		case MUS_FX_SET_FM_KSL_LEVEL: //wasn't there
+		{
+			cydchn->fm.fm_ksl_level = inst & 0xff;
 		}
 		break;
 		
@@ -1049,6 +1057,7 @@ static void mus_exec_prog_tick(MusEngine *mus, int chan, int advance)
 			case MUS_FX_JUMP:
 			{
 				/* This should handle infinite jumping between two jump instructions (program hang) */
+				chn->instrument->program_unite_bits[(tick - 1) / 8] |= (1 << ((tick - 1) % 8)); //wasn't there
 
 				if (!visited[tick])
 				{
@@ -1061,13 +1070,14 @@ static void mus_exec_prog_tick(MusEngine *mus, int chan, int advance)
 
 			case MUS_FX_LABEL:
 			{
-
-
+				chn->instrument->program_unite_bits[tick / 8] |= (1 << (tick % 8)); //wasn't there
 			}
 			break;
 
 			case MUS_FX_LOOP:
 			{
+				chn->instrument->program_unite_bits[tick / 8] |= (1 << (tick % 8)); //wasn't there
+				
 				if (chn->program_loop == (inst & 0xff))
 				{
 					if (advance) chn->program_loop = 1;
@@ -1264,6 +1274,12 @@ int mus_trigger_instrument_internal(MusEngine* mus, int chan, MusInstrument *ins
 	
 	track->tremolo_depth = ins->tremolo_depth;
 	track->tremolo_speed = ins->tremolo_speed;
+	
+	track->fm_vibrato_depth = ins->fm_vibrato_depth;
+	track->fm_vibrato_speed = ins->fm_vibrato_speed;
+	
+	track->fm_tremolo_depth = ins->fm_tremolo_depth;
+	track->fm_tremolo_speed = ins->fm_tremolo_speed;
 
 	track->slide_speed = 0;
 
@@ -1467,7 +1483,7 @@ static void mus_advance_channel(MusEngine* mus, int chan)
 	int tremdep = track_status->tremolo_depth;
 	int tremspd = track_status->tremolo_speed;
 	
-	int fm_vibdep = my_max(0, (int)ins->fm_vibrato_depth - (int)track_status->fm_vibrato_delay);
+	int fm_vibdep = my_max(0, (int)track_status->fm_vibrato_depth - (int)track_status->fm_vibrato_delay);
 	int fm_vibspd = ins->fm_vibrato_speed;
 	
 	int fm_tremdep = ins->fm_tremolo_depth;

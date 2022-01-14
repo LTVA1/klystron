@@ -73,7 +73,7 @@ typedef struct
 	Uint8 tremolo_speed, tremolo_delay, tremolo_shape, tremolo_depth; //wasn't there
 	Uint8 pwm_delay;
 	
-	Uint8 fm_vibrato_speed, fm_vibrato_delay, fm_vibrato_shape, fm_vibrato_depth;
+	Uint8 fm_vibrato_speed, fm_vibrato_delay, fm_vibrato_shape, fm_vibrato_depth; //wasn't there
 	Uint8 fm_tremolo_speed, fm_tremolo_delay, fm_tremolo_shape, fm_tremolo_depth; //wasn't there
 	
 	Uint8 base_note;
@@ -88,13 +88,13 @@ typedef struct
 	Uint8 lfsr_type;
 	Sint8 finetune;
 	Uint32 fm_flags;
-	Uint8 fm_modulation, fm_feedback, fm_wave, fm_harmonic, fm_freq_LUT;
+	Uint8 fm_modulation, fm_feedback, fm_wave, fm_harmonic, fm_freq_LUT; //last wasn't there
 	MusAdsr fm_adsr;
-	Uint8 fm_ksl_level;
+	Uint8 fm_ksl_level; //wasn't there
 	Uint8 fm_attack_start;
 	
 	Uint8 fm_base_note; //weren't there
-	Sint8 fm_finetune;
+	Sint8 fm_finetune; //wasn't there
 
 } MusInstrument;
 
@@ -285,6 +285,8 @@ enum
 	MUS_FX_TREMOLO = 0x2400, //wasn't there
 	MUS_FX_PWM = 0x2500, //wasn't there
 	MUS_FX_SWEEP = 0x2600, //wasn't there
+	MUS_FX_FM_VIBRATO = 0x2700, //wasn't there
+	MUS_FX_FM_TREMOLO = 0x2800, //wasn't there
 	MUS_FX_FADE_VOLUME = 0x0a00,
 	MUS_FX_SET_VOLUME = 0x0c00,
 	MUS_FX_LOOP_PATTERN = 0x0d00,
@@ -338,6 +340,7 @@ enum
 	MUS_FX_WAVETABLE_OFFSET = 0x5000,
 	MUS_FX_CUTOFF_FINE_SET = 0x6000,
 	MUS_FX_PW_FINE_SET = 0x8000, //wasn't there
+	MUS_FX_MORPH = 0x9000; //wasn't there //9xxy, morph to wave xx with speed of y
 	MUS_FX_END = 0xffff,
 	MUS_FX_JUMP = 0xff00,
 	MUS_FX_LABEL = 0xfd00,
