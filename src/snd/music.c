@@ -369,8 +369,14 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 	CydEngine *cyd = mus->cyd;
 	MusTrackStatus *track_status = &mus->song_track[chan];
 
-	switch (inst & 0x7f00)
+	switch (inst & 0xff00)
 	{
+		case MUS_FX_SET_KSL_LEVEL: //wasn't there
+		{
+			cydchn->ksl_level = inst & 0xff;
+		}
+		break;
+		
 		case MUS_FX_PORTA_UP:
 		{
 			Uint16 prev = chn->note;
@@ -408,7 +414,10 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 			Uint16 prev = chn->note;
 			chn->note -= my_max(1, ((Uint32)frequency_table[MIDDLE_C] * (Uint32)(inst & 0xff) / (Uint32)get_freq(chn->note)));
 
-			if (prev < chn->note) chn->note = 0x0;
+			if (prev < chn->note) 
+			{
+				chn->note = 0x0;
+			}
 
 			mus_set_slide(mus, chan, chn->note);
 		}
@@ -639,9 +648,16 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 				}
 				break;
 #endif
+				
+				case MUS_FX_PW_FINE_SET:
+				{
+					track_status->pw = inst & 0xfff;
+				}
+				break;
+
 			}
 
-			switch (inst & 0x7f00)
+			switch (inst & 0xff00)
 			{
 				case MUS_FX_SET_GLOBAL_VOLUME:
 				{
@@ -763,7 +779,7 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 					}
 					else
 					{
-						track_status->filter_cutoff = ((inst & 0xff) - 0x80) << 4;
+						track_status->filter_cutoff = ((inst & 0xff) - 0x80) << 5;
 						cydchn->flttype = FLT_HP;
 						cyd_set_filter_coeffs(mus->cyd, cydchn, track_status->filter_cutoff, track_status->filter_resonance);
 					}
@@ -1012,6 +1028,7 @@ static void mus_exec_prog_tick(MusEngine *mus, int chan, int advance)
 	do_it_again:;
 
 	const Uint16 inst = chn->instrument->program[tick];
+	Uint8 program_unite_bits = chn->instrument->program_unite_bits[tick / 8];
 
 	switch (inst)
 	{
@@ -1064,7 +1081,8 @@ static void mus_exec_prog_tick(MusEngine *mus, int chan, int advance)
 					while ((chn->instrument->program[tick] & 0xff00) != MUS_FX_LABEL && tick > 0)
 					{
 						--tick;
-						if (!(chn->instrument->program[tick] & 0x8000)) ++l;
+						if (!(chn->instrument->program_unite_bits[tick / 8] & (1 << (tick % 8)))) ++l;
+						//old command if (!(chn->instrument->program[tick] & 0x8000)) ++l;
 					}
 
 					--tick;
@@ -1093,11 +1111,22 @@ static void mus_exec_prog_tick(MusEngine *mus, int chan, int advance)
 
 	// skip to next on msb
 
-	if ((inst & 0x8000) && inst != MUS_FX_NOP && !dont_reloop)
+	if(tick > 0)
 	{
-		goto do_it_again;
+		if ((chn->instrument->program_unite_bits[(tick - 1) / 8] & (1 << ((tick - 1) % 8))) && inst != MUS_FX_NOP && !dont_reloop) //old command if ((inst & 0x8000) && inst != MUS_FX_NOP && !dont_reloop)
+		{
+			goto do_it_again;
+		}
 	}
-
+	
+	else
+	{
+		if ((program_unite_bits & (1 << (tick % 8))) && inst != MUS_FX_NOP && !dont_reloop) //old command if ((inst & 0x8000) && inst != MUS_FX_NOP && !dont_reloop)
+		{
+			goto do_it_again;
+		}
+	}
+	
 	if (advance)
 	{
 		chn->program_tick = tick;
@@ -1140,8 +1169,8 @@ static void do_pwm(MusEngine* mus, int chan)
 	MusInstrument *ins = chn->instrument;
 	MusTrackStatus *track_status = &mus->song_track[chan];
 
-	track_status->pwm_position += ins->pwm_speed;
-	mus->cyd->channel[chan].pw = track_status->pw + mus_shape(track_status->pwm_position >> 1, ins->pwm_shape) * ins->pwm_depth / 32;
+	track_status->pwm_position += track_status->pwm_speed;
+	mus->cyd->channel[chan].pw = track_status->pw + mus_shape(track_status->pwm_position >> 1, ins->pwm_shape) * track_status->pwm_depth / 32;
 }
 
 #endif
@@ -1226,6 +1255,9 @@ int mus_trigger_instrument_internal(MusEngine* mus, int chan, MusInstrument *ins
 	track->pwm_delay = ins->pwm_delay; //wasn't there
 	track->tremolo_delay = ins->tremolo_delay;
 	track->fm_tremolo_delay = ins->fm_tremolo_delay;
+	
+	track->pwm_speed = ins->pwm_speed; //wasn't there
+	track->pwm_depth = ins->pwm_depth; //wasn't there
 	
 	track->vibrato_depth = ins->vibrato_depth;
 	track->vibrato_speed = ins->vibrato_speed;
@@ -1499,6 +1531,15 @@ static void mus_advance_channel(MusEngine* mus, int chan)
 					track_status->tremolo_depth = ins->tremolo_depth;
 				}
 			//}
+		}
+		
+		
+		if ((track_status->pattern->step[track_status->pattern_step].command & 0xff00) == MUS_FX_PWM)
+		{
+			track_status->pwm_delay = 0;
+			
+			track_status->pwm_depth = (track_status->pattern->step[track_status->pattern_step].command & 0x000f) << 4;
+			track_status->pwm_speed = (track_status->pattern->step[track_status->pattern_step].command & 0x00f0) >> 4;
 		}
 
 		/*do_vib(mus, chan, track_status->pattern->step[track_status->pattern_step].ctrl);
@@ -2117,8 +2158,38 @@ int mus_load_instrument_RW(Uint8 version, RWops *ctx, MusInstrument *inst, CydWa
 	_VER_READ(&inst->volume, 0);
 	Uint8 progsteps = 0;
 	_VER_READ(&progsteps, 0);
+	
+	for (int i = 0; i < progsteps / 8 + 1; ++i)
+	{
+		VER_READ(version, 32, 0xff, &inst->program_unite_bits[i], 0);
+	}
+	
 	if (progsteps)
+	{
 		_VER_READ(&inst->program, (int)progsteps*sizeof(inst->program[0]));
+	}
+	
+	if(version < 32) //to account for extended command range
+	{
+		for(int i = 0; i < progsteps; i++)
+		{
+			if((inst->program[i] & 0xff00) != 0xfc00)
+			{
+				inst->program_unite_bits[i / 8] ^= (((inst->program[i] & 0x8000) ? 1 : 0) << (i % 8));
+			}
+			
+			else
+			{
+				inst->program[i] = inst->program[i] - 0x8000;
+			}
+			
+			if(((inst->program[i] & 0xff00) != 0xff00) && ((inst->program[i] & 0xff00) != 0xfe00) && ((inst->program[i] & 0xff00) != 0xfd00) && ((inst->program[i] & 0xff00) != 0xfc00))
+			{
+				inst->program[i] = inst->program[i] & 0x7fff;
+			}
+		}
+	}
+		
 	_VER_READ(&inst->prog_period, 0);
 	
 	if(((inst->flags & MUS_INST_SAVE_LFO_SETTINGS) && version >= 31) || version < 31)

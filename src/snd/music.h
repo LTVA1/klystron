@@ -65,6 +65,8 @@ typedef struct
 	Uint8 slope;
 	
 	Uint16 program[MUS_PROG_LEN];
+	Uint8 program_unite_bits[MUS_PROG_LEN / 8 + 1];
+	
 	Uint8 prog_period; 
 	Uint8 vibrato_speed, vibrato_depth, slide_speed, pwm_speed, pwm_depth;
 	
@@ -205,6 +207,7 @@ typedef struct
 	
 	Uint8 tremolo_speed, tremolo_depth;
 	Uint8 vibrato_speed, vibrato_depth;
+	Uint8 pwm_speed, pwm_depth;
 	
 	Uint8 fm_tremolo_speed, fm_tremolo_depth, fm_tremolo_shape;
 	Uint8 fm_vibrato_speed, fm_vibrato_depth, fm_vibrato_shape;
@@ -280,6 +283,8 @@ enum
 	MUS_FX_SLIDE = 0x0300,
 	MUS_FX_VIBRATO = 0x0400,
 	MUS_FX_TREMOLO = 0x2400, //wasn't there
+	MUS_FX_PWM = 0x2500, //wasn't there
+	MUS_FX_SWEEP = 0x2600, //wasn't there
 	MUS_FX_FADE_VOLUME = 0x0a00,
 	MUS_FX_SET_VOLUME = 0x0c00,
 	MUS_FX_LOOP_PATTERN = 0x0d00,
@@ -332,6 +337,7 @@ enum
 	MUS_FX_SET_DOWNSAMPLE = 0x1e00,
 	MUS_FX_WAVETABLE_OFFSET = 0x5000,
 	MUS_FX_CUTOFF_FINE_SET = 0x6000,
+	MUS_FX_PW_FINE_SET = 0x8000, //wasn't there
 	MUS_FX_END = 0xffff,
 	MUS_FX_JUMP = 0xff00,
 	MUS_FX_LABEL = 0xfd00,

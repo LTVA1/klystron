@@ -21,6 +21,7 @@ typedef struct //wasn't there
     Uint8 mixmode; 
     
     Uint16 program[MUS_PROG_LEN];
+	Uint8 program_unite_bits[MUS_PROG_LEN / 8 + 1];
 	
 	Uint8 env_offset, program_offset; //<-----
 	
