@@ -55,8 +55,11 @@ typedef struct
 	Uint8 flttype;
 	CydAdsr adsr;
 	
-	Uint8 ksl_level;
+	Uint8 vol_ksl_level;
+	Uint8 env_ksl_level;
 	Uint16 freq_for_ksl;
+	double env_ksl_mult;
+	double fm_env_ksl_mult;
 	
 	Uint8 ym_env_shape;
 #ifdef STEREOOUTPUT
@@ -125,7 +128,13 @@ enum
 	CYD_CHN_WAVE_OVERRIDE_ENV = 8192,
 	CYD_CHN_ENABLE_LFSR = 16384,
 	CYD_CHN_ENABLE_FM = 32768,
-	CYD_CHN_ENABLE_KEY_SCALING = 65536,
+	
+	CYD_CHN_ENABLE_VOLUME_KEY_SCALING = 65536,
+	CYD_CHN_ENABLE_ENVELOPE_KEY_SCALING = 131072,
+	
+	CYD_CHN_ENABLE_WAVE_MORPH = 262144,
+	CYD_CHN_LOOP_WAVE_MORPH = 524288,
+	CYD_CHN_PING_PONG_WAVE_MORPH = 1048576,
 };
 
 enum
@@ -134,7 +143,8 @@ enum
 	CYD_FM_ENABLE_TRIANGLE = CYD_CHN_ENABLE_TRIANGLE,
 	CYD_FM_ENABLE_PULSE = CYD_CHN_ENABLE_PULSE,
 	CYD_FM_ENABLE_SAW = CYD_CHN_ENABLE_SAW,
-	CYD_FM_ENABLE_KEY_SCALING = CYD_CHN_ENABLE_KEY_SCALING,
+	CYD_FM_ENABLE_VOLUME_KEY_SCALING = CYD_CHN_ENABLE_VOLUME_KEY_SCALING,
+	CYD_FM_ENABLE_ENVELOPE_KEY_SCALING = CYD_CHN_ENABLE_ENVELOPE_KEY_SCALING,
 	
 	CYD_FM_ENABLE_ADDITIVE = 1073741824, //wasn't there
 	CYD_FM_ENABLE_4OP = 536870912,
@@ -254,6 +264,6 @@ void cyd_output_buffer_stereo(int chan, void *_stream, int len, void *udata);
 #endif
 
 Sint32 cyd_env_output(const CydEngine *cyd, Uint32 channel_flags, const CydAdsr *adsr, Sint32 input);
-Uint32 cyd_cycle_adsr(const CydEngine *eng, Uint32 flags, Uint32 ym_env_shape, CydAdsr *adsr);
+Uint32 cyd_cycle_adsr(const CydEngine *eng, Uint32 flags, Uint32 ym_env_shape, CydAdsr *adsr, double env_ksl_mult);
 
 #endif

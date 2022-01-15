@@ -312,7 +312,7 @@ static void mus_set_frequency(MusEngine *mus, int chan, Uint16 note, int divider
 		if(s == 0)
 		{
 			mus->cyd->channel[chan].freq_for_ksl = final;
-			mus->cyd->channel[chan].fm.freq_for_fm_ksl = (final + ((mus->cyd->channel[chan].fm.fm_base_note - mus->cyd->channel[chan].fm.fm_carrier_base_note) << 8) + mus->cyd->channel[chan].fm.fm_finetune + mus->cyd->channel[chan].fm.fm_vib); //* (Uint64)harmonic[mus->cyd->channel[chan].fm.harmonic & 15] / (Uint64)harmonic[mus->cyd->channel[chan].fm.harmonic >> 4];
+			mus->cyd->channel[chan].fm.freq_for_fm_ksl = (final + ((mus->cyd->channel[chan].fm.fm_base_note - mus->cyd->channel[chan].fm.fm_carrier_base_note) << 8) + mus->cyd->channel[chan].fm.fm_carrier_finetune + mus->cyd->channel[chan].fm.fm_finetune + mus->cyd->channel[chan].fm.fm_vib); //* (Uint64)harmonic[mus->cyd->channel[chan].fm.harmonic & 15] / (Uint64)harmonic[mus->cyd->channel[chan].fm.harmonic >> 4];
 		}
 	}
 }
@@ -325,6 +325,8 @@ static void mus_set_note(MusEngine *mus, int chan, Uint16 note, int update_note,
 	if (update_note) chn->note = note;
 
 	mus_set_frequency(mus, chan, note, divider);
+	mus_set_frequency(mus, chan, note, divider);
+	mus_set_frequency(mus, chan, note, divider); //dirty hack for fm env ksl mult change between notes
 
 	mus_set_wavetable_frequency(mus, chan, note);
 
@@ -373,15 +375,27 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 
 	switch (inst & 0xff00)
 	{
-		case MUS_FX_SET_KSL_LEVEL: //wasn't there
+		case MUS_FX_SET_VOL_KSL_LEVEL: //wasn't there
 		{
-			cydchn->ksl_level = inst & 0xff;
+			cydchn->vol_ksl_level = inst & 0xff;
 		}
 		break;
 		
-		case MUS_FX_SET_FM_KSL_LEVEL: //wasn't there
+		case MUS_FX_SET_FM_VOL_KSL_LEVEL: //wasn't there
 		{
-			cydchn->fm.fm_ksl_level = inst & 0xff;
+			cydchn->fm.fm_vol_ksl_level = inst & 0xff;
+		}
+		break;
+		
+		case MUS_FX_SET_ENV_KSL_LEVEL: //wasn't there
+		{
+			cydchn->env_ksl_level = inst & 0xff;
+		}
+		break;
+		
+		case MUS_FX_SET_FM_ENV_KSL_LEVEL: //wasn't there
+		{
+			cydchn->fm.fm_env_ksl_level = inst & 0xff;
 		}
 		break;
 		
@@ -1222,7 +1236,8 @@ int mus_trigger_instrument_internal(MusEngine* mus, int chan, MusInstrument *ins
 	
 	cydchn->flags = ins->cydflags;
 	
-	cydchn->ksl_level = ins->ksl_level;
+	cydchn->vol_ksl_level = ins->vol_ksl_level;
+	cydchn->env_ksl_level = ins->env_ksl_level;
 	
 	cydchn->mixmode = ins->mixmode; //wasn't there
 	cydchn->flt_slope = ins->slope;
@@ -1387,7 +1402,8 @@ int mus_trigger_instrument_internal(MusEngine* mus, int chan, MusInstrument *ins
 	fm->adsr.r = ins->fm_adsr.r;
 	fm->adsr.volume = ins->fm_modulation;
 	
-	fm->fm_ksl_level = ins->fm_ksl_level;
+	fm->fm_vol_ksl_level = ins->fm_vol_ksl_level;
+	fm->fm_env_ksl_level = ins->fm_env_ksl_level;
 	
 	fm->feedback = ins->fm_feedback;
 	fm->attack_start = ins->fm_attack_start;
@@ -1484,10 +1500,10 @@ static void mus_advance_channel(MusEngine* mus, int chan)
 	int tremspd = track_status->tremolo_speed;
 	
 	int fm_vibdep = my_max(0, (int)track_status->fm_vibrato_depth - (int)track_status->fm_vibrato_delay);
-	int fm_vibspd = ins->fm_vibrato_speed;
+	int fm_vibspd = track_status->fm_vibrato_speed;
 	
-	int fm_tremdep = ins->fm_tremolo_depth;
-	int fm_tremspd = ins->fm_tremolo_speed;
+	int fm_tremdep = track_status->fm_tremolo_depth;
+	int fm_tremspd = track_status->fm_tremolo_speed;
 
 	if (track_status->pattern)
 	{
@@ -1545,6 +1561,60 @@ static void mus_advance_channel(MusEngine* mus, int chan)
 				{
 					tremdep = ins->tremolo_depth;
 					track_status->tremolo_depth = ins->tremolo_depth;
+				}
+			//}
+		}
+		
+		if ((track_status->pattern->step[track_status->pattern_step].command & 0xff00) == MUS_FX_FM_VIBRATO)
+		{
+			
+			//if (track_status->pattern->step[track_status->pattern_step].command & 0xff)
+			//{
+				fm_vibdep = (track_status->pattern->step[track_status->pattern_step].command & 0x000f) << 2;
+				
+				track_status->fm_vibrato_depth = fm_vibdep;
+				
+				fm_vibspd = (track_status->pattern->step[track_status->pattern_step].command & 0x00f0) >> 2;
+				
+				track_status->fm_vibrato_speed = fm_vibspd;
+
+				if (fm_vibspd == 0)
+				{
+					fm_vibspd = ins->fm_vibrato_speed;
+					track_status->fm_vibrato_speed = ins->fm_vibrato_speed;
+				}
+				
+				if (fm_vibdep == 0)
+				{
+					fm_vibdep = ins->fm_vibrato_depth;
+					track_status->fm_vibrato_depth = ins->fm_vibrato_depth;
+				}
+			//}
+		}
+		
+		if ((track_status->pattern->step[track_status->pattern_step].command & 0xff00) == MUS_FX_FM_TREMOLO)
+		{
+			
+			//if (track_status->pattern->step[track_status->pattern_step].command & 0xff)
+			//{
+				fm_tremdep = (track_status->pattern->step[track_status->pattern_step].command & 0x000f) << 2;
+				
+				track_status->fm_tremolo_depth = fm_tremdep;
+				
+				fm_tremspd = (track_status->pattern->step[track_status->pattern_step].command & 0x00f0) >> 2;
+				
+				track_status->fm_tremolo_speed = fm_tremspd;
+
+				if (!fm_tremspd)
+				{
+					fm_tremspd = ins->fm_tremolo_speed;
+					track_status->fm_tremolo_speed = ins->fm_tremolo_speed;
+				}
+				
+				if (!fm_tremdep)
+				{
+					fm_tremdep = ins->fm_tremolo_depth;
+					track_status->fm_tremolo_depth = ins->fm_tremolo_depth;
 				}
 			//}
 		}
@@ -2155,9 +2225,14 @@ int mus_load_instrument_RW(Uint8 version, RWops *ctx, MusInstrument *inst, CydWa
 	_VER_READ(&inst->cydflags, 0);
 	_VER_READ(&inst->adsr, 0);
 	
-	if(inst->cydflags & CYD_CHN_ENABLE_KEY_SCALING)
+	if(inst->cydflags & CYD_CHN_ENABLE_VOLUME_KEY_SCALING)
 	{
-		VER_READ(version, 32, 0xff, &inst->ksl_level, 0); 
+		VER_READ(version, 32, 0xff, &inst->vol_ksl_level, 0); 
+	}
+	
+	if(inst->cydflags & CYD_CHN_ENABLE_ENVELOPE_KEY_SCALING)
+	{
+		VER_READ(version, 32, 0xff, &inst->env_ksl_level, 0);
 	}
 	
 	if(((inst->cydflags & CYD_CHN_ENABLE_SYNC) && version >= 31) || version < 31)
@@ -2192,6 +2267,13 @@ int mus_load_instrument_RW(Uint8 version, RWops *ctx, MusInstrument *inst, CydWa
 			if((inst->program[i] & 0xff00) != 0xfc00)
 			{
 				inst->program_unite_bits[i / 8] ^= (((inst->program[i] & 0x8000) ? 1 : 0) << (i % 8));
+			}
+			
+			if((inst->program[i] & 0xff00) == MUS_FX_JUMP)
+			{
+				inst->program_unite_bits[(i - 1) / 8] |= (1 << ((i - 1) % 8));
+				
+				//chn->instrument->program_unite_bits[(tick - 1) / 8] |= (1 << ((tick - 1) % 8)); //wasn't there
 			}
 			
 			else
@@ -2280,9 +2362,14 @@ int mus_load_instrument_RW(Uint8 version, RWops *ctx, MusInstrument *inst, CydWa
 		VER_READ(version, 23, 0xff, &inst->fm_flags, 0);
 		VER_READ(version, 23, 0xff, &inst->fm_modulation, 0);
 		
-		if(inst->fm_flags & CYD_FM_ENABLE_KEY_SCALING)
+		if(inst->fm_flags & CYD_FM_ENABLE_VOLUME_KEY_SCALING)
 		{
-			VER_READ(version, 32, 0xff, &inst->fm_ksl_level, 0);
+			VER_READ(version, 32, 0xff, &inst->fm_vol_ksl_level, 0);
+		}
+		
+		if(inst->fm_flags & CYD_FM_ENABLE_ENVELOPE_KEY_SCALING)
+		{
+			VER_READ(version, 32, 0xff, &inst->fm_env_ksl_level, 0);
 		}
 		
 		VER_READ(version, 23, 0xff, &inst->fm_feedback, 0);
@@ -2429,12 +2516,14 @@ void mus_get_default_instrument(MusInstrument *inst)
 	inst->cydflags = CYD_CHN_ENABLE_TRIANGLE|CYD_CHN_ENABLE_KEY_SYNC;
 	
 	inst->fm_flags = CYD_FM_SAVE_LFO_SETTINGS;
-	inst->fm_ksl_level = 0x80;
+	inst->fm_vol_ksl_level = 0x80;
+	inst->fm_env_ksl_level = 0x80;
 	
 	inst->adsr.a = 1 * ENVELOPE_SCALE;
 	inst->adsr.d = 12 * ENVELOPE_SCALE;
 	inst->volume = MAX_VOLUME;
-	inst->ksl_level = 0x80;
+	inst->vol_ksl_level = 0x80;
+	inst->env_ksl_level = 0x80;
 	inst->base_note = MIDDLE_C;
 	
 	inst->fm_base_note = MIDDLE_C; //wasn't there

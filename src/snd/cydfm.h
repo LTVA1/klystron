@@ -66,9 +66,11 @@ typedef struct
 	Uint8 fm_carrier_base_note;
 	Sint8 fm_carrier_finetune;
 	
-	Uint8 fm_ksl_level;
+	Uint8 fm_vol_ksl_level;
+	Uint8 fm_env_ksl_level;
 	Uint32 freq_for_fm_ksl;
-	double fm_ksl_mult;
+	double fm_vol_ksl_mult;
+	double fm_env_ksl_mult;
 	
 	CydFmOp ops[MUS_FM_NUM_OPS];
 	

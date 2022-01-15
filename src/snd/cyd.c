@@ -250,7 +250,7 @@ void cyd_reset(CydEngine *cyd)
 }
 
 
-Uint32 cyd_cycle_adsr(const CydEngine *eng, Uint32 flags, Uint32 ym_env_shape, CydAdsr *adsr)
+Uint32 cyd_cycle_adsr(const CydEngine *eng, Uint32 flags, Uint32 ym_env_shape, CydAdsr *adsr, double env_ksl_mult)
 {
 	if (!(flags & CYD_CHN_ENABLE_YM_ENV))
 	{
@@ -270,7 +270,10 @@ Uint32 cyd_cycle_adsr(const CydEngine *eng, Uint32 flags, Uint32 ym_env_shape, C
 			{
 				adsr->envelope_state = DECAY;
 				adsr->envelope=0xff0000;
-				adsr->env_speed = envspd(eng, adsr->d);
+				//adsr->env_speed = envspd(eng, adsr->d);
+				adsr->env_speed = (int)((double)envspd(eng, adsr->d) * env_ksl_mult);
+				
+				//debug("decay spd %d", adsr->env_speed);
 			}
 			
 			break;
@@ -283,7 +286,8 @@ Uint32 cyd_cycle_adsr(const CydEngine *eng, Uint32 flags, Uint32 ym_env_shape, C
 				{
 					adsr->envelope = (Uint32)adsr->s << 19;
 					adsr->envelope_state = (adsr->s == 0) ? RELEASE : SUSTAIN;
-					adsr->env_speed = envspd(eng, adsr->r);;
+					//adsr->env_speed = envspd(eng, adsr->r);
+					adsr->env_speed = (int)((double)envspd(eng, adsr->r) * env_ksl_mult);
 				}
 			
 			break;
@@ -303,6 +307,7 @@ Uint32 cyd_cycle_adsr(const CydEngine *eng, Uint32 flags, Uint32 ym_env_shape, C
 		}
 #endif
 	}
+	
 	else
 	{
 #ifndef CYD_DISABLE_BUZZ	
@@ -385,7 +390,7 @@ static void run_lfsrs(CydChannel *chn)
 
 static void cyd_cycle_channel(CydEngine *cyd, CydChannel *chn)
 {
-	chn->flags = cyd_cycle_adsr(cyd, chn->flags, chn->ym_env_shape, &chn->adsr);
+	chn->flags = cyd_cycle_adsr(cyd, chn->flags, chn->ym_env_shape, &chn->adsr, chn->env_ksl_mult);
 	
 	if (chn->flags & CYD_CHN_ENABLE_WAVE) 
 	{
@@ -627,10 +632,22 @@ static Sint32 cyd_output(CydEngine *cyd)
 	for (int i = 0; i < cyd->n_channels; ++i)
 	{
 		CydChannel *chn = &cyd->channel[i];
+	
+		Sint16 vol_ksl_level_final = (chn->flags & CYD_CHN_ENABLE_VOLUME_KEY_SCALING) ? chn->vol_ksl_level : -1;
+		
+		double vol_ksl_mult = (vol_ksl_level_final == -1) ? 1.0 : (pow((get_freq((chn->base_note << 8) + chn->finetune) + 1.0) / (get_freq(chn->freq_for_ksl) + 1.0), (vol_ksl_level_final == 0 ? 0 : (vol_ksl_level_final / 127.0))));
+		
+		Sint16 env_ksl_level_final = (chn->flags & CYD_CHN_ENABLE_ENVELOPE_KEY_SCALING) ? chn->env_ksl_level : -1;
+		
+		chn->env_ksl_mult = (env_ksl_level_final == -1) ? 1.0 : (pow((get_freq((chn->base_note << 8) + chn->finetune) + 1.0) / (get_freq(chn->freq_for_ksl) + 1.0), (env_ksl_level_final == 0 ? 0 : (env_ksl_level_final / 127.0))));
+		chn->env_ksl_mult = 1.0 / chn->env_ksl_mult;
+		
+		//chn->fm.fm_env_ksl_mult = chn->fm_env_ksl_mult;
+		
 		Sint32 o = 0;
 
 		if (chn->flags & CYD_CHN_ENABLE_GATE)
-		{
+		{	
 			if(chn->tremolo_interpolation_counter < 171)
 			{
 				chn->curr_tremolo = chn->prev_tremolo + (chn->tremolo - chn->prev_tremolo) * chn->tremolo_interpolation_counter / 171;
@@ -654,10 +671,6 @@ static Sint32 cyd_output(CydEngine *cyd)
 				chn->fm.fm_curr_tremolo = chn->fm.fm_tremolo;
 			}
 			
-			Sint16 ksl_level_final = (chn->flags & CYD_CHN_ENABLE_KEY_SCALING) ? chn->ksl_level : -1;
-			
-			double ksl_mult = (ksl_level_final == -1) ? 1.0 : (pow((get_freq((chn->base_note << 8) + chn->finetune) + 1.0) / (get_freq(chn->freq_for_ksl) + 1.0), (ksl_level_final == 0 ? 0 : (ksl_level_final / 127.0))));
-			
 			if (chn->flags & CYD_CHN_ENABLE_RING_MODULATION)
 			{
 				o = cyd_env_output(cyd, chn->flags, &chn->adsr, s[i] * (s[chn->ring_mod] + (WAVE_AMP / 2)) / WAVE_AMP) * (cyd->channel[i].curr_tremolo + 512) / 512;
@@ -665,7 +678,7 @@ static Sint32 cyd_output(CydEngine *cyd)
 			
 			else
 			{
-				o = (Sint32)cyd_env_output(cyd, chn->flags, &chn->adsr, s[i]) * (cyd->channel[i].curr_tremolo + 512) / 512 * ksl_mult;
+				o = (Sint32)cyd_env_output(cyd, chn->flags, &chn->adsr, s[i]) * (cyd->channel[i].curr_tremolo + 512) / 512 * vol_ksl_mult;
 			}
 			
 			/*if ((cyd->channel[i].fm.flags & CYD_FM_ENABLE_ADDITIVE) && (cyd->channel[i].flags & CYD_CHN_ENABLE_FM)) //new additive fm 2-op design
@@ -1058,20 +1071,24 @@ void cyd_enable_gate(CydEngine *cyd, CydChannel *chn, Uint8 enable)
 #ifndef CYD_DISABLE_ENVELOPE
 			chn->adsr.envelope_state = ATTACK;
 			chn->adsr.envelope = 0x0;
-			chn->adsr.env_speed = envspd(cyd, chn->adsr.a);
-			chn->flags = cyd_cycle_adsr(cyd, chn->flags, chn->ym_env_shape, &chn->adsr);
+			
+			//chn->adsr.env_speed = envspd(cyd, chn->adsr.a);
+			chn->adsr.env_speed = (int)((double)envspd(cyd, chn->adsr.a) * chn->env_ksl_mult);
+			
+			chn->flags = cyd_cycle_adsr(cyd, chn->flags, chn->ym_env_shape, &chn->adsr, chn->env_ksl_mult);
 #ifndef CYD_DISABLE_FM	
 			chn->fm.adsr.envelope_state = ATTACK;
 			chn->fm.adsr.envelope = chn->fm.attack_start << 19;
-			chn->fm.adsr.env_speed = envspd(cyd, chn->fm.adsr.a);
-			cyd_cycle_adsr(cyd, 0, 0, &chn->fm.adsr);
+			//chn->fm.adsr.env_speed = envspd(cyd, chn->fm.adsr.a);
+			chn->fm.adsr.env_speed = (int)((double)envspd(cyd, chn->fm.adsr.a) * chn->fm.fm_env_ksl_mult);
+			cyd_cycle_adsr(cyd, 0, 0, &chn->fm.adsr, chn->fm.fm_env_ksl_mult);
 #endif
 #endif
 		}
 		
 		if (chn->flags & CYD_CHN_ENABLE_KEY_SYNC)
 		{
-			for (int s = 0 ; s < CYD_SUB_OSCS ; ++s)
+			for (int s = 0; s < CYD_SUB_OSCS; ++s)
 			{
 				chn->subosc[s].accumulator = 0;
 				chn->subosc[s].reg4 = chn->subosc[s].reg5 = chn->subosc[s].reg9 = 1;
@@ -1086,11 +1103,14 @@ void cyd_enable_gate(CydEngine *cyd, CydChannel *chn, Uint8 enable)
 		
 		chn->flags |= CYD_CHN_ENABLE_GATE;
 	}
+	
 	else
 	{
 		chn->flags &= ~CYD_CHN_WAVE_OVERRIDE_ENV;
 		chn->adsr.envelope_state = RELEASE;
-		chn->adsr.env_speed = envspd(cyd, chn->adsr.r);
+		
+		chn->adsr.env_speed = (int)((double)envspd(cyd, chn->adsr.r) * chn->env_ksl_mult);
+		//chn->adsr.env_speed = envspd(cyd, chn->adsr.r);
 		
 #ifndef CYD_DISABLE_FM
 		chn->fm.adsr.envelope_state = RELEASE;

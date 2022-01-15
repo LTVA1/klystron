@@ -59,7 +59,8 @@ typedef struct
 	Uint16 pw;
 	Uint8 volume;
 	
-	Uint8 ksl_level;
+	Uint8 vol_ksl_level; //wasn't there
+	Uint8 env_ksl_level;
 	
 	Uint8 mixmode; //wasn't there
 	Uint8 slope;
@@ -84,13 +85,21 @@ typedef struct
 	Sint16 buzz_offset;
 	Uint8 fx_bus, vibrato_shape, vibrato_delay, pwm_shape;
 	char name[MUS_INSTRUMENT_NAME_LEN + 1];
+	
 	Uint8 wavetable_entry;
+	
+	Uint8 morph_wavetable_entry;
+	Uint8 morph_speed, morph_shape, morph_delay;
+	
 	Uint8 lfsr_type;
 	Sint8 finetune;
 	Uint32 fm_flags;
 	Uint8 fm_modulation, fm_feedback, fm_wave, fm_harmonic, fm_freq_LUT; //last wasn't there
 	MusAdsr fm_adsr;
-	Uint8 fm_ksl_level; //wasn't there
+	
+	Uint8 fm_vol_ksl_level; //wasn't there
+	Uint8 fm_env_ksl_level; //wasn't there
+	
 	Uint8 fm_attack_start;
 	
 	Uint8 fm_base_note; //weren't there
@@ -309,8 +318,10 @@ enum
 	MUS_FX_FADE_GLOBAL_VOLUME = 0x1a00,
 	MUS_FX_SET_GLOBAL_VOLUME = 0x1d00,
 	MUS_FX_SET_CHANNEL_VOLUME = 0x1c00,
-	MUS_FX_SET_KSL_LEVEL = 0x3700, //wasn't there
-	MUS_FX_SET_FM_KSL_LEVEL = 0x3800, //wasn't there
+	MUS_FX_SET_VOL_KSL_LEVEL = 0x3700, //wasn't there
+	MUS_FX_SET_FM_VOL_KSL_LEVEL = 0x3800, //wasn't there
+	MUS_FX_SET_ENV_KSL_LEVEL = 0x3c00, //wasn't there
+	MUS_FX_SET_FM_ENV_KSL_LEVEL = 0x3d00, //wasn't there
 	MUS_FX_CUTOFF_UP = 0x2100,
 	MUS_FX_CUTOFF_DN = 0x2200,
 	MUS_FX_CUTOFF_SET = 0x2900,
@@ -340,7 +351,7 @@ enum
 	MUS_FX_WAVETABLE_OFFSET = 0x5000,
 	MUS_FX_CUTOFF_FINE_SET = 0x6000,
 	MUS_FX_PW_FINE_SET = 0x8000, //wasn't there
-	MUS_FX_MORPH = 0x9000; //wasn't there //9xxy, morph to wave xx with speed of y
+	MUS_FX_MORPH = 0x9000, //wasn't there //9xxy, morph to wave xx with speed of y
 	MUS_FX_END = 0xffff,
 	MUS_FX_JUMP = 0xff00,
 	MUS_FX_LABEL = 0xfd00,
