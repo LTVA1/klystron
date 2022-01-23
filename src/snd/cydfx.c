@@ -110,8 +110,9 @@ void cydfx_set(CydFx *fx, const CydFxSerialized *ser)
 {
 #ifndef CYD_DISABLE_FX
 	fx->flags = ser->flags;
+	fx->rvb.taps_quant = ser->rvb.taps_quant; //wasn't there
 
-	for (int i = 0 ; i < CYDRVB_TAPS ; ++i)
+	for (int i = 0; i < CYDRVB_TAPS; ++i)
 	{
 		if (ser->rvb.tap[i].flags & 1)
 			cydrvb_set_tap(&fx->rvb, i, ser->rvb.tap[i].delay, ser->rvb.tap[i].gain, ser->rvb.tap[i].panning);

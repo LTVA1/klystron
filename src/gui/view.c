@@ -74,7 +74,7 @@ void draw_view(GfxDomain *dest, const View* views, const SDL_Event *_event)
 {
 	SDL_Event event;
 	memcpy(&event, _event, sizeof(event));
-	for (int i = 0 ; views[i].handler ; ++i)
+	for (int i = 0; views[i].handler; ++i)
 	{
 		const View *view = &views[i];
 		

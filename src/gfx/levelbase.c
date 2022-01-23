@@ -21,7 +21,7 @@ int lev_load(Background *bg, int *n_layers, SDL_RWops* data, int (*interpret_eve
 		
 		FIX_ENDIAN(opcode.repeat);
 		
-		for (int di = 0 ; di < opcode.repeat ; ++di)
+		for (int di = 0; di < opcode.repeat; ++di)
 		{
 			switch (opcode.opcode)
 			{
@@ -46,7 +46,7 @@ int lev_load(Background *bg, int *n_layers, SDL_RWops* data, int (*interpret_eve
 					FIX_ENDIAN(event.w);
 					FIX_ENDIAN(event.h);
 					
-					for (int i = 0 ; i < EV_PARAMS ; ++i)
+					for (int i = 0; i < EV_PARAMS; ++i)
 					{
 						FIX_ENDIAN(event.param[i]);
 					}
@@ -120,7 +120,7 @@ int lev_load(Background *bg, int *n_layers, SDL_RWops* data, int (*interpret_eve
 					FIX_ENDIAN(tile.type);
 					FIX_ENDIAN(tile.repeat);
 					
-					for (int i = 0 ; i < tile.repeat ; ++i)
+					for (int i = 0; i < tile.repeat; ++i)
 					{
 						cell->tile = tile.type;
 						++cell;
@@ -138,7 +138,7 @@ int lev_load(Background *bg, int *n_layers, SDL_RWops* data, int (*interpret_eve
 
 void lev_unload(Background *bg, int n_layers)
 {
-	for (int i = 0 ; i < n_layers ; ++i)
+	for (int i = 0; i < n_layers; ++i)
 	{
 		free(bg[i].data);
 		bg[i].data = NULL;

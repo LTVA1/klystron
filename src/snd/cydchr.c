@@ -47,7 +47,7 @@ void cydchr_output(CydChorus *chr, Sint32 in_l, Sint32 in_r, Sint32 *out_l, Sint
 	
 	int acc_l = 0, acc_r = 0;
 	
-	for (int o = 0 ; o < CYD_CHORUS_OVERSAMPLE ; ++o)
+	for (int o = 0; o < CYD_CHORUS_OVERSAMPLE; ++o)
 	{
 	
 		++chr->pos_l;
@@ -106,7 +106,7 @@ void cydchr_set(CydChorus *chr, int rate, int min_delay, int max_delay, int ster
 		chr->min_delay = min_delay;
 		chr->max_delay = max_delay;
 		
-		for (int i = 0 ; i < chr->lut_size ; ++i)
+		for (int i = 0; i < chr->lut_size; ++i)
 			chr->lut[i] = (int)(((sin((double)i / chr->lut_size * M_PI * 2) * 0.5 + 0.5) * (max_delay - min_delay) + min_delay) * CHORUS_ACCURACY * chr->sample_rate / 10000) % (chr->buf_size * CHORUS_ACCURACY);
 	}
 	else

@@ -154,7 +154,7 @@ typedef struct
 typedef struct
 {
 	Uint8 note, instrument, ctrl;
-	Uint16 command;
+	Uint16 command, command2, command3, command4; //was Uint16 command;
 	Uint8 volume;
 } MusStep;
 
@@ -293,7 +293,7 @@ enum
 	MUS_FX_VIBRATO = 0x0400,
 	MUS_FX_TREMOLO = 0x2400, //wasn't there
 	MUS_FX_PWM = 0x2500, //wasn't there
-	MUS_FX_SWEEP = 0x2600, //wasn't there
+	MUS_FX_SWEEP = 0x2600, //wasn't there //26xy filter sweep, by default unlooped saw LFO with speed x and depth y
 	MUS_FX_FM_VIBRATO = 0x2700, //wasn't there
 	MUS_FX_FM_TREMOLO = 0x2800, //wasn't there
 	MUS_FX_FADE_VOLUME = 0x0a00,
@@ -369,12 +369,21 @@ enum
 	MUS_CTRL_TREM = MUS_CTRL_BIT << 3 //wasn't there
 };
 
-enum
+enum //song flags
 {
 	MUS_ENABLE_REVERB = 1,
 	MUS_ENABLE_CRUSH = 2,
 	MUS_ENABLE_MULTIPLEX = 4,
-	MUS_NO_REPEAT = 8
+	MUS_NO_REPEAT = 8,
+	MUS_8_BIT_PATTERN_INDEX = 16, //wasn't there
+	
+	MUS_SEQ_NO_COMPRESSION = 32,
+	MUS_SEQ_COMPRESS_DELTA = 64,
+	MUS_SEQ_COMPRESS_GRAY = 128,
+	
+	MUS_PATTERNS_NO_COMPRESSION = 256,
+	MUS_PATTERNS_COMPRESS_DELTA = 512,
+	MUS_PATTERNS_COMPRESS_GRAY = 1024,
 };
 
 enum

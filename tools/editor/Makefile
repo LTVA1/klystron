@@ -82,7 +82,7 @@ objs.$(CFG)/Group0_%.o: %.c
 deps/Group0_%.d: %.c
 	@mkdir -p deps
 	@$(ECHO) "Generating dependencies for $<"
-	@set -e ; $(CXXDEP) -MM $(INCLUDEFLAGS) $< > $@.$$$$; \
+	@set -e; $(CXXDEP) -MM $(INCLUDEFLAGS) $< > $@.$$$$; \
 	sed 's,\($*\)\.o[ :]*,objs.$(CFG)\/Group0_\1.o $@ : ,g' \
 		< $@.$$$$ > $@; \
 	rm -f $@.$$$$

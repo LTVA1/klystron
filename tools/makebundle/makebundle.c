@@ -42,7 +42,7 @@ int cwrite(void *ptr, int size, int num, FILE *f, Uint32 key)
 	else
 	{
 		int n = 0;
-		for (int i = 0 ; i < num*size ; ++i)
+		for (int i = 0; i < num*size; ++i)
 		{
 			Uint8 d = ((Uint8*)ptr)[i] ^ key;
 			n += fwrite(&d, 1, 1, f);
@@ -59,7 +59,7 @@ void copydata(FILE *dest, const char *src, off_t size, Uint32 key)
 				
 	if (f)
 	{
-		for (int p = 0 ; p < size ; p += BS)
+		for (int p = 0; p < size; p += BS)
 		{
 			unsigned char buffer[BS];
 			
@@ -141,14 +141,14 @@ int main(int argc, char **argv)
 	int first_path = 1;
 	Uint32 key = 0;
 	
-	for (first_path = 1 ; first_path < argc ; ++first_path)
+	for (first_path = 1; first_path < argc; ++first_path)
 	{
 		if (argv[first_path][0] == '-')
 		{
 			++first_path;
 			if (first_path < argc)
 			{
-				for (int s =0 ; argv[first_path][s] ; ++s)
+				for (int s =0; argv[first_path][s]; ++s)
 				{
 					key = (key << 2) ^ ((Uint32)(argv[first_path][s])*13);
 					bnd_cycle_key(key);
@@ -197,7 +197,7 @@ int main(int argc, char **argv)
 		return 1;
 	}	
 	
-	for (int i = first_path+1 ; i < argc ; ++i)
+	for (int i = first_path+1; i < argc; ++i)
 		num_files += do_dir(argv[i], argv[i], bundle, data, key);
 	
 	fclose(data);

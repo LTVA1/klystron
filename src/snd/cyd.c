@@ -29,6 +29,9 @@ OTHER DEALINGS IN THE SOFTWARE.
 #include <stdlib.h>
 #include <string.h>
 
+#include <../../../src/mused.h> //wasn't there
+#include <../../../src/view.h> //wasn't there
+
 #ifdef ENABLEAUDIODUMP
 #include <time.h>
 #endif
@@ -50,6 +53,8 @@ OTHER DEALINGS IN THE SOFTWARE.
 #endif
 
 #define envspd(cyd,slope) (slope!=0?(((Uint64)0xff0000 / ((slope) * (slope) * 256 / (ENVELOPE_SCALE * ENVELOPE_SCALE))) * CYD_BASE_FREQ / cyd->sample_rate):((Uint64)0xff0000 * CYD_BASE_FREQ / cyd->sample_rate))
+
+extern Mused mused;
 
 // used lfsr-generator <http://lfsr-generator.sourceforge.net/> for this: 
 
@@ -89,13 +94,13 @@ static void cyd_init_channel(CydEngine *cyd, CydChannel *chn)
 
 static void cyd_init_log_tables(CydEngine *cyd)
 {
-	for (int i = 0 ; i < LUT_SIZE ; ++i)
+	for (int i = 0; i < LUT_SIZE; ++i)
 	{
 		cyd->lookup_table[i] = i * (i/2) / ((LUT_SIZE*LUT_SIZE / 65536)/2);
 	}
 	
 #ifndef CYD_DISABLE_BUZZ
-	for (int i = 0 ; i < YM_LUT_SIZE ; ++i)
+	for (int i = 0; i < YM_LUT_SIZE; ++i)
 	{
 		static const int ymVolumeTable[16] = { 62,161,265,377,580,774,1155,1575,2260,3088,4570,6233,9330,13187,21220,32767}; // from leonard's code
 		cyd->lookup_table_ym[i] = ymVolumeTable[i]; //(Uint32)32767 * (Uint32)(i+1) * (Uint32)(i+1) * (Uint32)(i+1) / (Uint32)(YM_LUT_SIZE * YM_LUT_SIZE * YM_LUT_SIZE);
@@ -111,7 +116,7 @@ void cyd_reset_wavetable(CydEngine *cyd)
 #ifndef CYD_DISABLE_WAVETABLE
 	memset(cyd->wavetable_entries, 0, sizeof(cyd->wavetable_entries[0]) * CYD_WAVE_MAX_ENTRIES);
 
-	for (int i = 0 ; i < CYD_WAVE_MAX_ENTRIES ; ++i)
+	for (int i = 0; i < CYD_WAVE_MAX_ENTRIES; ++i)
 	{
 		cyd_wave_entry_init(&cyd->wavetable_entries[i], NULL, 0, 0, 0, 0, 0);
 	}
@@ -207,7 +212,7 @@ void cyd_deinit(CydEngine *cyd)
 		cyd->channel = NULL;
 	}
 	
-	for (int i = 0 ; i < CYD_MAX_FX_CHANNELS ; ++i)
+	for (int i = 0; i < CYD_MAX_FX_CHANNELS; ++i)
 		cydfx_deinit(&cyd->fx[i]);
 	
 #ifndef USENATIVEAPIS
@@ -230,7 +235,7 @@ void cyd_deinit(CydEngine *cyd)
 #ifndef CYD_DISABLE_WAVETABLE
 	if (cyd->wavetable_entries)
 	{
-		for (int i = 0 ; i < CYD_WAVE_MAX_ENTRIES ; ++i)
+		for (int i = 0; i < CYD_WAVE_MAX_ENTRIES; ++i)
 			cyd_wave_entry_deinit(&cyd->wavetable_entries[i]);
 			
 		free(cyd->wavetable_entries);
@@ -242,7 +247,7 @@ void cyd_deinit(CydEngine *cyd)
 
 void cyd_reset(CydEngine *cyd)
 {
-	for (int i = 0 ; i < cyd->n_channels ; ++i)
+	for (int i = 0; i < cyd->n_channels; ++i)
 	{
 		cyd_init_channel(cyd, &cyd->channel[i]);
 		cyd->channel[i].sync_source = i;
@@ -374,7 +379,7 @@ Uint32 cyd_cycle_adsr(const CydEngine *eng, Uint32 flags, Uint32 ym_env_shape, C
 #ifndef CYD_DISABLE_LFSR
 static void run_lfsrs(CydChannel *chn)
 {
-	for (int s = 0 ; s < CYD_SUB_OSCS ; ++s)
+	for (int s = 0; s < CYD_SUB_OSCS; ++s)
 	{
 		shift_lfsr(&chn->subosc[s].reg4, 4, 3);
 		shift_lfsr(&chn->subosc[s].reg5, 5, 3);
@@ -394,7 +399,7 @@ static void cyd_cycle_channel(CydEngine *cyd, CydChannel *chn)
 	
 	if (chn->flags & CYD_CHN_ENABLE_WAVE) 
 	{
-		for (int i = 0 ; i < CYD_SUB_OSCS ; ++i)
+		for (int i = 0; i < CYD_SUB_OSCS; ++i)
 		{
 			cyd_wave_cycle(&chn->subosc[i].wave, chn->wave_entry);
 		}
@@ -411,7 +416,7 @@ static void cyd_sync_channel(CydEngine *cyd, CydChannel *chn)
 {
 	if ((chn->flags & CYD_CHN_ENABLE_SYNC) && cyd->channel[chn->sync_source].sync_bit)
 	{
-		for (int i = 0 ; i < CYD_SUB_OSCS ; ++i)
+		for (int i = 0; i < CYD_SUB_OSCS; ++i)
 		{
 			chn->subosc[i].wave.acc = 0;
 			chn->subosc[i].wave.direction = 0;
@@ -428,7 +433,7 @@ static void cyd_sync_channel(CydEngine *cyd, CydChannel *chn)
 
 static void cyd_advance_oscillators(CydEngine *cyd, CydChannel *chn)
 {
-	for (int s = 0 ; s < CYD_SUB_OSCS ; ++s)
+	for (int s = 0; s < CYD_SUB_OSCS; ++s)
 	{
 		Uint32 prev_acc = chn->subosc[s].accumulator;
 		chn->subosc[s].accumulator = (chn->subosc[s].accumulator + (Uint32)chn->subosc[s].frequency);
@@ -770,7 +775,7 @@ static Sint32 cyd_output(CydEngine *cyd)
 		}
 	}
 	
-	for (int i = 0 ; i < CYD_MAX_FX_CHANNELS ; ++i)
+	for (int i = 0; i < CYD_MAX_FX_CHANNELS; ++i)
 	{
 #ifdef STEREOOUTPUT
 		Sint32 l, r;
@@ -790,12 +795,12 @@ static Sint32 cyd_output(CydEngine *cyd)
 
 static void cyd_cycle(CydEngine *cyd)
 {
-	for (int i = 0 ; i < cyd->n_channels ; ++i)
+	for (int i = 0; i < cyd->n_channels; ++i)
 	{
 		cyd_cycle_channel(cyd, &cyd->channel[i]);
 	}
 	
-	for (int i = 0 ; i < cyd->n_channels ; ++i)
+	for (int i = 0; i < cyd->n_channels; ++i)
 	{
 		cyd_sync_channel(cyd, &cyd->channel[i]);
 	}
@@ -812,7 +817,7 @@ void cyd_output_buffer(int chan, void *_stream, int len, void *udata)
 	Sint16 * stream = (void*)_stream;
 	cyd->samples_output = 0;
 	
-	for (int i = 0 ; i < len ; i += sizeof(Sint16), ++stream, ++cyd->samples_output)
+	for (int i = 0; i < len; i += sizeof(Sint16), ++stream, ++cyd->samples_output)
 	{
 	
 #ifndef USENATIVEAPIS
@@ -845,7 +850,7 @@ void cyd_output_buffer(int chan, void *_stream, int len, void *udata)
 		
 		cyd_lock(cyd, 1);
 		
-		for (int g = 0 ; g < BUFFER_GRANULARITY && i < len ; i += sizeof(Sint16)*2, stream += 2, ++cyd->samples_output)
+		for (int g = 0; g < BUFFER_GRANULARITY && i < len; i += sizeof(Sint16)*2, stream += 2, ++cyd->samples_output)
 		{
 		
 			if (cyd->callback && cyd->callback_counter-- == 0)
@@ -897,7 +902,7 @@ void cyd_output_buffer_stereo(int chan, void *_stream, int len, void *udata)
 	cyd->samples_output = 0;
 	cyd->flags &= ~CYD_CLIPPING;
 	
-	for (int i = 0 ; i < len ; )
+	for (int i = 0; i < len; )
 	{
 #ifndef USENATIVEAPIS
 	
@@ -929,9 +934,10 @@ void cyd_output_buffer_stereo(int chan, void *_stream, int len, void *udata)
 		
 		cyd_lock(cyd, 1);
 		
-		for (int g = 0 ; g < BUFFER_GRANULARITY && i < len ; i += sizeof(Sint16)*2, stream += 2, ++cyd->samples_output)
-		{
+		Sint32 o1, o2; //wasn't there
 		
+		for (int g = 0; g < BUFFER_GRANULARITY && i < len; i += sizeof(Sint16)*2, stream += 2, ++cyd->samples_output)
+		{
 			if (cyd->callback && cyd->callback_counter-- == 0)
 			{
 				cyd->callback_counter = cyd->callback_period-1;
@@ -950,9 +956,9 @@ void cyd_output_buffer_stereo(int chan, void *_stream, int len, void *udata)
 #endif
 
 #ifdef NOSDL_MIXER
-			Sint32 o1 = (left * PRE_GAIN) / PRE_GAIN_DIVISOR;
+			o1 = (left * PRE_GAIN) / PRE_GAIN_DIVISOR;
 #else
-			Sint32 o1 = (Sint32)*(Sint16*)stream + (left * PRE_GAIN) / PRE_GAIN_DIVISOR;
+			o1 = (Sint32)*(Sint16*)stream + (left * PRE_GAIN) / PRE_GAIN_DIVISOR;
 #endif
 			
 			if (o1 < -32768) 
@@ -969,9 +975,9 @@ void cyd_output_buffer_stereo(int chan, void *_stream, int len, void *udata)
 			*(Sint16*)stream = o1;
 
 #ifdef NOSDL_MIXER
-			Sint32 o2 = (right * PRE_GAIN) / PRE_GAIN_DIVISOR;
+			o2 = (right * PRE_GAIN) / PRE_GAIN_DIVISOR;
 #else
-			Sint32 o2 = (Sint32)*((Sint16*)stream + 1) + (right * PRE_GAIN) / PRE_GAIN_DIVISOR;
+			o2 = (Sint32)*((Sint16*)stream + 1) + (right * PRE_GAIN) / PRE_GAIN_DIVISOR;
 #endif
 			
 			if (o2 < -32768) 
@@ -979,6 +985,7 @@ void cyd_output_buffer_stereo(int chan, void *_stream, int len, void *udata)
 				o2 = -32768;
 				cyd->flags |= CYD_CLIPPING;
 			}
+			
 			else if (o2 > 32767) 
 			{
 				o2 = 32767;
@@ -989,6 +996,18 @@ void cyd_output_buffer_stereo(int chan, void *_stream, int len, void *udata)
 			
 			cyd_cycle(cyd);
 			++cyd->samples_played;
+			
+			if(mused.flags & SHOW_OSCILLOSCOPE)
+			{
+				//int osc_output = o1; //int osc_output = (int)(o1 + o2) / 2;
+				mused.output_buffer[mused.output_buffer_counter] = o1;
+				mused.output_buffer_counter++;
+				
+				if(mused.output_buffer_counter >= 8192)
+				{
+					mused.output_buffer_counter = 0;
+				}
+			}
 		}
 		
 		cyd_lock(cyd, 0);
@@ -1328,7 +1347,7 @@ int cyd_register(CydEngine * cyd)
 		return 0;
 	}
 	
-	for (int i = 0 ; i < CYD_NUM_WO_BUFFERS ; ++i)
+	for (int i = 0; i < CYD_NUM_WO_BUFFERS; ++i)
 	{
 		WAVEHDR * h = &cyd->waveout_hdr[i];
 		
@@ -1405,7 +1424,7 @@ int cyd_unregister(CydEngine * cyd)
 	
 	waveOutReset(cyd->hWaveOut);
 
-	for (int i = 0 ; i < CYD_NUM_WO_BUFFERS ; ++i)
+	for (int i = 0; i < CYD_NUM_WO_BUFFERS; ++i)
 	{
 		if (cyd->waveout_hdr[i].dwFlags & WHDR_PREPARED)
 			waveOutUnprepareHeader(cyd->hWaveOut, &cyd->waveout_hdr[i], sizeof(cyd->waveout_hdr[i]));
@@ -1510,7 +1529,7 @@ void cyd_set_wave_entry(CydChannel *chn, const CydWavetableEntry * entry)
 {
 	chn->wave_entry = entry;
 	
-	for (int s = 0 ; s < CYD_SUB_OSCS ; ++s)
+	for (int s = 0; s < CYD_SUB_OSCS; ++s)
 	{
 		chn->subosc[s].wave.playing = true;
 		chn->subosc[s].wave.acc = 0;

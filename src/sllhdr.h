@@ -137,7 +137,7 @@ static inline SllHdr* sllhdr_pop(SllHdr **queue)
 #define slllist_init(list, data, n_items)\
 	{\
 	int i;\
-	for(i = 0 ; i < n_items-1 ; ++i) data[i].next = (SllHdr*)&data[i+1];\
+	for(i = 0; i < n_items-1; ++i) data[i].next = (SllHdr*)&data[i+1];\
 	data[i].next = NULL;\
 	list.reserve = (void*)&data[0];\
 	list.used = NULL;\

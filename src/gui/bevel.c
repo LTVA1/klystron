@@ -37,9 +37,9 @@ void bevelex(GfxDomain *screen, const SDL_Rect *area, GfxSurface *gfx, int offse
 	{
 		if (!(bevel_flags & BEV_F_STRETCH_CENTER))
 		{
-			for (int y = BORDER ; y < area->h - BORDER ; y += BEV_SIZE / 2)
+			for (int y = BORDER; y < area->h - BORDER; y += BEV_SIZE / 2)
 			{
-				for (int x = BORDER ; x < area->w - BORDER ; x += BEV_SIZE / 2)
+				for (int x = BORDER; x < area->w - BORDER; x += BEV_SIZE / 2)
 				{
 					SDL_Rect src = { BORDER + offset * BEV_SIZE, BORDER, my_min(BEV_SIZE / 2, area->w - x - BORDER), my_min(BEV_SIZE / 2, area->h - y - BORDER) };
 					SDL_Rect dest = { x + area->x, y + area->y, my_min(BEV_SIZE / 2, area->w - x - BORDER), my_min(BEV_SIZE / 2, area->h - y - BORDER) };
@@ -58,7 +58,7 @@ void bevelex(GfxDomain *screen, const SDL_Rect *area, GfxSurface *gfx, int offse
 	/* Sides */
 	if (!(bevel_flags & BEV_F_STRETCH_BORDERS))
 	{
-		for (int y = BORDER ; y < area->h - BORDER ; y += BEV_SIZE / 2)
+		for (int y = BORDER; y < area->h - BORDER; y += BEV_SIZE / 2)
 		{	
 			{
 				SDL_Rect src = { offset * BEV_SIZE, BORDER, BORDER, my_min(BEV_SIZE / 2, area->h - BORDER - y) };
@@ -73,7 +73,7 @@ void bevelex(GfxDomain *screen, const SDL_Rect *area, GfxSurface *gfx, int offse
 			}
 		}
 		
-		for (int x = BORDER ; x < area->w - BORDER ; x += BEV_SIZE / 2)
+		for (int x = BORDER; x < area->w - BORDER; x += BEV_SIZE / 2)
 		{	
 			{
 				SDL_Rect src = { BORDER + offset * BEV_SIZE, 0, my_min(BEV_SIZE / 2, area->w - BORDER - x), BORDER };

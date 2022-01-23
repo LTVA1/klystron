@@ -27,7 +27,7 @@ KLYSAPI KSong* KSND_LoadSong(KPlayer* player, const char *path)
 	KSong *song = calloc(sizeof(*song), 1);
 	
 	int i = 0;
-	for (i = 0 ; i < CYD_WAVE_MAX_ENTRIES ; ++i)
+	for (i = 0; i < CYD_WAVE_MAX_ENTRIES; ++i)
 	{
 		cyd_wave_entry_init(&song->wavetable_entries[i], NULL, 0, 0, 0, 0, 0);
 	}
@@ -79,7 +79,7 @@ KLYSAPI KSong* KSND_LoadSongFromMemory(KPlayer* player, void *data, int data_siz
 	KSong *song = calloc(sizeof(*song), 1);
 	
 	int i = 0;
-	for (i = 0 ; i < CYD_WAVE_MAX_ENTRIES ; ++i)
+	for (i = 0; i < CYD_WAVE_MAX_ENTRIES; ++i)
 	{
 		cyd_wave_entry_init(&song->wavetable_entries[i], NULL, 0, 0, 0, 0, 0);
 	}
@@ -104,7 +104,7 @@ KLYSAPI KSong* KSND_LoadSongFromMemory(KPlayer* player, void *data, int data_siz
 KLYSAPI void KSND_FreeSong(KSong *song)
 {
 	int i = 0;
-	for (i = 0 ; i < CYD_WAVE_MAX_ENTRIES ; ++i)
+	for (i = 0; i < CYD_WAVE_MAX_ENTRIES; ++i)
 	{
 		cyd_wave_entry_init(&song->wavetable_entries[i], NULL, 0, 0, 0, 0, 0);
 	}
@@ -246,7 +246,7 @@ KLYSAPI const KSongInfo * KSND_GetSongInfo(KSong *song, KSongInfo *data)
 	data->n_instruments = song->song.num_instruments;
 	data->n_channels = song->song.num_channels;
 	
-	for (int i = 0 ; i < data->n_instruments ; ++i)
+	for (int i = 0; i < data->n_instruments; ++i)
 		data->instrument_name[i] = song->song.instrument[i].name;
 		
 	return data;

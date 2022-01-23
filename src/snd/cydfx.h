@@ -45,22 +45,28 @@ typedef struct
 {
 	char name[CYD_FX_NAME_LEN + 1];
 	Uint32 flags; // 4
+	
 	struct
 	{
 		Uint8 bit_drop; // 1
 	} crush;
+	
 	struct 
 	{
 		Uint8 rate, min_delay, max_delay, sep; // 4
 	} chr;
+	
 	struct 
 	{
+		Uint8 taps_quant;
 		struct { Uint16 delay; Sint16 gain; Uint8 panning; Uint8 flags; } tap[CYDRVB_TAPS]; 
 	} rvb;
+	
 	struct // so we won't fuck up old versions of this struct when freading
 	{
 		Uint8 downsample, gain; // 2
 	} crushex;
+	
 } __attribute__((__packed__)) CydFxSerialized;
 
 #ifdef STEREOOUTPUT

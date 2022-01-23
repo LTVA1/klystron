@@ -72,7 +72,7 @@ void load_dialog()
 		level_load(&level, f);
 		fclose(f);
 		
-		for (int i = 0 ; i < MAX_LAYERS+2 ; ++i)
+		for (int i = 0; i < MAX_LAYERS+2; ++i)
 		{
 			level.layer[i].tiles = descriptor;
 		}
@@ -89,7 +89,7 @@ void load_level(const char *path)
 		level_load(&level, f);
 		fclose(f);
 		
-		for (int i = 0 ; i < MAX_LAYERS+2 ; ++i)
+		for (int i = 0; i < MAX_LAYERS+2; ++i)
 		{
 			level.layer[i].tiles = descriptor;
 		}
@@ -124,7 +124,7 @@ void load_defs(const char *fn)
 				n_ev_desc = config_setting_length(e);
 				ev_desc = calloc(n_ev_desc, sizeof(ev_desc[0]));
 				
-				for (int i = 0 ; i < n_ev_desc ; ++i)
+				for (int i = 0; i < n_ev_desc; ++i)
 				{
 					config_setting_t *elem = config_setting_get_elem(e, i);
 					config_setting_lookup_string(elem, "name", &ev_desc[i].name);
@@ -140,7 +140,7 @@ void load_defs(const char *fn)
 					{
 						int n_p = config_setting_length(params);
 						
-						for (int i = 0 ; i < n_p && i < EV_PARAMS - 3 ; ++i)
+						for (int i = 0; i < n_p && i < EV_PARAMS - 3; ++i)
 						{
 							EvParDesc *p = &ed->param[i + 1];
 							
@@ -154,7 +154,7 @@ void load_defs(const char *fn)
 								p->int_min = 0;
 								p->int_max = config_setting_length(enums);
 								p->enums = calloc(p->int_max, sizeof(p->enums[0]));
-								for (int e = 0 ; e < p->int_max ; ++e)
+								for (int e = 0; e < p->int_max; ++e)
 								{
 									p->enums[e] = config_setting_get_string_elem(enums, e); 
 								}
@@ -263,7 +263,7 @@ void draw(GfxDomain *screen, int mouse_x, int mouse_y, int draw_all)
 {
 	if (draw_all)
 	{
-		for (int i = 0 ; i < MAX_LAYERS ; ++i)
+		for (int i = 0; i < MAX_LAYERS; ++i)
 		{
 			if (level.layer[i].flags & BG_PARALLAX)
 				bg_draw(screen, NULL, &level.layer[i], scroll_x / my_max(1, level.layer[i].prx_mlt_x), scroll_y / my_max(1, level.layer[i].prx_mlt_y));
@@ -307,9 +307,9 @@ void draw(GfxDomain *screen, int mouse_x, int mouse_y, int draw_all)
 		}
 		else
 		{
-			for (int i = 0 ; i < level.n_events ; ++i)
+			for (int i = 0; i < level.n_events; ++i)
 			{
-				for (int s = 0 ; s < 4 ; s+=2)
+				for (int s = 0; s < 4; s+=2)
 				draw_rect(screen, s + level.event[i].x * CELLSIZE - _scroll_x, s + level.event[i].y * CELLSIZE - _scroll_y, 
 				  level.event[i].w * CELLSIZE + level.event[i].x * CELLSIZE - _scroll_x - s, level.event[i].h * CELLSIZE + level.event[i].y * CELLSIZE - _scroll_y - s, i == selected_event ? 0xffffff : ev_desc[level.event[i].param[0]].color);
 				  
@@ -361,9 +361,9 @@ void resize_layer(int w, int h)
 	
 	if (temp)
 	{
-		for (int y = 0 ; y < h && y < layer->h ; ++y)
+		for (int y = 0; y < h && y < layer->h; ++y)
 		{
-			for (int x = 0 ; x < w && x < layer->w ; ++x)
+			for (int x = 0; x < w && x < layer->w; ++x)
 			{
 				memcpy(&layer->data[w*y+x], &temp[x+y*layer->w], sizeof(layer->data[0]));
 			}
@@ -440,9 +440,9 @@ void set_tile(int ax, int ay)
 	ax /= CELLSIZE;
 	ay /= CELLSIZE;
 	
-	for (int y = 0 ; y < level.layer[BRUSH_LAYER].h ; ++y)
+	for (int y = 0; y < level.layer[BRUSH_LAYER].h; ++y)
 	{
-		for (int x = 0 ; x < level.layer[BRUSH_LAYER].w ; ++x)
+		for (int x = 0; x < level.layer[BRUSH_LAYER].w; ++x)
 		{
 			int _x = x+ax-fx, _y = y+ay-fy;
 			
@@ -472,11 +472,11 @@ int has_pixels(TileDescriptor *desc)
 	const Uint32 key = desc->surface->surface->format->colorkey;
 #endif
 	
-	for (int y = 0 ; y < desc->rect.h ; ++y)
+	for (int y = 0; y < desc->rect.h; ++y)
 	{
 		Uint8 *p = (Uint8 *)desc->surface->surface->pixels + ((int)desc->rect.y + y) * desc->surface->surface->pitch + (int)desc->rect.x * desc->surface->surface->format->BytesPerPixel;
 		
-		for (int x = 0 ; x < desc->rect.w ; ++x)
+		for (int x = 0; x < desc->rect.w; ++x)
 		{
 			//printf("%08x", *(Uint32*)p);
 			if ((*((Uint32*)p)&0xffffff) != key)
@@ -507,7 +507,7 @@ void init_magic_layer(int w, int h, TileDescriptor *desc, int tiles)
 	level.layer[MAGICK_LAYER].data = malloc(level.layer[MAGICK_LAYER].w*level.layer[MAGICK_LAYER].h*sizeof(level.layer[MAGICK_LAYER].data[0]));
 	memset(level.layer[MAGICK_LAYER].data, 0, level.layer[MAGICK_LAYER].w*level.layer[MAGICK_LAYER].h*sizeof(level.layer[MAGICK_LAYER].data[0]));
 	
-	for (int i = 0 ; i < tiles ; ++i)
+	for (int i = 0; i < tiles; ++i)
 	{
 		int x = desc[i].rect.x / CELLSIZE;
 		int y = desc[i].rect.y / CELLSIZE;
@@ -548,9 +548,9 @@ void get_brush(int x1, int y1, int x2, int y2)
 	level.layer[BRUSH_LAYER].data = malloc(level.layer[BRUSH_LAYER].w * level.layer[BRUSH_LAYER].h * sizeof(level.layer[BRUSH_LAYER].data[0]));
 	memset(level.layer[BRUSH_LAYER].data, 0, level.layer[BRUSH_LAYER].w * level.layer[BRUSH_LAYER].h * sizeof(level.layer[BRUSH_LAYER].data[0]));
 	
-	for (int y = 0 ; y < level.layer[BRUSH_LAYER].h ; ++y)
+	for (int y = 0; y < level.layer[BRUSH_LAYER].h; ++y)
 	{
-		for (int x = 0 ; x < level.layer[BRUSH_LAYER].w ; ++x)
+		for (int x = 0; x < level.layer[BRUSH_LAYER].w; ++x)
 		{
 			int _x = x + x1;
 			int _y = y + y1;
@@ -594,7 +594,7 @@ int get_event(int x, int y)
 	
 	const int border = 1;
 	
-	for (int i = 0 ; i < level.n_events ; ++i)
+	for (int i = 0; i < level.n_events; ++i)
 	{
 		if (((int)level.event[i].x <= x && (int)level.event[i].y <= y && (int)level.event[i].x+(int)level.event[i].w > x && (int)level.event[i].y+(int)level.event[i].h > y ) &&
 			!((int)level.event[i].x + border <= x && (int)level.event[i].y + border <= y && (int)level.event[i].x+(int)level.event[i].w - border > x && (int)level.event[i].y+(int)level.event[i].h - border > y ))
@@ -603,7 +603,7 @@ int get_event(int x, int y)
 	
 	// check for clicks inside the full area
 		
-	for (int i = 0 ; i < level.n_events ; ++i)
+	for (int i = 0; i < level.n_events; ++i)
 	{
 		if ((int)level.event[i].x <= x && (int)level.event[i].y <= y && (int)level.event[i].x+(int)level.event[i].w > x && (int)level.event[i].y+(int)level.event[i].h > y )
 			return i;
@@ -648,7 +648,7 @@ void add_event(int x, int y)
 	{
 		if (n_ev_desc > 0)
 		{
-			for (int i = 0; i < EV_PARAMS ; ++i)
+			for (int i = 0; i < EV_PARAMS; ++i)
 				level.event[level.n_events].param[i] = ev_desc[0].param[i].default_val;
 		}	
 		level.event[level.n_events].param[EV_NEXT] = -1;
@@ -669,7 +669,7 @@ void delete_event()
 	
 	--level.n_events;
 	
-	for (int i = 0 ; i < level.n_events ; ++i)
+	for (int i = 0; i < level.n_events; ++i)
 	{
 		if (level.event[i].param[EV_NEXT] == selected_event)
 		{
@@ -701,8 +701,8 @@ void shift_layer(int dx, int dy)
 	
 	BgCell *temp = malloc(sizeof(BgCell)*w*h);
 	
-	for (int y = 0 ; y < h ; ++y)
-		for (int x = 0 ; x < w ; ++x)
+	for (int y = 0; y < h; ++y)
+		for (int x = 0; x < w; ++x)
 		{
 			memcpy(&temp[(x + dx + w) % w + ((y + dy + h) % h) * w], &level.layer[current_layer].data[x+y*w], sizeof(BgCell));
 		}
@@ -715,7 +715,7 @@ void shift_layer(int dx, int dy)
 
 void shift_events(int dx,int dy)
 {
-	for (int i = 0 ; i < level.n_events ; ++i)
+	for (int i = 0; i < level.n_events; ++i)
 	{
 		level.event[i].x += dx;
 		level.event[i].y += dy;
@@ -730,8 +730,8 @@ void double_layer()
 	
 	BgCell *temp = malloc(sizeof(BgCell) * (w * 2) * (h * 2));
 	
-	for (int y = 0 ; y < h * 2 ; ++y)
-		for (int x = 0 ; x < w * 2 ; ++x)
+	for (int y = 0; y < h * 2; ++y)
+		for (int x = 0; x < w * 2; ++x)
 		{
 			memcpy(&temp[x + y * (w * 2)], &level.layer[current_layer].data[(x / 2) + (y / 2) * w], sizeof(BgCell));
 		}
@@ -751,18 +751,18 @@ void insert_rowcol(int sx, int sy, int dx, int dy)
 	debug("Inserting row/col at %d,%d", sx, sy);
 	resize_layer(level.layer[current_layer].w + dx, level.layer[current_layer].h + dy);
 	
-	for (int x = level.layer[current_layer].w - 1 ; x >= sx + dx ; --x)
+	for (int x = level.layer[current_layer].w - 1; x >= sx + dx; --x)
 	{
-		for (int y = 0 ; y < level.layer[current_layer].h ; ++y)
+		for (int y = 0; y < level.layer[current_layer].h; ++y)
 		{
 			level.layer[current_layer].data[x + y * level.layer[current_layer].w].tile = 
 				level.layer[current_layer].data[x + y * level.layer[current_layer].w - dx].tile;
 		}
 	}
 	
-	for (int x = 0 ; x < level.layer[current_layer].w ; ++x)
+	for (int x = 0; x < level.layer[current_layer].w; ++x)
 	{
-		for (int y = level.layer[current_layer].h - 1 ; y >= sy + dy ; --y)
+		for (int y = level.layer[current_layer].h - 1; y >= sy + dy; --y)
 		{
 			level.layer[current_layer].data[x + y * level.layer[current_layer].w].tile = 
 				level.layer[current_layer].data[x + (y - dy) * level.layer[current_layer].w].tile;
@@ -826,7 +826,7 @@ int main(int argc, char **argv)
 	
 	descriptor = gfx_build_tiledescriptor(tiles, CELLSIZE, CELLSIZE, NULL);
 	
-	for (int i = 0 ; i < MAX_LAYERS+2 ; ++i)
+	for (int i = 0; i < MAX_LAYERS+2; ++i)
 	{
 		level.layer[i].tiles = descriptor;
 	}
@@ -1239,7 +1239,7 @@ int main(int argc, char **argv)
 										{
 											level.event[selected_event].param[selected_param] = my_max(0, my_min(n_ev_desc - 1,level.event[selected_event].param[selected_param]));
 											
-											for (int i = 1 ; i < EV_PARAMS - 2 ; ++i)
+											for (int i = 1; i < EV_PARAMS - 2; ++i)
 												level.event[selected_event].param[i] = my_max(ev_desc[level.event[selected_event].param[0]].param[i].int_min, 
 													my_min(ev_desc[level.event[selected_event].param[0]].param[i].int_max ,level.event[selected_event].param[i]));
 										}
@@ -1356,7 +1356,7 @@ int main(int argc, char **argv)
 					font_write(&font, domain, &textpos, text);
 					textpos.y += font.h;
 					
-					for (int i = 0 ; i < EV_PARAMS ; ++i)
+					for (int i = 0; i < EV_PARAMS; ++i)
 					{
 						char s = ' ';
 						

@@ -44,11 +44,11 @@ void cyd_wave_entry_init(CydWavetableEntry *entry, const void *data, Uint32 n_sa
 	{
 		entry->data = realloc(entry->data, sizeof(*entry->data) * n_samples);
 		
-		for (int i = 0; i < n_samples ; ++i)
+		for (int i = 0; i < n_samples; ++i)
 		{
 			Sint32 v = 0;
 			
-			for (int c = 0; c < channels ; ++c)
+			for (int c = 0; c < channels; ++c)
 			{
 				switch (sample_type)
 				{

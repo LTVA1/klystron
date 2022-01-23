@@ -41,7 +41,7 @@ int bg_check_collision(const Background *bg, const ObjHdr *object, ObjHdr *colli
 	hdr->h = CELLSIZE;
 	hdr->y = top * CELLSIZE;
 	 
-	for (int y = top ; y <= bottom ; ++y)
+	for (int y = top; y <= bottom; ++y)
 	{
 		hdr->x = left * CELLSIZE;
 		
@@ -55,7 +55,7 @@ int bg_check_collision(const Background *bg, const ObjHdr *object, ObjHdr *colli
 		
 		if (_y >= 0) 
 		{
-			for (int x = left ; x <= right ; ++x)
+			for (int x = left; x <= right; ++x)
 			{
 				int _x = x;
 				
@@ -98,7 +98,7 @@ void bg_draw(GfxDomain *surface, const SDL_Rect * dest, const Background *bg, in
 	if (dest == NULL)
 		dest = &def;
 		
-	for (int y = (yofs) / CELLSIZE - 1; sy <= dest->h + 2 * CELLSIZE ; ++y, sy += CELLSIZE)
+	for (int y = (yofs) / CELLSIZE - 1; sy <= dest->h + 2 * CELLSIZE; ++y, sy += CELLSIZE)
 	{
 		sx = 0;
 				
@@ -108,7 +108,7 @@ void bg_draw(GfxDomain *surface, const SDL_Rect * dest, const Background *bg, in
 			else if (y < 0) continue;
 			else if (y >= bg->h) break;
 				
-		for (int x = (xofs) / CELLSIZE - 1 ; sx <= dest->w + 2 * CELLSIZE ; ++x, sx += CELLSIZE)
+		for (int x = (xofs) / CELLSIZE - 1; sx <= dest->w + 2 * CELLSIZE; ++x, sx += CELLSIZE)
 		{
 			int _x = x;
 			
@@ -147,9 +147,9 @@ int bg_create_tile_objhdr(ObjHdr* object_array, const Background *bg, int x, int
 	if (!tiles)
 		tiles = bg->tiles;
 	
-	for (int _y = y ; _y < h + y ; ++_y)
+	for (int _y = y; _y < h + y; ++_y)
 	{
-		for (int _x = x ; _x < w + x ; ++_x)
+		for (int _x = x; _x < w + x; ++_x)
 		{
 			if (bg->data[_x + _y * bg->w].tile)
 			{

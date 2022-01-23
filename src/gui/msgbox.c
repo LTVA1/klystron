@@ -34,7 +34,7 @@ static int draw_box(GfxDomain *dest, GfxSurface *gfx, const Font *font, const SD
 {
 	int w = 0, max_w = 200, h = font->h;
 	
-	for (const char *c = msg ; *c ; ++c)
+	for (const char *c = msg; *c; ++c)
 	{
 		w += font->w;
 		max_w = my_max(max_w, w + 16);
@@ -57,7 +57,7 @@ static int draw_box(GfxDomain *dest, GfxSurface *gfx, const Font *font, const SD
 	update_rect(&content, &pos);
 	
 	int b = 0;
-	for (int i = 0 ; i < MB_BUTTON_TYPES ; ++i)
+	for (int i = 0; i < MB_BUTTON_TYPES; ++i)
 		if (buttons & (1 << i)) ++b;
 		
 	*selected = (*selected + b) % b;
@@ -71,7 +71,7 @@ static int draw_box(GfxDomain *dest, GfxSurface *gfx, const Font *font, const SD
 	static const char *label[] = { "YES", "NO", "CANCEL", "OK" };
 	int idx = 0;
 	
-	for (int i = 0 ; i < MB_BUTTON_TYPES ; ++i)
+	for (int i = 0; i < MB_BUTTON_TYPES; ++i)
 	{
 		if (buttons & (1 << i))
 		{

@@ -65,7 +65,7 @@ int bnd_open_RW(Bundle *bundle, SDL_RWops *ctx)
 	
 	Uint32 origin = 0;
 	
-	for (int i = 0 ; i < bundle->n_files ; ++i)
+	for (int i = 0; i < bundle->n_files; ++i)
 	{
 		char name[BND_MAX_NAME_SIZE];
 		memset(name, 0, sizeof(name));
@@ -95,7 +95,7 @@ int bnd_open_RW(Bundle *bundle, SDL_RWops *ctx)
 	
 	Uint32 header_size = SDL_RWtell(ctx);
 	
-	for (int i = 0 ; i < bundle->n_files ; ++i)
+	for (int i = 0; i < bundle->n_files; ++i)
 	{
 		bundle->file[i].offset += header_size;
 	}
@@ -110,7 +110,7 @@ int bnd_open_RW(Bundle *bundle, SDL_RWops *ctx)
 
 void bnd_free(Bundle *bundle)
 {
-	for (int i = 0 ; i < bundle->n_files ; ++i)
+	for (int i = 0; i < bundle->n_files; ++i)
 	{
 		free(bundle->file[i].name);
 	}
@@ -187,7 +187,7 @@ SDL_RWops *SDL_RWFromBundle(Bundle *bundle, const char *filename)
 	RWOpsBundle * b = calloc(1, sizeof(RWOpsBundle));
 	b->handle = bundle->handle;
 	
-	for (int i = 0 ; i < bundle->n_files ; ++i)
+	for (int i = 0; i < bundle->n_files; ++i)
 	{
 		if (strcmp(bundle->file[i].name, filename) == 0)
 		{
@@ -225,7 +225,7 @@ SDL_RWops *SDL_RWFromBundle(Bundle *bundle, const char *filename)
 
 int bnd_exists(const Bundle *bundle, const char *filename)
 {
-	for (int i = 0 ; i < bundle->n_files ; ++i)
+	for (int i = 0; i < bundle->n_files; ++i)
 	{
 		if (strcmp(bundle->file[i].name, filename) == 0)
 		{

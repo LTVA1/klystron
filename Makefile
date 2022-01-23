@@ -155,7 +155,7 @@ objs.$(CFG)/lib_%.o: lib/%.c
 deps/snd_$(CFG)_%.d: snd/%.c
 	$(Q)mkdir -p deps
 	$(MSG) "Generating dependencies for $<"
-	$(Q)set -e ; $(CDEP) -MM $(INCLUDEFLAGS) $< > $@.$$$$; \
+	$(Q)set -e; $(CDEP) -MM $(INCLUDEFLAGS) $< > $@.$$$$; \
 	sed 's,\($*\)\.o[ :]*,objs.$(CFG)\/snd_\1.o $@ : ,g' \
 		< $@.$$$$ > $@; \
 	rm -f $@.$$$$
@@ -163,7 +163,7 @@ deps/snd_$(CFG)_%.d: snd/%.c
 deps/gfx_$(CFG)_%.d: gfx/%.c
 	$(Q)mkdir -p deps
 	$(MSG) "Generating dependencies for $<"
-	$(Q)set -e ; $(CDEP) -MM $(INCLUDEFLAGS) $< > $@.$$$$; \
+	$(Q)set -e; $(CDEP) -MM $(INCLUDEFLAGS) $< > $@.$$$$; \
 	sed 's,\($*\)\.o[ :]*,objs.$(CFG)\/gfx_\1.o $@ : ,g' \
 		< $@.$$$$ > $@; \
 	rm -f $@.$$$$
@@ -171,7 +171,7 @@ deps/gfx_$(CFG)_%.d: gfx/%.c
 deps/util_$(CFG)_%.d: util/%.c
 	$(Q)mkdir -p deps
 	$(MSG) "Generating dependencies for $<"
-	$(Q)set -e ; $(CDEP) -MM $(INCLUDEFLAGS) $< > $@.$$$$; \
+	$(Q)set -e; $(CDEP) -MM $(INCLUDEFLAGS) $< > $@.$$$$; \
 	sed 's,\($*\)\.o[ :]*,objs.$(CFG)\/util_\1.o $@ : ,g' \
 		< $@.$$$$ > $@; \
 	rm -f $@.$$$$
@@ -179,7 +179,7 @@ deps/util_$(CFG)_%.d: util/%.c
 deps/gui_$(CFG)_%.d: gui/%.c
 	$(Q)mkdir -p deps
 	$(MSG) "Generating dependencies for $<"
-	$(Q)set -e ; $(CDEP) -MM $(INCLUDEFLAGS) $< > $@.$$$$; \
+	$(Q)set -e; $(CDEP) -MM $(INCLUDEFLAGS) $< > $@.$$$$; \
 	sed 's,\($*\)\.o[ :]*,objs.$(CFG)\/gui_\1.o $@ : ,g' \
 		< $@.$$$$ > $@; \
 	rm -f $@.$$$$
@@ -187,7 +187,7 @@ deps/gui_$(CFG)_%.d: gui/%.c
 deps/lib_$(CFG)_%.d: lib/%.c
 	$(Q)mkdir -p deps
 	$(MSG) "Generating dependencies for $<"
-	$(Q)set -e ; $(CDEP) -MM $(INCLUDEFLAGS) $< > $@.$$$$; \
+	$(Q)set -e; $(CDEP) -MM $(INCLUDEFLAGS) $< > $@.$$$$; \
 	sed 's,\($*\)\.o[ :]*,objs.$(CFG)\/gui_\1.o $@ : ,g' \
 		< $@.$$$$ > $@; \
 	rm -f $@.$$$$

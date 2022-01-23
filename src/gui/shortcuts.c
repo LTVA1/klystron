@@ -33,7 +33,7 @@ void do_shortcuts(SDL_KeyboardEvent *e, const KeyShortcut *shortcuts)
 	if (e->type != SDL_KEYDOWN)
 		return;
 
-	for (int i = 0 ; shortcuts[i].action ; ++i)
+	for (int i = 0; shortcuts[i].action; ++i)
 	{
 		if (e->keysym.sym == shortcuts[i].key
 			&& (!(e->keysym.mod & KMOD_SHIFT) == !(shortcuts[i].mod & KMOD_SHIFT))
@@ -51,7 +51,7 @@ void do_shortcuts(SDL_KeyboardEvent *e, const KeyShortcut *shortcuts)
 
 static const char *upcase(char *str)
 {
-	for (char *c = str ; *c ; ++c)
+	for (char *c = str; *c; ++c)
 		*c = toupper(*c);
 
 	return str;

@@ -110,7 +110,7 @@ static const char * get_shortcut_key(const Menu *item)
 {
 	if (!shortcuts) return NULL;
 
-	for (int i = 0 ; shortcuts[i].action ; ++i)
+	for (int i = 0; shortcuts[i].action; ++i)
 	{
 		if (((item->action == MENU_CHECK || item->action == MENU_CHECK_NOSET) && (void*)shortcuts[i].action == item->p3) ||
 			(shortcuts[i].action == item->action &&
@@ -157,7 +157,7 @@ static void draw_submenu(GfxDomain *menu_dest, const SDL_Event *event, const Men
 			
 			const Menu * item = items;
 		
-			for (; item->text ; ++item)
+			for (; item->text; ++item)
 			{
 				area.w = my_max(get_menu_item_width(item), area.w);
 				if (item->text[0])
@@ -201,7 +201,7 @@ static void draw_submenu(GfxDomain *menu_dest, const SDL_Event *event, const Men
 		
 		const Menu * item = items;
 		
-		for (; item->text ; ++item)
+		for (; item->text; ++item)
 		{
 			if (item->text[0])
 			{

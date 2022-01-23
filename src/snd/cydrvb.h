@@ -48,9 +48,13 @@ typedef struct
 
 typedef struct
 {
+	
 	Sint32 *buffer;
 	int size, rate;
 	int position;
+	
+	Uint8 taps_quant;
+	
 	CydTap tap[CYDRVB_TAPS];
 } CydReverb;
 

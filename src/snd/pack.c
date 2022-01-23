@@ -180,7 +180,7 @@ static Sint32 bit_rbits(BitPtr *p, Uint8 bits)
 {
 	Sint32 rval = 0;
 
-	for (int i = 0 ; i < bits ; ++i)
+	for (int i = 0; i < bits; ++i)
 	{
 		int bit = bit_r(p);
 		
@@ -196,7 +196,7 @@ static Sint32 bit_rbits(BitPtr *p, Uint8 bits)
 /* Write bits bits of v */
 static void bit_wbits(BitPtr *p, Uint32 v, Uint8 bits)
 {
-	for (int i = 0 ; i < bits ; ++i)
+	for (int i = 0; i < bits; ++i)
 	{
 		bit_w(p, v & (1 << i));
 	}
@@ -270,14 +270,14 @@ Uint8 * bitpack(const Sint16 *_buffer, const int n, int flags, Uint32 *packed_si
 	if (flags & BITPACK_OPT_DELTA) delta_encode(buffer, n);
 	if (flags & BITPACK_OPT_GRAY) gray_encode(buffer, n);
 	
-	for (int plane = 0 ; plane < sizeof(*buffer) * 8 ; ++plane)
+	for (int plane = 0; plane < sizeof(*buffer) * 8; ++plane)
 	{
 		const Sint16 mask = 1 << plane;
 		int bit = mask & *buffer;
 		
 		int type = BITPACK_STATIC0 | (bit != 0);
 		
-		for (int i = 0 ; i < n ; ++i)
+		for (int i = 0; i < n; ++i)
 			if ((buffer[i] & mask) != bit)
 			{
 				// Was not all zeros or all ones, needs to compress
@@ -295,7 +295,7 @@ again:
 		switch (type)
 		{
 			case BITPACK_LITERAL:
-				for (int i = 0 ; i < n ; ++i)
+				for (int i = 0; i < n; ++i)
 					bit_w(&bp, buffer[i] & mask);
 				break;
 			
@@ -311,7 +311,7 @@ again:
 				
 				Uint32 ctr = 0;
 				
-				for (int i = 0 ; i < n ; ++i)
+				for (int i = 0; i < n; ++i)
 				{
 					if (((buffer[i] & mask) == bit))
 						++ctr;
@@ -361,7 +361,7 @@ Sint16 * bitunpack(const Uint8 *packed_data, const Uint32 packed_size, Uint32 un
 	
 	Sint16 *buffer = calloc(unpacked_size, sizeof(Sint16));
 	
-	for (int plane = 0 ; plane < sizeof(*buffer) * 8 ; ++plane)
+	for (int plane = 0; plane < sizeof(*buffer) * 8; ++plane)
 	{
 		const Sint16 mask = 1 << plane;
 		
@@ -372,7 +372,7 @@ Sint16 * bitunpack(const Uint8 *packed_data, const Uint32 packed_size, Uint32 un
 		switch (type)
 		{
 			case BITPACK_LITERAL:
-				for (int i = 0 ; i < unpacked_size ; ++i)
+				for (int i = 0; i < unpacked_size; ++i)
 				{
 					int bit = bit_r(&bp);
 					if (bit < 0) goto read_error;
@@ -386,7 +386,7 @@ Sint16 * bitunpack(const Uint8 *packed_data, const Uint32 packed_size, Uint32 un
 				
 			case BITPACK_STATIC1:
 				// Fill bitplane with set/unset bit
-				for (int i = 0 ; i < unpacked_size ; ++i)
+				for (int i = 0; i < unpacked_size; ++i)
 					buffer[i] |= mask;
 				break;
 				
@@ -401,13 +401,13 @@ Sint16 * bitunpack(const Uint8 *packed_data, const Uint32 packed_size, Uint32 un
 				
 				buffer[0] |= bit;
 				
-				for (int i = 0 ; i < unpacked_size ; )
+				for (int i = 0; i < unpacked_size; )
 				{
 					Uint32 ctr = bit_rgamma(&bp);
 					
 					if (ctr == 0) goto read_error;
 					
-					for (; i < unpacked_size && ctr ; ++i, --ctr)
+					for (; i < unpacked_size && ctr; ++i, --ctr)
 						buffer[i] |= bit;
 					
 					if (ctr) goto read_error;
@@ -441,7 +441,7 @@ Uint8 * bitpack_best(const Sint16 *data, Uint32 data_size, Uint32 *_packed_size,
 	Uint8 *best = NULL;
 	int best_flags = 0;
 	
-	for (int i = 0 ; i < 4 ; ++i)
+	for (int i = 0; i < 4; ++i)
 	{
 		Uint32 packed_size;
 		

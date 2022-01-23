@@ -152,7 +152,7 @@ static void free_files()
 {
 	if (data.files)
 	{
-		for (int i = 0 ; i < data.n_files ; ++i)
+		for (int i = 0; i < data.n_files; ++i)
 		{
 			free(data.files[i].name);
 			free(data.files[i].display_name);
@@ -233,14 +233,14 @@ static void show_favorites_action(void *unused0, void *unused1, void *unused2)
 {
 	free_files();
 
-	for (int i = 0 ; i < n_favorites ;++i)
+	for (int i = 0; i < n_favorites;++i)
 		add_file(FB_DIRECTORY, favorites[i]);
 }
 
 
 bool filebox_is_favorite(const char *path)
 {
-	for (int i = 0 ; i < n_favorites ;++i)
+	for (int i = 0; i < n_favorites;++i)
 		if (strcmp(favorites[i], path) == 0)
 			return true;
 
@@ -261,7 +261,7 @@ void filebox_add_favorite(const char *path)
 
 void filebox_remove_favorite(const char *path)
 {
-	for (int i = 0 ; i < n_favorites ;++i)
+	for (int i = 0; i < n_favorites;++i)
 		if (strcmp(favorites[i], path) == 0)
 		{
 			free(favorites[i]);
@@ -311,7 +311,7 @@ void filebox_quit(const char *path)
 
 	if (f)
 	{
-		for (int i = 0 ; i < n_favorites ; ++i)
+		for (int i = 0; i < n_favorites; ++i)
 		{
 			fprintf(f, "%s\n", favorites[i]);
 			free(favorites[i]);
@@ -426,7 +426,7 @@ void file_list_view(GfxDomain *dest_surface, const SDL_Rect *area, const SDL_Eve
 
 	gfx_domain_set_clip(dest_surface, &content);
 
-	for (int i = data.list_position ; i < data.n_files && pos.y < content.h + content.y ; ++i)
+	for (int i = data.list_position; i < data.n_files && pos.y < content.h + content.y; ++i)
 	{
 		if (data.selected_file == i && data.focus == FOCUS_LIST)
 		{
@@ -466,7 +466,7 @@ void field_view(GfxDomain *dest_surface, const SDL_Rect *area, const SDL_Event *
 	{
 		int i = my_max(0, data.editpos - content.w / data.largefont->w);
 		size_t length = strlen(data.field);
-		for ( ; data.field[i] && i < length ; ++i)
+		for (; data.field[i] && i < length; ++i)
 		{
 			font_write_args(data.largefont, dest_surface, &pos, "%c", data.editpos == i ? '§' : data.field[i]);
 			if (check_event(event, &pos, NULL, NULL, NULL, NULL))
@@ -635,7 +635,7 @@ int filebox(const char *title, int mode, char *buffer, size_t buffer_size, const
 
 	if (!populate_files(domain, gfx, largefont, ".", extension)) return FB_CANCEL;
 
-	for (int i = 0 ; i < data.n_files ; ++i)
+	for (int i = 0; i < data.n_files; ++i)
 	{
 		if (strcmp(data.files[i].name, last_picked_file) == 0)
 		{

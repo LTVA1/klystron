@@ -51,14 +51,14 @@ void layer_save(Background *layer, FILE *f)
 void level_load(Level *level, FILE *f)
 {
 	fread(&level->n_layers, 1, sizeof(int), f);
-	for (int i = 0 ; i < level->n_layers ; ++i)
+	for (int i = 0; i < level->n_layers; ++i)
 		layer_load(&level->layer[i], f);
 	fread(&level->n_events, 1, sizeof(int), f);
 	level->event = NULL;
 	if (level->n_events > 0)
 	{
 		level->event = malloc(sizeof(*level->event)*level->n_events);
-		for (int i = 0 ; i < level->n_events ; ++i)
+		for (int i = 0; i < level->n_events; ++i)
 			fread(&level->event[i], 1, sizeof(level->event[0]), f);
 	}
 }
@@ -67,9 +67,9 @@ void level_load(Level *level, FILE *f)
 void level_save(Level *level, FILE *f)
 {
 	fwrite(&level->n_layers, 1, sizeof(int), f);
-	for (int i = 0 ; i < level->n_layers ; ++i)
+	for (int i = 0; i < level->n_layers; ++i)
 		layer_save(&level->layer[i], f);
 	fwrite(&level->n_events, 1, sizeof(int), f);
-	for (int i = 0 ; i < level->n_events ; ++i)
+	for (int i = 0; i < level->n_events; ++i)
 		fwrite(&level->event[i], 1, sizeof(level->event[0]), f);
 }

@@ -44,11 +44,11 @@ OTHER DEALINGS IN THE SOFTWARE.
 	{\
 		const int w = width & 0xffffff00;\
 		int x;\
-		for (x = 0 ; x < w ; ++x)\
+		for (x = 0; x < w; ++x)\
 		{\
 			block;\
 		}\
-		for ( ; x < width ; ++x)\
+		for (; x < width; ++x)\
 		{\
 			block;\
 		}\
@@ -66,11 +66,11 @@ int * gfx_build_collision_mask(SDL_Surface *s)
 #endif
 
 	my_lock(s);
-	for (int y = 0 ; y < s->h ; ++y)
+	for (int y = 0; y < s->h; ++y)
 	{
 		Uint8 *pa = (Uint8 *)s->pixels + y * s->pitch;
 
-		for (int x = 0 ; x < s->w ; ++x)
+		for (int x = 0; x < s->w; ++x)
 		{
 			int p = 0;
 
@@ -157,12 +157,12 @@ GfxSurface* gfx_load_surface_RW(GfxDomain *domain, SDL_RWops *rw, const int flag
 void gfx_blit_2x(SDL_Surface *dest, SDL_Surface *src)
 {
 
-	for (int y = 0 ; y < src->h ; y ++)
+	for (int y = 0; y < src->h; y ++)
 	{
 		unsigned int *dptr1 = dest->pixels+dest->pitch*(y*2);
 		unsigned int *dptr2 = dest->pixels+dest->pitch*(y*2+1);
 		unsigned int *sptr = src->pixels+src->pitch*y;
-		for (int x = src->w ; x != 0  ; --x)
+		for (int x = src->w; x != 0 ; --x)
 		{
 			*(dptr1++) = *sptr;
 			*(dptr1++) = *sptr;
@@ -176,13 +176,13 @@ void gfx_blit_2x(SDL_Surface *dest, SDL_Surface *src)
 void gfx_blit_3x(SDL_Surface *dest, SDL_Surface *src)
 {
 
-	for (int y = 0 ; y < src->h ; y ++)
+	for (int y = 0; y < src->h; y ++)
 	{
 		unsigned int *dptr1 = dest->pixels+dest->pitch*(y*3);
 		unsigned int *dptr2 = dest->pixels+dest->pitch*(y*3+1);
 		unsigned int *dptr3 = dest->pixels+dest->pitch*(y*3+2);
 		unsigned int *sptr = src->pixels+src->pitch*y;
-		for (int x = src->w ; x != 0  ; --x)
+		for (int x = src->w; x != 0 ; --x)
 		{
 			*(dptr1++) = *sptr;
 			*(dptr1++) = *sptr;
@@ -201,14 +201,14 @@ void gfx_blit_3x(SDL_Surface *dest, SDL_Surface *src)
 void gfx_blit_4x(SDL_Surface *dest, SDL_Surface *src)
 {
 
-	for (int y = 0 ; y < src->h ; y ++)
+	for (int y = 0; y < src->h; y ++)
 	{
 		unsigned int *dptr1 = dest->pixels+dest->pitch*(y*4);
 		unsigned int *dptr2 = dest->pixels+dest->pitch*(y*4+1);
 		unsigned int *dptr3 = dest->pixels+dest->pitch*(y*4+2);
 		unsigned int *dptr4 = dest->pixels+dest->pitch*(y*4+3);
 		unsigned int *sptr = src->pixels+src->pitch*y;
-		for (int x = src->w ; x != 0  ; --x)
+		for (int x = src->w; x != 0 ; --x)
 		{
 			*(dptr1++) = *sptr;
 			*(dptr1++) = *sptr;
@@ -233,7 +233,7 @@ void gfx_blit_4x(SDL_Surface *dest, SDL_Surface *src)
 
 void gfx_raster(SDL_Surface *dest, const SDL_Rect *rect, const Uint32 *colors, int len)
 {
-	for (int y = rect ? rect->y : 0, i = 0 ; y < (rect ? rect->h+rect->y : dest->h) && i < len ; ++i, ++y)
+	for (int y = rect ? rect->y : 0, i = 0; y < (rect ? rect->h+rect->y : dest->h) && i < len; ++i, ++y)
 	{
 		SDL_Rect r = {rect ? rect->x : 0, y, rect ? rect->w : dest->w, 1};
 		SDL_FillRect(dest, &r, colors[i]);
@@ -243,7 +243,7 @@ void gfx_raster(SDL_Surface *dest, const SDL_Rect *rect, const Uint32 *colors, i
 
 void gfx_generate_raster(Uint32 *dest, const Uint32 from, const Uint32 to, int len)
 {
-	for (int i = 0 ; i < len ; ++i)
+	for (int i = 0; i < len; ++i)
 	{
 		int from_r = ((Uint8*)&from)[0];
 		int from_g = ((Uint8*)&from)[1];
@@ -273,11 +273,11 @@ static int has_pixels(TileDescriptor *desc)
 
 	int result = 0;
 
-	for (int y = 0 ; y < desc->rect.h && y + desc->rect.y < desc->surface->surface->h ; ++y)
+	for (int y = 0; y < desc->rect.h && y + desc->rect.y < desc->surface->surface->h; ++y)
 	{
 		Uint8 *p = (Uint8 *)desc->surface->surface->pixels + ((int)desc->rect.y + y) * desc->surface->surface->pitch + (int)desc->rect.x * desc->surface->surface->format->BytesPerPixel;
 
-		for (int x = 0 ; x < desc->rect.w && x + desc->rect.x < desc->surface->surface->w ; ++x)
+		for (int x = 0; x < desc->rect.w && x + desc->rect.x < desc->surface->surface->w; ++x)
 		{
 			Uint32 c = 0;
 
@@ -322,7 +322,7 @@ TileDescriptor *gfx_build_tiledescriptor(GfxSurface *tiles, const int cellwidth,
 
 	int n_tiles = 0;
 
-	for (int i = 0 ; i < (tiles->surface->w/cellwidth)*(tiles->surface->h/cellheight) ; ++i)
+	for (int i = 0; i < (tiles->surface->w/cellwidth)*(tiles->surface->h/cellheight); ++i)
 	{
 		descriptor[i].rect.x = i*cellwidth;
 		descriptor[i].rect.y = 0;
@@ -355,9 +355,9 @@ TileDescriptor *gfx_build_tiledescriptor(GfxSurface *tiles, const int cellwidth,
 }
 
 
-#define SWAP(x,y) {int t = x; x = y; y=t;}
+#define SWAP(x,y) {int t = x; x = y; y = t;}
 
-void gfx_line(GfxDomain *dest, int x0, int y0, int x1, int y1, Uint32 color)
+inline void gfx_line(GfxDomain *dest, int x0, int y0, int x1, int y1, Uint32 color)
 {
 #ifdef USESDL_GPU
 	SDL_Color c = {(color >> 16) & 255, (color >> 8) & 255, color & 255, 255};
@@ -571,7 +571,7 @@ static void create_scanlines_texture(GfxDomain *domain)
 
 	const int depth = 32 * domain->scale;
 
-	for (int y = 0 ; y < domain->screen_h * domain->scale ; ++y)
+	for (int y = 0; y < domain->screen_h * domain->scale; ++y)
 	{
 		SDL_Rect r = {0, y, 8, 1};
 		Uint8 c = fabs(sin((float)y * M_PI / domain->scale)) * depth + (255 - depth);
@@ -859,12 +859,12 @@ void gfx_clear(GfxDomain *domain, Uint32 color)
 
 
 #define SCALEHELPER(test) do {\
-		for (int dy = dest_rect->y, sy = 256 * (int)src_rect->y ; dy < dest_rect->h + dest_rect->y ; ++dy, sy += yspd)\
+		for (int dy = dest_rect->y, sy = 256 * (int)src_rect->y; dy < dest_rect->h + dest_rect->y; ++dy, sy += yspd)\
 		{\
 			Uint32 * dptr = (Uint32*)((Uint8*)dest->pixels + dy * dest->pitch) + dest_rect->x;\
 			Uint32 * sptr = (Uint32*)((Uint8*)src->pixels + sy/256 * src->pitch);\
 			\
-			for (int dx = dest_rect->w, sx = 256 * (int)src_rect->x ; dx > 0 ; --dx, sx += xspd)\
+			for (int dx = dest_rect->w, sx = 256 * (int)src_rect->x; dx > 0; --dx, sx += xspd)\
 			{\
 				if (test) *dptr = sptr[sx / 256];\
 				++dptr;\

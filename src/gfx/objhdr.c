@@ -30,12 +30,12 @@ OTHER DEALINGS IN THE SOFTWARE.
 
 static inline int surf_alpha_both(const int *a, const int *b, int ax, int ay, int bx, int by, int w, int h, int stride_a, int stride_b)
 {
-	for (int y = 0 ; y < h ; ++y)
+	for (int y = 0; y < h; ++y)
 	{
 		const int *pa = a + (ay + y) * stride_a + ax;
 		const int *pb = b + (by + y) * stride_b + bx;
 		
-		for (int x = 0 ; x < w ; ++x)
+		for (int x = 0; x < w; ++x)
 		{
 			if (*pa && *pb)
 			{
@@ -52,11 +52,11 @@ static inline int surf_alpha_both(const int *a, const int *b, int ax, int ay, in
 
 static inline int surf_alpha_a(const int *a, int ax, int ay, int w, int h, int stride)
 {
-	for (int y = ay ; y < h+ay ; ++y)
+	for (int y = ay; y < h+ay; ++y)
 	{
 		const int *pa = a + y * stride + ax;
 		
-		for (int x = 0 ; x < w ; ++x)
+		for (int x = 0; x < w; ++x)
 		{
 			if (*pa)
 			{

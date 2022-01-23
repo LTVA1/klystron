@@ -43,11 +43,11 @@ static int tile_width(TileDescriptor *desc)
 
 	int result = 0;
 
-	for (int y = 0 ; y < desc->rect.h ; ++y)
+	for (int y = 0; y < desc->rect.h; ++y)
 	{
 		Uint8 *pa = (Uint8 *)desc->surface->surface->pixels + ((int)desc->rect.y + y) * desc->surface->surface->pitch + (int)desc->rect.x * desc->surface->surface->format->BytesPerPixel;
 
-		for (int x = 0 ; x < desc->rect.w ; ++x)
+		for (int x = 0; x < desc->rect.w; ++x)
 		{
 			int p = 0;
 
@@ -87,12 +87,12 @@ static const TileDescriptor * findchar_slow(const Font *font, char c)
 
 	char *tc;
 	const TileDescriptor *tile;
-	for (tile = font->tiledescriptor, tc = font->charmap; *tc ; ++tile, ++tc)
+	for (tile = font->tiledescriptor, tc = font->charmap; *tc; ++tile, ++tc)
 		if (*tc == c) return tile;
 
 	c = tolower(c);
 
-	for (tile = font->tiledescriptor, tc = font->charmap; *tc ; ++tile, ++tc)
+	for (tile = font->tiledescriptor, tc = font->charmap; *tc; ++tile, ++tc)
 		if (tolower(*tc) == c) return tile;
 	//debug("Could not find character '%c'", c);
 	return NULL;
@@ -110,11 +110,11 @@ void font_create(Font *font, GfxSurface *tiles, const int w, const int h, const 
 
 	if (space_width)
 	{
-		for (int i = 0 ; i < (tiles->surface->w/w)*(tiles->surface->h/h) ; ++i)
+		for (int i = 0; i < (tiles->surface->w/w)*(tiles->surface->h/h); ++i)
 			font->tiledescriptor[i].rect.w = tile_width(&font->tiledescriptor[i]);
 	}
 
-	for (int i = 0 ; i < 256 ; ++i)
+	for (int i = 0; i < 256; ++i)
 	{
 		font->ordered_tiles[i] = findchar_slow(font, i);
 	}
