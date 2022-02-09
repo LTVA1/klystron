@@ -106,7 +106,7 @@ void cydfx_deinit(CydFx *fx)
 }
 
 
-void cydfx_set(CydFx *fx, const CydFxSerialized *ser)
+void cydfx_set(CydFx *fx, const CydFxSerialized *ser, Uint32 sample_rate)
 {
 #ifndef CYD_DISABLE_FX
 	fx->flags = ser->flags;
@@ -121,7 +121,7 @@ void cydfx_set(CydFx *fx, const CydFxSerialized *ser)
 	}
 	
 	cydchr_set(&fx->chr, ser->chr.rate, ser->chr.min_delay, ser->chr.max_delay, ser->chr.sep);
-	cydcrush_set(&fx->crush, ser->crushex.downsample, ser->crush.bit_drop, fx->flags & CYDFX_ENABLE_CRUSH_DITHER, ser->crushex.gain);
+	cydcrush_set(&fx->crush, ser->crushex.downsample, ser->crush.bit_drop, fx->flags & CYDFX_ENABLE_CRUSH_DITHER, ser->crushex.gain, sample_rate);
 	
 #endif // CYD_DISABLE_FX
 }

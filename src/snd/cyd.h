@@ -36,6 +36,8 @@ OTHER DEALINGS IN THE SOFTWARE.
 #include "cydfm.h"
 #include "cydwave.h"
 
+#define envspd(cyd,slope) (slope!=0?(((Uint64)0xff0000 / ((slope) * (slope) * 256 / (ENVELOPE_SCALE * ENVELOPE_SCALE))) * CYD_BASE_FREQ / cyd->sample_rate):((Uint64)0xff0000 * CYD_BASE_FREQ / cyd->sample_rate))
+
 typedef struct
 {
 	Uint32 frequency;
@@ -57,7 +59,8 @@ typedef struct
 	
 	Uint8 vol_ksl_level;
 	Uint8 env_ksl_level;
-	Uint16 freq_for_ksl;
+	Uint32 freq_for_ksl;
+	double vol_ksl_mult;
 	double env_ksl_mult;
 	double fm_env_ksl_mult;
 	
@@ -88,6 +91,7 @@ typedef struct
 	Uint8 base_note;
 	Sint8 finetune;
 	
+	Uint64 counter; //for general debug purposes
 } CydChannel;
 
 enum
@@ -224,13 +228,13 @@ enum { CYD_YM_ENV_ATT = 1, CYD_YM_ENV_ALT = 2};
 
 /////////////////777
 
-void cyd_init(CydEngine *cyd, Uint16 sample_rate, int initial_channels);
+void cyd_init(CydEngine *cyd, Uint32 sample_rate, int initial_channels);
 void cyd_set_oversampling(CydEngine *cyd, int oversampling);
 void cyd_reserve_channels(CydEngine *cyd, int channels);
 void cyd_deinit(CydEngine *cyd);
 void cyd_reset(CydEngine *cyd);
-void cyd_set_frequency(CydEngine *cyd, CydChannel *chn, int subosc, Uint16 frequency);
-void cyd_set_wavetable_frequency(CydEngine *cyd, CydChannel *chn, int subosc, Uint16 frequency);
+void cyd_set_frequency(CydEngine *cyd, CydChannel *chn, int subosc, Uint32 frequency);
+void cyd_set_wavetable_frequency(CydEngine *cyd, CydChannel *chn, int subosc, Uint32 frequency);
 void cyd_reset_wavetable(CydEngine *cyd);
 void cyd_set_wavetable_offset(CydChannel *chn, Uint16 offset /* 0..0x1000 = 0-100% */);
 void cyd_set_env_frequency(CydEngine *cyd, CydChannel *chn, Uint16 frequency);

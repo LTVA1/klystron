@@ -76,7 +76,7 @@ Sint32 cydfx_output(CydFx *fx, Sint32 fx_input);
 #endif
 void cydfx_init(CydFx *fx, int rate);
 void cydfx_deinit(CydFx *fx);
-void cydfx_set(CydFx *fx, const CydFxSerialized *ser);
+void cydfx_set(CydFx *fx, const CydFxSerialized *ser, Uint32 sample_rate);
 
 enum
 {

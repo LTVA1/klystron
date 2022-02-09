@@ -40,19 +40,19 @@ void cydflt_cycle(CydFilter *flt, Sint32 input)
 	flt->inputf = input / 2147483647.0;
 }
 
-void cydflt_set_coeff(CydFilter *flt, Uint16 frequency, Uint16 resonance) 
+void cydflt_set_coeff(CydFilter *flt, Uint16 frequency, Uint16 resonance, Uint32 sample_rate) 
 {
 	frequency = (frequency * 20000 / 4096) + 5;
 	
 	flt->resonance = resonance;
 	flt->frequency = frequency;
 	
-	double sample_rate = 44100; //was 44100
+	double sample_rate_d = (double)sample_rate; //was 44100
 	//double dbGain = 1.0; //this was 1.0
-	double Q = 0.5 + resonance * 0.25; //this variables may need some tweaking (this was 5.0) 0.7071
+	double Q = 0.7 + resonance * 0.25; //this variables may need some tweaking (this was 5.0) 0.7071
 	
 	//double A = pow(10, dbGain / 40); //convert to db
-    double omega = 2 * M_PI * frequency / sample_rate; //I really don't know what the fuck is going on
+    double omega = 2 * M_PI * frequency / sample_rate_d; //I really don't know what the fuck is going on
     double sn = sin(omega);
     flt->cs = cos(omega);
     flt->alpha = sn / (2 * Q);

@@ -58,7 +58,7 @@ typedef struct {
 
 void cydflt_cycle(CydFilter *flt, Sint32 input);
 
-void cydflt_set_coeff(CydFilter *flt, Uint16 frequency, Uint16 cutoff);
+void cydflt_set_coeff(CydFilter *flt, Uint16 frequency, Uint16 cutoff, Uint32 sample_rate);
 
 Sint32 cydflt_output_lp(CydFilter *flt);
 Sint32 cydflt_output_hp(CydFilter *flt);

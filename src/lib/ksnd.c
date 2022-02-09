@@ -88,6 +88,7 @@ KLYSAPI KSong* KSND_LoadSongFromMemory(KPlayer* player, void *data, int data_siz
 	{
 		return song;
 	}
+	
 	else
 	{
 		free(song);

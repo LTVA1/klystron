@@ -224,10 +224,12 @@ void check_mouse_wheel_event(const SDL_Event *event, const SDL_Rect *rect, Slide
 			{
 				*slider->position -= p;
 			}
+			
 			else
 			{
 				*slider->position += p;
 			}
+			
 			*slider->position = my_max(my_min(*slider->position, slider->last - (slider->visible_last - slider->visible_first)), slider->first);
 		}
 		break;

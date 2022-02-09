@@ -72,9 +72,9 @@ Sint32 cydcrush_output(CydCrush *crush, Sint32 input)
 #endif
 
 
-void cydcrush_set(CydCrush *crush, int downsample, int bit_drop, int dither, int gain)
+void cydcrush_set(CydCrush *crush, int downsample, int bit_drop, int dither, int gain, Uint32 sample_rate)
 {
-	crush->downsample = downsample * crush->sample_rate / 44100;
+	crush->downsample = downsample * sample_rate / 44100;
 	//crush->counter = 0;
 	if (bit_drop >= 0) crush->bit_drop = 0xffffffff << (bit_drop);
 	if (dither >= 0) crush->dither = dither;

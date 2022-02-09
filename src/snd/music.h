@@ -45,6 +45,8 @@ OTHER DEALINGS IN THE SOFTWARE.
 #define MUS_INSTRUMENT_NAME_LEN 255
 #define MUS_WAVETABLE_NAME_LEN MUS_INSTRUMENT_NAME_LEN
 
+#define MUS_MAX_COMMANDS 8
+
 typedef struct
 {
 	Uint8 a, d, s, r; // 0-63 for a, d, r; 0-31 for s
@@ -140,11 +142,11 @@ enum
 typedef struct
 {
 	MusInstrument *instrument;
-	Uint16 note;
+	Uint32 note;
 	Uint8 volume;
 	// ------
 	Uint8 arpeggio_note;
-	Uint16 target_note, last_note, fixed_note;
+	Uint32 target_note, last_note, fixed_note;
 	volatile Uint32 flags;
 	Uint32 current_tick;
 	Uint8 program_counter, program_tick, program_loop, prog_period;
@@ -154,8 +156,10 @@ typedef struct
 typedef struct
 {
 	Uint8 note, instrument, ctrl;
-	Uint16 command, command2, command3, command4; //was Uint16 command;
+	//Uint16 command;
 	Uint8 volume;
+	
+	Uint16 command[MUS_MAX_COMMANDS];
 } MusStep;
 
 typedef struct
@@ -170,6 +174,8 @@ typedef struct
 	MusStep *step;
 	Uint16 num_steps;
 	Uint8 color;
+	
+	Uint8 command_columns; //wasn't there
 } MusPattern;
 
 typedef struct
@@ -181,7 +187,8 @@ typedef struct
 	MusSeqPattern *sequence[MUS_MAX_CHANNELS];
 	Uint16 num_sequences[MUS_MAX_CHANNELS];
 	Uint16 song_length, loop_point;
-	Uint8 song_speed, song_speed2, song_rate;
+	Uint8 song_speed, song_speed2;
+	Uint16 song_rate;
 	Uint16 time_signature, sequence_step;
 	Uint32 flags;
 	Uint8 num_channels;
@@ -205,7 +212,7 @@ typedef struct
 	Sint8 note_offset;
 	Uint16 filter_cutoff;
 	Uint8 filter_resonance;
-	Uint8 filter_slope;
+	Uint8 filter_slope; //wasn't there
 	Uint8 extarp1, extarp2;
 	Uint8 volume;
 	Uint8 vibrato_delay;
@@ -214,13 +221,13 @@ typedef struct
 	
 	Uint8 fm_tremolo_delay, fm_vibrato_delay;
 	
-	Uint8 tremolo_speed, tremolo_depth;
+	Uint8 tremolo_speed, tremolo_depth; //wasn't there
 	Uint8 vibrato_speed, vibrato_depth;
-	Uint8 pwm_speed, pwm_depth;
+	Uint8 pwm_speed, pwm_depth; //wasn't there
 	
-	Uint8 fm_tremolo_speed, fm_tremolo_depth, fm_tremolo_shape;
-	Uint8 fm_vibrato_speed, fm_vibrato_depth, fm_vibrato_shape;
-	Uint16 fm_vibrato_position, fm_tremolo_position;
+	Uint8 fm_tremolo_speed, fm_tremolo_depth, fm_tremolo_shape; //wasn't there
+	Uint8 fm_vibrato_speed, fm_vibrato_depth, fm_vibrato_shape; //wasn't there
+	Uint16 fm_vibrato_position, fm_tremolo_position; //wasn't there
 } MusTrackStatus;
 
 typedef struct
@@ -231,7 +238,7 @@ typedef struct
 	MusTrackStatus song_track[MUS_MAX_CHANNELS];
 	MusSong *song;
 	Uint8 song_counter;
-	Uint16 song_position;
+	int song_position; //was Uint16 song_position;
 	CydEngine *cyd;
 	Uint8 current_tick;
 	Uint8 volume, play_volume; // 0..128
@@ -262,6 +269,10 @@ enum
 	MUS_PAK_BIT_CTRL = 4,
 	MUS_PAK_BIT_CMD = 8,
 	/* -- these go in ctrl byte -- */
+	MUS_PAK_BIT_NEW_CMDS_1 = 16,
+	MUS_PAK_BIT_NEW_CMDS_2 = 32,
+	MUS_PAK_BIT_NEW_CMDS_3 = 64,
+	
 	MUS_PAK_BIT_VOLUME = 128
 };
 
@@ -309,7 +320,10 @@ enum
 	MUS_FX_EXT_NOTE_CUT = 0x0ec0,
 	MUS_FX_EXT_NOTE_DELAY = 0x0ed0,
 	MUS_FX_SET_SPEED = 0x0f00,
+	MUS_FX_SET_SPEED1 = 0x4100, //wasn't there
+	MUS_FX_SET_SPEED2 = 0x4200, //wasn't there
 	MUS_FX_SET_RATE = 0x1f00,
+	MUS_FX_SET_RATE_HIGHER_BYTE = 0x4300, //wasn't there
 	MUS_FX_PORTA_UP_SEMI = 0x1100,
 	MUS_FX_PORTA_DN_SEMI = 0x1200,
 	MUS_FX_SET_PANNING = 0x1800,
@@ -357,6 +371,8 @@ enum
 	MUS_FX_LABEL = 0xfd00,
 	MUS_FX_LOOP = 0xfe00,
 	MUS_FX_TRIGGER_RELEASE = 0x7c00,
+	MUS_FX_TRIGGER_FM_RELEASE = 0x4c00, //wasn't there
+	MUS_FX_TRIGGER_CARRIER_RELEASE = 0x4d00, //wasn't there
 	MUS_FX_RESTART_PROGRAM = 0x7d00,
 	MUS_FX_NOP = 0xfffe,
 };
@@ -384,6 +400,8 @@ enum //song flags
 	MUS_PATTERNS_NO_COMPRESSION = 256,
 	MUS_PATTERNS_COMPRESS_DELTA = 512,
 	MUS_PATTERNS_COMPRESS_GRAY = 1024,
+	
+	MUS_16_BIT_RATE = 2048,
 };
 
 enum

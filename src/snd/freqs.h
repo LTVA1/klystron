@@ -1,6 +1,8 @@
 #ifndef FREQS_H
 #define FREQS_H
 
+#include "../macros.h"
+
 /*
 Copyright (c) 2009-2010 Tero Lindeman (kometbomb)
 
@@ -28,11 +30,11 @@ OTHER DEALINGS IN THE SOFTWARE.
 
 #include "cydtypes.h"
 
-#define FREQ_TAB_SIZE 96
+#define FREQ_TAB_SIZE 120 //was 96
 #define MIDDLE_C (12*4)
 
-extern const Uint16 frequency_table[FREQ_TAB_SIZE];
+extern const Uint32 frequency_table[FREQ_TAB_SIZE];
 
-Uint16 get_freq(int note);
+Uint32 get_freq(int note);
 
 #endif
