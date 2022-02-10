@@ -47,6 +47,8 @@ OTHER DEALINGS IN THE SOFTWARE.
 
 #define MUS_MAX_COMMANDS 8
 
+typedef unsigned long char32_t;
+
 typedef struct
 {
 	Uint8 a, d, s, r; // 0-63 for a, d, r; 0-31 for s
@@ -194,6 +196,9 @@ typedef struct
 	Uint8 num_channels;
 	Uint8 multiplex_period, pitch_inaccuracy;
 	char title[MUS_SONG_TITLE_LEN + 1];
+	
+	char32_t song_info[8388608]; //wasn't there
+	
 	CydFxSerialized fx[CYD_MAX_FX_CHANNELS];
 	Uint8 master_volume;
 	Uint8 default_volume[MUS_MAX_CHANNELS];

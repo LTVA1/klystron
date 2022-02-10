@@ -1134,6 +1134,8 @@ static void mus_exec_prog_tick(MusEngine *mus, int chan, int advance)
 	MusChannel *chn = &mus->channel[chan];
 	int tick = chn->program_tick;
 	int visited[MUS_PROG_LEN] = { 0 };
+	
+	//debug("yay");
 
 	do_it_again:;
 
@@ -1542,10 +1544,12 @@ int mus_trigger_instrument(MusEngine* mus, int chan, MusInstrument *ins, Uint16 
 
 static void mus_advance_channel(MusEngine* mus, int chan)
 {
+	//debug("it reaches here");
+	
 	MusChannel *chn = &mus->channel[chan];
 	MusTrackStatus *track_status = &mus->song_track[chan];
 
-	if (!(mus->cyd->channel[chan].flags & CYD_CHN_ENABLE_GATE))
+	if ((!(mus->cyd->channel[chan].flags & CYD_CHN_ENABLE_GATE) && !(mus->cyd->channel[chan].flags & CYD_CHN_ENABLE_FM)) || ((mus->cyd->channel[chan].flags & CYD_CHN_ENABLE_FM) && (mus->cyd->channel[chan].fm.adsr.envelope == 0) && !(mus->cyd->channel[chan].flags & CYD_CHN_ENABLE_GATE)))
 	{
 		chn->flags &= ~MUS_CHN_PLAYING;
 		return;
@@ -1564,6 +1568,7 @@ static void mus_advance_channel(MusEngine* mus, int chan)
 		{
 			chn->note += my_min((Uint32)track_status->slide_speed, chn->target_note - chn->note);
 		}
+		
 		else if (chn->target_note < chn->note)
 		{
 			chn->note -= my_min((Uint32)track_status->slide_speed, chn->note - chn->target_note);

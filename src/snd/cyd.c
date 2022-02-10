@@ -58,6 +58,20 @@ extern Mused mused;
 
 // used lfsr-generator <http://lfsr-generator.sourceforge.net/> for this: 
 
+int two_pow(int a, int x)
+{
+	int temp = a;
+	
+	a = 1;
+	
+	for(int i = 0; i < x; ++i)
+	{
+		a *= temp;
+	}
+	
+	return a;
+}
+
 inline static void shift_lfsr(Uint32 *v, int tap_0, int tap_1)
 {
   typedef unsigned int T;
@@ -724,12 +738,12 @@ static Sint32 cyd_output(CydEngine *cyd)
 			
 			if (chn->flags & CYD_CHN_ENABLE_RING_MODULATION)
 			{
-				o = cyd_env_output(cyd, chn->flags, &chn->adsr, s[i] * (s[chn->ring_mod] + (WAVE_AMP / 2)) / WAVE_AMP) * (cyd->channel[i].curr_tremolo + 512) / 512 * chn->vol_ksl_mult;
+				o = cyd_env_output(cyd, chn->flags, &chn->adsr, s[i] * (s[chn->ring_mod] + (WAVE_AMP / 2)) / WAVE_AMP) * (cyd->channel[i].curr_tremolo + 512) / 512 * ((chn->flags & CYD_CHN_ENABLE_VOLUME_KEY_SCALING) ? chn->vol_ksl_mult : 1);
 			}
 			
 			else
 			{
-				o = (Sint32)cyd_env_output(cyd, chn->flags, &chn->adsr, s[i]) * (cyd->channel[i].curr_tremolo + 512) / 512 * chn->vol_ksl_mult;
+				o = (Sint32)cyd_env_output(cyd, chn->flags, &chn->adsr, s[i]) * (cyd->channel[i].curr_tremolo + 512) / 512 * ((chn->flags & CYD_CHN_ENABLE_VOLUME_KEY_SCALING) ? chn->vol_ksl_mult : 1);
 			}
 			
 			if ((cyd->channel[i].fm.flags & CYD_FM_ENABLE_ADDITIVE) && (cyd->channel[i].flags & CYD_CHN_ENABLE_FM)) //new additive fm 2-op design
@@ -797,7 +811,7 @@ static Sint32 cyd_output(CydEngine *cyd)
 #ifndef CYD_DISABLE_FILTER
 			if (chn->flags & CYD_CHN_ENABLE_FILTER) 
 			{
-				for(int i = 0; i < (int)pow(2, chn->flt_slope); i++)
+				for(int i = 0; i < two_pow(2, chn->flt_slope); i++)
 				{
 					cydflt_cycle(&chn->flts[i], o);
 				
