@@ -30,6 +30,20 @@ OTHER DEALINGS IN THE SOFTWARE.
 #include <stdlib.h>
 #include <ctype.h>
 
+typedef unsigned long char32_t;
+
+char32_t *unicode_strdup(const char32_t *s1)
+{
+  char32_t *str;
+  size_t size = strlen(s1) * 4 + 1;
+
+  str = malloc(size);
+  if (str) {
+    memcpy(str, s1, size);
+  }
+  return str;
+}
+
 static int tile_width(TileDescriptor *desc)
 {
 #if SDL_VERSION_ATLEAST(1,3,0)
@@ -98,6 +112,23 @@ static const TileDescriptor * findchar_slow(const Font *font, char c)
 	return NULL;
 }
 
+static const TileDescriptor * find_unicode_char_slow(const Unicode_font *font, char32_t c)
+{
+	if (c == (char32_t)' ') return NULL;
+
+	char32_t *tc;
+	const TileDescriptor *tile;
+	for (tile = font->tiledescriptor, tc = font->charmap; *tc; ++tile, ++tc)
+		if (*tc == c) return tile;
+
+	c = tolower(c);
+
+	for (tile = font->tiledescriptor, tc = font->charmap; *tc; ++tile, ++tc)
+		if (tolower(*tc) == c) return tile;
+	//debug("Could not find character '%c'", c);
+	return NULL;
+}
+
 
 void font_create(Font *font, GfxSurface *tiles, const int w, const int h, const int char_spacing, const int space_width, char *charmap)
 {
@@ -120,6 +151,27 @@ void font_create(Font *font, GfxSurface *tiles, const int w, const int h, const 
 	}
 }
 
+void unicode_font_create(Unicode_font *u_font, GfxSurface *tiles, const int w, const int h, const int char_spacing, const int space_width, char32_t *charmap)
+{
+	u_font->tiledescriptor = gfx_build_tiledescriptor(tiles, w, h, NULL);
+	u_font->charmap = unicode_strdup(charmap);
+	u_font->w = w;
+	u_font->h = h;
+	u_font->char_spacing = char_spacing;
+	u_font->space_width = space_width ? space_width : w;
+
+	if (space_width)
+	{
+		for (int i = 0; i < (tiles->surface->w/w)*(tiles->surface->h/h); ++i)
+			u_font->tiledescriptor[i].rect.w = tile_width(&u_font->tiledescriptor[i]);
+	}
+
+	for (int i = 0; i < UNICODE_FONT_MAX_SYMBOLS; ++i)
+	{
+		u_font->ordered_tiles[i] = find_unicode_char_slow(u_font, i);
+	}
+}
+
 
 void font_destroy(Font *font)
 {
@@ -130,6 +182,17 @@ void font_destroy(Font *font)
 	font->tiledescriptor = NULL;
 	font->charmap = NULL;
 	font->surface = NULL;
+}
+
+void unicode_font_destroy(Unicode_font *u_font)
+{
+	if (u_font->tiledescriptor) free(u_font->tiledescriptor);
+	if (u_font->charmap) free(u_font->charmap);
+	if (u_font->surface) gfx_free_surface(u_font->surface);
+
+	u_font->tiledescriptor = NULL;
+	u_font->charmap = NULL;
+	u_font->surface = NULL;
 }
 
 
@@ -231,6 +294,131 @@ void font_write_va(const Font *font, GfxDomain *dest, const SDL_Rect *r, Uint16 
 #endif
 }
 
+static int unicode_font_load_inner(GfxDomain *domain, Unicode_font *u_font, Bundle *fb) //wasn't there
+{
+	/*SDL_RWops *rw = SDL_RWFromBundle(fb, "font.bmp");
+
+#ifdef USESDL_IMAGE
+	if (!rw)
+		rw = SDL_RWFromBundle(fb, "font.png");
+#endif
+
+	if (rw)
+	{
+		GfxSurface * s = gfx_load_surface_RW(domain, rw, GFX_KEYED);
+		char32_t map[UNICODE_FONT_MAX_SYMBOLS];
+		memset(map, 0, sizeof(map));
+
+		{
+			SDL_RWops *rw = SDL_RWFromBundle(fb, "charmap.txt");
+			if (rw)
+			{
+				debug("Loading Unicode font");
+				
+				char32_t temp[1000];
+				memset(temp, 0, sizeof(temp));
+				rw->read(rw, temp, 1, sizeof(temp)-1);
+				SDL_RWclose(rw);
+
+				size_t len = my_min(strlen(temp) * 4, UNICODE_FONT_MAX_SYMBOLS);
+				const char32_t *c = temp;
+				char32_t *m = map;
+
+				debug("Read charmap (%lu chars)", (unsigned long)len);
+
+				while (*c)
+				{
+					if (*c == '\\' && len > 1)
+					{
+						char32_t hex = 0;
+						int digits = 0;
+
+						while (len > 1 && digits < 2)
+						{
+							char digit = tolower(*(c + 1));
+
+							if (!((digit >= '0' && digit <= '9') || (digit >= 'a' && digit <= 'f')))
+							{
+								if (digits < 1)
+									goto not_hex;
+
+								break;
+							}
+
+							hex <<= 4;
+
+							hex |= (digit >= 'a' ? digit - 'a' + 10 : digit - '0') & 0x0f;
+
+							--len;
+							++digits;
+							++c;
+						}
+
+						if (digits < 1) goto not_hex;
+
+						++c;
+
+						*(m++) = hex;
+					}
+					else
+					{
+					not_hex:
+						*(m++) = *(c++);
+
+						--len;
+					}
+				}
+
+				if (*c && len == 0)
+					warning("Excess font charmap chars (max. 256)");
+			}
+			
+			else
+			{
+				//strcpy(map, "ABCDEFGHIJKLMNOPQRSTUVWXYZ");
+				debug("Charmap not found in font file");
+			}
+		}
+
+		int w, h, spacing = 0, spacewidth = 0;
+
+		{
+			SDL_RWops *rw = SDL_RWFromBundle(fb, "res.txt");
+			char res[10] = { 0 };
+
+			if (rw)
+			{
+				rw->read(rw, res, 1, sizeof(res)-1);
+				SDL_RWclose(rw);
+
+				sscanf(res, "%d %d %d %d", &w, &h, &spacing, &spacewidth);
+			}
+			
+			else
+			{
+				w = 8;
+				h = 9;
+			}
+		}
+
+		unicode_font_create(u_font, s, w, h, spacing, spacewidth, map);
+
+		u_font->surface = s;
+
+		bnd_free(fb);
+
+		return 1;
+	}
+	
+	else
+	{
+		warning("Bitmap not found in Unicode font file");
+
+		bnd_free(fb);
+
+		return 0;
+	}*/
+}
 
 static int font_load_inner(GfxDomain *domain, Font *font, Bundle *fb)
 {
@@ -390,6 +578,32 @@ int font_load(GfxDomain *domain, Font *font, Bundle *bundle, char *name)
 
 		return r;
 	}
+	else
+		return 0;
+}
+
+int unicode_font_load(GfxDomain *domain, Unicode_font *u_font, Bundle *bundle, char *name)
+{
+	debug("Loading Unicode font '%s'", name);
+
+	SDL_RWops *rw = SDL_RWFromBundle(bundle, name);
+
+	if (rw)
+	{
+		int r = 0;
+
+		Bundle fb;
+
+		if (bnd_open_RW(&fb, rw))
+		{
+			r = unicode_font_load_inner(domain, u_font, &fb);
+		}
+
+		SDL_RWclose(rw);
+
+		return r;
+	}
+	
 	else
 		return 0;
 }

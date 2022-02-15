@@ -84,7 +84,7 @@ void close_menu()
 		if (menu_close_hook) menu_close_hook();
 		if (current_menu_action->action == MENU_CHECK || current_menu_action->action == MENU_CHECK_NOSET)
 		{
-			if (current_menu_action->action == MENU_CHECK) *(int*)(current_menu_action->p1) ^= CASTPTR(int,current_menu_action->p2);
+			if (current_menu_action->action == MENU_CHECK) *(Uint64*)(current_menu_action->p1) ^= CASTPTR(Uint64, current_menu_action->p2);
 			
 			if (current_menu_action->p3)
 				((void *(*)(void*,void*,void*))(current_menu_action->p3))(0,0,0);
@@ -268,7 +268,7 @@ static void draw_submenu(GfxDomain *menu_dest, const SDL_Event *event, const Men
 					
 					char tick_char[2] = { 0 };
 					
-					if ((item->action == MENU_CHECK || item->action == MENU_CHECK_NOSET) && (*(int*)item->p1 & CASTPTR(int,item->p2)))
+					if ((item->action == MENU_CHECK || item->action == MENU_CHECK_NOSET) && (*(Uint64*)item->p1 & CASTPTR(Uint64,item->p2)))
 						*tick_char = '§';
 					else if (item->flags & MENU_BULLET)
 						*tick_char = '^';

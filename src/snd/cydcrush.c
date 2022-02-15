@@ -51,6 +51,8 @@ void cydcrush_output(CydCrush *crush, Sint32 in_l, Sint32 in_r, Sint32 *out_l, S
 
 	*out_l = crush->hold_l * crush->gain / 128;
 	*out_r = crush->hold_r * crush->gain / 128;
+	
+	//debug("%d", crush->gain);
 }
 #else
 Sint32 cydcrush_output(CydCrush *crush, Sint32 input)
@@ -74,7 +76,7 @@ Sint32 cydcrush_output(CydCrush *crush, Sint32 input)
 
 void cydcrush_set(CydCrush *crush, int downsample, int bit_drop, int dither, int gain, Uint32 sample_rate)
 {
-	crush->downsample = downsample * sample_rate / 44100;
+	crush->downsample = downsample * sample_rate / sample_rate;
 	//crush->counter = 0;
 	if (bit_drop >= 0) crush->bit_drop = 0xffffffff << (bit_drop);
 	if (dither >= 0) crush->dither = dither;
@@ -101,5 +103,5 @@ void cydcrush_init(CydCrush *crush, int sample_rate)
 
 void cydcrush_deinit(CydCrush *crush)
 {
+	
 }
-

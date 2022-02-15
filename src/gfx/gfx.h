@@ -56,6 +56,11 @@ typedef enum
 	GFX_SCALE_SCANLINES
 } GfxScaleType;
 
+enum
+{
+	UNICODE_FONT_MAX_SYMBOLS = 65536 * 2, //two first Unicode planes
+};
+
 #ifdef WIN32
 typedef Uint64 FramerateTimer;
 #else

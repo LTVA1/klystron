@@ -139,10 +139,23 @@ enum
 	CYD_CHN_ENABLE_WAVE_MORPH = 262144,
 	CYD_CHN_LOOP_WAVE_MORPH = 524288,
 	CYD_CHN_PING_PONG_WAVE_MORPH = 1048576,
+	
+	CYD_CHN_ENABLE_FILTER_SWEEP = 2097152,
+	CYD_CHN_LOOP_FILTER_SWEEP = 4194304,
+	CYD_CHN_PING_PONG_FILTER_SWEEP = 8388608,
+	
+	CYD_CHN_ENABLE_EXPONENTIAL_VOLUME = 16777216,
+	CYD_CHN_ENABLE_EXPONENTIAL_ATTACK = 33554432,
+	CYD_CHN_ENABLE_EXPONENTIAL_DECAY = 67108864,
+	CYD_CHN_ENABLE_EXPONENTIAL_RELEASE = 134217728,
+	
+	CYD_CHN_ENABLE_AY8930_BUZZ_MODE = 268435456,
 };
 
 enum
 {
+	CYD_FM_ENABLE_NOISE = CYD_CHN_ENABLE_NOISE,
+	CYD_FM_ENABLE_GATE = CYD_CHN_ENABLE_GATE,
 	CYD_FM_ENABLE_WAVE = CYD_CHN_ENABLE_WAVE,
 	CYD_FM_ENABLE_TRIANGLE = CYD_CHN_ENABLE_TRIANGLE,
 	CYD_FM_ENABLE_PULSE = CYD_CHN_ENABLE_PULSE,
@@ -153,6 +166,11 @@ enum
 	CYD_FM_ENABLE_ADDITIVE = 1073741824, //wasn't there
 	CYD_FM_ENABLE_4OP = 536870912,
 	CYD_FM_SAVE_LFO_SETTINGS = 268435456,
+	
+	CYD_FM_ENABLE_EXPONENTIAL_VOLUME = CYD_CHN_ENABLE_EXPONENTIAL_VOLUME,
+	CYD_FM_ENABLE_EXPONENTIAL_ATTACK = CYD_CHN_ENABLE_EXPONENTIAL_ATTACK,
+	CYD_FM_ENABLE_EXPONENTIAL_DECAY = CYD_CHN_ENABLE_EXPONENTIAL_DECAY,
+	CYD_FM_ENABLE_EXPONENTIAL_RELEASE = CYD_CHN_ENABLE_EXPONENTIAL_RELEASE,
 };
 
 enum {
@@ -165,15 +183,16 @@ enum {
 
 enum
 {
-	CYD_LOCK_REQUEST=1,
-	CYD_LOCK_LOCKED=2,
-	CYD_LOCK_CALLBACK=4
+	CYD_LOCK_REQUEST = 1,
+	CYD_LOCK_LOCKED = 2,
+	CYD_LOCK_CALLBACK = 4
 };
 
 #define WAVEFORMS (CYD_CHN_ENABLE_NOISE|CYD_CHN_ENABLE_PULSE|CYD_CHN_ENABLE_TRIANGLE|CYD_CHN_ENABLE_SAW|CYD_CHN_ENABLE_WAVE|CYD_CHN_ENABLE_LFSR)
 
 #define LUT_SIZE 1024
 #define YM_LUT_SIZE 16
+#define EXP_LUT_SIZE 8192
 
 #define CYD_NUM_WO_BUFFER_SIZE 2000
 #define CYD_NUM_WO_BUFFERS 4
@@ -190,7 +209,10 @@ typedef struct CydEngine_t
 	int (*callback)(void*);
 	void *callback_parameter;
 	volatile Uint32 callback_period, callback_counter;
-	Uint16 *lookup_table, *lookup_table_ym;
+	Uint16 *lookup_table, *lookup_table_ym, lookup_table_ay8930[32];
+	
+	Uint16 lookup_table_exponential[EXP_LUT_SIZE];
+	
 	CydFx fx[CYD_MAX_FX_CHANNELS];
 #ifdef USESDLMUTEXES
 	CydMutex mutex;	
@@ -228,7 +250,19 @@ enum { CYD_YM_ENV_ATT = 1, CYD_YM_ENV_ALT = 2};
 
 /////////////////777
 
-int two_pow(int a, int x);
+//static inline int two_pow(int a, int x); //to avoid using much slower pow()
+/*{
+	int temp = a;
+	
+	a = 1;
+	
+	for(int i = 0; i < x; ++i)
+	{
+		a *= temp;
+	}
+	
+	return a;
+}*/
 
 void cyd_init(CydEngine *cyd, Uint32 sample_rate, int initial_channels);
 void cyd_set_oversampling(CydEngine *cyd, int oversampling);

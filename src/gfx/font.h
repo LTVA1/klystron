@@ -33,6 +33,8 @@ OTHER DEALINGS IN THE SOFTWARE.
 
 #include <stdio.h>
 
+typedef unsigned long char32_t;
+
 typedef struct
 {
 	char *charmap;
@@ -43,11 +45,30 @@ typedef struct
 	int char_spacing, space_width;
 } Font;
 
+typedef struct
+{
+	char32_t *charmap;
+	TileDescriptor *tiledescriptor;
+	const TileDescriptor *ordered_tiles[UNICODE_FONT_MAX_SYMBOLS];
+	GfxSurface * surface;
+	int w, h;
+	int char_spacing, space_width;
+} Unicode_font;
+
 int font_load(GfxDomain *domain, Font *font, Bundle *b, char *name);
+
+int unicode_font_load(GfxDomain *domain, Unicode_font *u_font, Bundle *bundle, char *name);
+
 int font_load_file(GfxDomain *domain, Font *font, char *filename);
 int font_load_RW(GfxDomain *domain, Font *font, SDL_RWops *rw);
 void font_create(Font *font, GfxSurface *tiles, const int w, const int h, const int char_spacing, const int space_width, char *charmap);
+
+void unicode_font_create(Unicode_font *u_font, GfxSurface *tiles, const int w, const int h, const int char_spacing, const int space_width, char32_t *charmap);
+
 void font_destroy(Font *font);
+
+void unicode_font_destroy(Unicode_font *u_font);
+
 void font_set_color(Font *font, Uint32 rgb);
 void font_write_cursor(const Font *font, GfxDomain *dest, const SDL_Rect *r, Uint16 *cursor, SDL_Rect *bounds, const char * text);
 void font_write_va(const Font *font, GfxDomain *dest, const SDL_Rect *r, Uint16 * cursor, SDL_Rect *bounds, const char * text, va_list va);

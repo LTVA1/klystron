@@ -58,7 +58,7 @@ extern Mused mused;
 
 // used lfsr-generator <http://lfsr-generator.sourceforge.net/> for this: 
 
-int two_pow(int a, int x)
+static inline int two_pow(int a, int x) //to avoid using much slower pow()
 {
 	int temp = a;
 	
@@ -105,9 +105,49 @@ static void cyd_init_channel(CydEngine *cyd, CydChannel *chn)
 #endif
 }
 
+#define EXPONENT 2.718281828459045
+#define e_pow_2 7.3890461584 //e ^ 2 since range is [-4; 2]
+
+double map_double(double x, double in_min, double in_max, double out_min, double out_max)
+{
+	return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
+}
 
 static void cyd_init_log_tables(CydEngine *cyd)
 {
+	for(int i = 0; i < EXP_LUT_SIZE; ++i)
+	{
+		cyd->lookup_table_exponential[i] = (Uint16)(pow(EXPONENT, map_double(i, 0, EXP_LUT_SIZE, -4, 2)) * 65535.0 / e_pow_2);
+		
+		//debug("%d", cyd->lookup_table_exponential[i]);
+	}
+	
+	for(int i = 1; i < EXP_LUT_SIZE - 1; ++i)
+	{
+		cyd->lookup_table_exponential[i] = map_Arduino(cyd->lookup_table_exponential[i], cyd->lookup_table_exponential[0], cyd->lookup_table_exponential[EXP_LUT_SIZE - 1], 1, 65535); //TODO: get rid of clicks, add scaling to sustain level and release
+	}
+	
+	cyd->lookup_table_exponential[0] = 0;
+	cyd->lookup_table_exponential[EXP_LUT_SIZE - 1] = 65535;
+	
+	for(int i = 0; i < EXP_LUT_SIZE; ++i)
+	{
+		//debug("%d", cyd->lookup_table_exponential[i]);
+		
+		if(cyd->lookup_table_exponential[i] == 0)
+		{
+			
+			debug("%d element is 0", i);
+		}
+	}
+	
+	/*for(int i = 1; i < EXP_LUT_SIZE; ++i)
+	{
+		cyd->lookup_table_exponential[i] -= cyd->lookup_table_exponential[0]; //so our "tail" starts at 0 level
+	}
+	
+	cyd->lookup_table_exponential[0] = 0;*/
+	
 	for (int i = 0; i < LUT_SIZE; ++i)
 	{
 		cyd->lookup_table[i] = i * (i/2) / ((LUT_SIZE*LUT_SIZE / 65536)/2);
@@ -116,9 +156,19 @@ static void cyd_init_log_tables(CydEngine *cyd)
 #ifndef CYD_DISABLE_BUZZ
 	for (int i = 0; i < YM_LUT_SIZE; ++i)
 	{
-		static const int ymVolumeTable[16] = { 62,161,265,377,580,774,1155,1575,2260,3088,4570,6233,9330,13187,21220,32767}; // from leonard's code
+		static const int ymVolumeTable[16] = { 62, 161, 265, 377, 580, 774, 1155, 1575, 2260, 3088, 4570, 6233, 9330, 13187, 21220, 32767 }; // from leonard's code
+		
 		cyd->lookup_table_ym[i] = ymVolumeTable[i]; //(Uint32)32767 * (Uint32)(i+1) * (Uint32)(i+1) * (Uint32)(i+1) / (Uint32)(YM_LUT_SIZE * YM_LUT_SIZE * YM_LUT_SIZE);
 	}
+	
+	for (int i = 0; i < YM_LUT_SIZE * 2; ++i)
+	{
+		static const int AY8930VolumeTable[32] = { 31, 62, 112, 161, 213, 265, 321, 377, 479, 580, 677, 774, 965, 1155, 1365, 1575, 1918, 2260, 2764, 3088, 3829, 4570, 5402, 6233, 7782, 9330, 11259, 13187, 17204, 21220, 26994, 32767 };
+		
+		cyd->lookup_table_ay8930[i] = AY8930VolumeTable[i];
+	}
+	
+	cyd->lookup_table_ay8930[0] = 0;
 	
 	cyd->lookup_table_ym[0] = 0;
 #endif
@@ -175,7 +225,7 @@ void cyd_init(CydEngine *cyd, Uint32 sample_rate, int channels)
 	
 	cyd_reserve_channels(cyd, channels);
 	
-	for (int i = 0; i < MUS_MAX_CHANNELS; ++i) //wasn't there
+	for (int i = 0; i < channels; ++i) //wasn't there
 	{
 		cyd->channel[i].vol_ksl_mult = 1.0;
 		cyd->channel[i].env_ksl_mult = 1.0;
@@ -297,13 +347,10 @@ Uint32 cyd_cycle_adsr(const CydEngine *eng, Uint32 flags, Uint32 ym_env_shape, C
 			{
 				adsr->envelope_state = DECAY;
 				adsr->envelope = 0xff0000;
+
+				adsr->env_speed = envspd(eng, adsr->d);
 				
-				if(env_ksl_mult == 0.0 || env_ksl_mult == 1.0)
-				{
-					adsr->env_speed = envspd(eng, adsr->d);
-				}
-				
-				else
+				if(env_ksl_mult != 0.0 || env_ksl_mult != 1.0)
 				{
 					adsr->env_speed = (int)((double)envspd(eng, adsr->d) * env_ksl_mult);
 				}
@@ -342,6 +389,7 @@ Uint32 cyd_cycle_adsr(const CydEngine *eng, Uint32 flags, Uint32 ym_env_shape, C
 			{
 				adsr->envelope -= adsr->env_speed;
 			}
+			
 			else 
 			{
 				adsr->envelope_state = DONE;
@@ -371,6 +419,7 @@ Uint32 cyd_cycle_adsr(const CydEngine *eng, Uint32 flags, Uint32 ym_env_shape, C
 						adsr->envelope = YM_LENGTH - (adsr->envelope - YM_LENGTH);
 						adsr->envelope_state = DECAY;
 					}
+					
 					else
 					{
 						adsr->envelope &= YM_LENGTH - 1;
@@ -391,6 +440,7 @@ Uint32 cyd_cycle_adsr(const CydEngine *eng, Uint32 flags, Uint32 ym_env_shape, C
 						adsr->envelope = (Uint32)adsr->env_speed - adsr->envelope;
 						adsr->envelope_state = ATTACK;
 					}
+					
 					else
 					{
 						adsr->envelope -= adsr->env_speed;
@@ -597,20 +647,56 @@ Sint32 cyd_env_output(const CydEngine *cyd, Uint32 chn_flags, const CydAdsr *ads
 {
 	if (chn_flags & CYD_CHN_ENABLE_YM_ENV)
 	{
-#ifndef CYD_DISABLE_BUZZ	
-		int idx = adsr->envelope * (Uint32)YM_LUT_SIZE / YM_LENGTH;
-		return input * cyd->lookup_table_ym[idx % YM_LUT_SIZE] / 32768 * (Sint32)(adsr->volume) / MAX_VOLUME;
+#ifndef CYD_DISABLE_BUZZ
+		if(chn_flags & CYD_CHN_ENABLE_AY8930_BUZZ_MODE)
+		{
+			int idx = adsr->envelope * (Uint32)YM_LUT_SIZE * 2 / YM_LENGTH;
+			return input * cyd->lookup_table_ay8930[idx & (YM_LUT_SIZE * 2 - 1)] / 32768 * (Sint32)(adsr->volume) / MAX_VOLUME;
+		}
+		
+		else
+		{
+			int idx = adsr->envelope * (Uint32)YM_LUT_SIZE / YM_LENGTH;
+			return input * cyd->lookup_table_ym[idx & (YM_LUT_SIZE - 1)] / 32768 * (Sint32)(adsr->volume) / MAX_VOLUME;
+		}
 #else
 		return input * (Sint32)(adsr->volume) / MAX_VOLUME;
 #endif
 	}
+	
 	else
 	{
-#ifndef CYD_DISABLE_ENVELOPE	
+#ifndef CYD_DISABLE_ENVELOPE
+		
 		if (adsr->envelope_state == ATTACK)
-			return ((Sint64)input * ((Sint32)adsr->envelope / 0x10000) / 256) * (Sint32)(adsr->volume) / MAX_VOLUME;
+		{
+			if(chn_flags & CYD_CHN_ENABLE_EXPONENTIAL_ATTACK)
+			{                                                                                                                                                                                 //                                _
+				return ((Sint64)input * (65535 - cyd->lookup_table_exponential[(65535 - (adsr->envelope / 0x800) - 1) & (EXP_LUT_SIZE - 1)])) / 65536 * (Sint32)(adsr->volume) / MAX_VOLUME; //so attack goes curvy like this /
+			} //EXP_LUT_SIZE
+			
+			else
+			{
+				return ((Sint64)input * ((Sint32)adsr->envelope / 0x10000) / 256) * (Sint32)(adsr->volume) / MAX_VOLUME;
+			}
+		}
+		
+		if (adsr->envelope_state == DECAY)
+		{
+			if(chn_flags & CYD_CHN_ENABLE_EXPONENTIAL_DECAY)
+			{
+				return ((Sint64)input * (cyd->lookup_table_exponential[(((adsr->envelope - 0xff0000) / 0x800) - 1) & (EXP_LUT_SIZE - 1)])) / 65536 * (Sint32)(adsr->volume) / MAX_VOLUME; //so decay (and release below) go curvy like this  \_
+			} //EXP_LUT_SIZE
+			
+			else
+			{
+				return ((Sint64)input * (cyd->lookup_table[(adsr->envelope / (65536 * 256 / LUT_SIZE)) & (LUT_SIZE - 1)]) / 65536) * (Sint32)(adsr->volume) / MAX_VOLUME;
+			}
+		}
 		else
-			return ((Sint64)input * (cyd->lookup_table[(adsr->envelope / (65536 * 256 / LUT_SIZE) ) & (LUT_SIZE - 1)]) / 65536) * (Sint32)(adsr->volume) / MAX_VOLUME;
+		{
+			return ((Sint64)input * (cyd->lookup_table[(adsr->envelope / (65536 * 256 / LUT_SIZE)) & (LUT_SIZE - 1)]) / 65536) * (Sint32)(adsr->volume) / MAX_VOLUME;
+		}
 #else
 		return input * (Sint32)(adsr->volume) / MAX_VOLUME;
 #endif
@@ -682,6 +768,9 @@ static Sint32 cyd_output(CydEngine *cyd)
 	{
 		CydChannel *chn = &cyd->channel[i];
 		
+		chn->vol_ksl_mult = 1.0;
+		chn->env_ksl_mult = 1.0;
+		
 		if((chn->flags & CYD_CHN_ENABLE_VOLUME_KEY_SCALING) || (chn->flags & CYD_CHN_ENABLE_ENVELOPE_KEY_SCALING))
 		{
 			Sint16 vol_ksl_level_final = (chn->flags & CYD_CHN_ENABLE_VOLUME_KEY_SCALING) ? chn->vol_ksl_level : -1;
@@ -701,51 +790,47 @@ static Sint32 cyd_output(CydEngine *cyd)
 			chn->env_ksl_mult = 1.0 / chn->env_ksl_mult;
 		}
 		
-		else
-		{
-			chn->vol_ksl_mult = 1.0;
-			chn->env_ksl_mult = 1.0;
-		}
-		
 		//chn->fm.fm_env_ksl_mult = chn->fm_env_ksl_mult;
 		
 		Sint32 o = 0;
-
+		
+#ifndef CYD_DISABLE_FM
 		if ((chn->flags & CYD_CHN_ENABLE_GATE) || ((cyd->channel[i].flags & CYD_CHN_ENABLE_FM) && cyd->channel[i].fm.adsr.envelope > 0))// || (cyd->channel[i].fm.flags & CYD_FM_ENABLE_GATE)) //now no flag for fm gate
-		{	
+#else
+		if (chn->flags & CYD_CHN_ENABLE_GATE)
+#endif
+		{
+			chn->curr_tremolo = chn->tremolo;
+			
 			if(chn->tremolo_interpolation_counter < 171)
 			{
 				chn->curr_tremolo = chn->prev_tremolo + (chn->tremolo - chn->prev_tremolo) * chn->tremolo_interpolation_counter / 171;
 				chn->tremolo_interpolation_counter++;
 			}
-				
-			else
-			{
-				chn->curr_tremolo = chn->tremolo;
-			}
 			
-			
-			if(chn->fm.fm_tremolo_interpolation_counter < 171)
-			{
-				chn->fm.fm_curr_tremolo = chn->fm.fm_prev_tremolo + (chn->fm.fm_tremolo - chn->fm.fm_prev_tremolo) * chn->fm.fm_tremolo_interpolation_counter / 171;
-				chn->fm.fm_tremolo_interpolation_counter++;
-			}
-			
-			else
+#ifndef CYD_DISABLE_FM
+
+			if(cyd->channel[i].flags & CYD_CHN_ENABLE_FM)
 			{
 				chn->fm.fm_curr_tremolo = chn->fm.fm_tremolo;
+				
+				if(chn->fm.fm_tremolo_interpolation_counter < 171)
+				{
+					chn->fm.fm_curr_tremolo = chn->fm.fm_prev_tremolo + (chn->fm.fm_tremolo - chn->fm.fm_prev_tremolo) * chn->fm.fm_tremolo_interpolation_counter / 171;
+					chn->fm.fm_tremolo_interpolation_counter++;
+				}
 			}
+#endif
+			
+			o = (Sint32)cyd_env_output(cyd, chn->flags, &chn->adsr, s[i]) * (cyd->channel[i].curr_tremolo + 512) / 512 * ((chn->flags & CYD_CHN_ENABLE_VOLUME_KEY_SCALING) ? chn->vol_ksl_mult : 1);
 			
 			if (chn->flags & CYD_CHN_ENABLE_RING_MODULATION)
 			{
 				o = cyd_env_output(cyd, chn->flags, &chn->adsr, s[i] * (s[chn->ring_mod] + (WAVE_AMP / 2)) / WAVE_AMP) * (cyd->channel[i].curr_tremolo + 512) / 512 * ((chn->flags & CYD_CHN_ENABLE_VOLUME_KEY_SCALING) ? chn->vol_ksl_mult : 1);
 			}
 			
-			else
-			{
-				o = (Sint32)cyd_env_output(cyd, chn->flags, &chn->adsr, s[i]) * (cyd->channel[i].curr_tremolo + 512) / 512 * ((chn->flags & CYD_CHN_ENABLE_VOLUME_KEY_SCALING) ? chn->vol_ksl_mult : 1);
-			}
-			
+#ifndef CYD_DISABLE_FM
+
 			if ((cyd->channel[i].fm.flags & CYD_FM_ENABLE_ADDITIVE) && (cyd->channel[i].flags & CYD_CHN_ENABLE_FM)) //new additive fm 2-op design
 			{
 				if(cyd->channel[i].fm.flags & CYD_FM_ENABLE_WAVE)
@@ -762,6 +847,7 @@ static Sint32 cyd_output(CydEngine *cyd)
 					//debug("yay %d", cyd->channel[i].fm.current_modulation - 32768);
 				}
 			}
+#endif
 
 #ifndef CYD_DISABLE_WAVETABLE			
 			if ((cyd->channel[i].flags & CYD_CHN_ENABLE_WAVE) && cyd->channel[i].wave_entry && (cyd->channel[i].flags & CYD_CHN_WAVE_OVERRIDE_ENV))
@@ -774,15 +860,12 @@ static Sint32 cyd_output(CydEngine *cyd)
 						CydWaveAcc accumulator = cyd->channel[i].subosc[s].wave.acc;
 #else
 						CydWaveAcc accumulator;
-
+						
+						accumulator = (cyd->channel[i].flags & CYD_CHN_ENABLE_FM) ? cydfm_modulate_wave(cyd, &cyd->channel[i].fm, cyd->channel[i].wave_entry, cyd->channel[i].subosc[s].wave.acc) : cyd->channel[i].subosc[s].wave.acc;
+						
 						if ((cyd->channel[i].fm.flags & CYD_FM_ENABLE_ADDITIVE) && (cyd->channel[i].flags & CYD_CHN_ENABLE_FM))
 						{
 							accumulator = cyd->channel[i].subosc[s].wave.acc;
-						}
-						
-						else
-						{
-							accumulator = (cyd->channel[i].flags & CYD_CHN_ENABLE_FM) ? cydfm_modulate_wave(cyd, &cyd->channel[i].fm, cyd->channel[i].wave_entry, cyd->channel[i].subosc[s].wave.acc) : cyd->channel[i].subosc[s].wave.acc;
 						}				
 #endif	
 						o += cyd_wave_get_sample(&cyd->channel[i].subosc[s].wave, chn->wave_entry, accumulator) * (Sint32)(chn->adsr.volume) / MAX_VOLUME;
@@ -843,6 +926,7 @@ static Sint32 cyd_output(CydEngine *cyd)
 				fx_input[chn->fx_bus] += o;
 #endif
 			}
+			
 			else
 			{
 #ifdef STEREOOUTPUT
@@ -851,6 +935,18 @@ static Sint32 cyd_output(CydEngine *cyd)
 #else
 				v += o;
 #endif		
+			}
+		}
+		
+		if(mused.flags & SHOW_OSCILLOSCOPES_PATTERN_EDITOR) //oscilloscopes in patterns
+		{
+			//int osc_output = o1; //int osc_output = (int)(o1 + o2) / 2;
+			mused.channels_output_buffers[i][mused.channels_output_buffer_counters[i]] = o;
+			mused.channels_output_buffer_counters[i]++;
+			
+			if(mused.channels_output_buffer_counters[i] >= 8192)
+			{
+				mused.channels_output_buffer_counters[i] = 0;
 			}
 		}
 	}
@@ -1077,7 +1173,7 @@ void cyd_output_buffer_stereo(int chan, void *_stream, int len, void *udata)
 			cyd_cycle(cyd);
 			++cyd->samples_played;
 			
-			if(mused.flags & SHOW_OSCILLOSCOPE)
+			if(mused.flags & SHOW_OSCILLOSCOPE_INST_EDITOR)
 			{
 				//int osc_output = o1; //int osc_output = (int)(o1 + o2) / 2;
 				mused.output_buffer[mused.output_buffer_counter] = (o1 + o2) / 2;
@@ -1138,7 +1234,15 @@ void cyd_set_wavetable_frequency(CydEngine *cyd, CydChannel *chn, int subosc, Ui
 void cyd_set_env_frequency(CydEngine *cyd, CydChannel *chn, Uint16 frequency)
 {
 #ifndef CYD_DISABLE_BUZZ
-	chn->adsr.env_speed = (Uint64)YM_LENGTH/16 * (Uint64)frequency / (Uint64)cyd->sample_rate;
+	if(chn->flags & CYD_CHN_ENABLE_AY8930_BUZZ_MODE)
+	{
+		chn->adsr.env_speed = (Uint64)YM_LENGTH * 2/32 * (Uint64)frequency / (Uint64)cyd->sample_rate;
+	}
+	
+	else
+	{
+		chn->adsr.env_speed = (Uint64)YM_LENGTH/16 * (Uint64)frequency / (Uint64)cyd->sample_rate;
+	}
 #endif
 }
 
@@ -1177,12 +1281,9 @@ void cyd_enable_gate(CydEngine *cyd, CydChannel *chn, Uint8 enable)
 			
 			//chn->adsr.env_speed = envspd(cyd, chn->adsr.a);
 			
-			if(chn->env_ksl_mult == 0.0 || chn->env_ksl_mult == 1.0)
-			{
-				chn->adsr.env_speed = envspd(cyd, chn->adsr.a);
-			}
+			chn->adsr.env_speed = envspd(cyd, chn->adsr.a);
 					
-			else
+			if(chn->env_ksl_mult != 0.0 && chn->env_ksl_mult != 1.0)
 			{
 				chn->adsr.env_speed = (int)((double)envspd(cyd, chn->adsr.a) * chn->env_ksl_mult);
 			}
@@ -1226,13 +1327,10 @@ void cyd_enable_gate(CydEngine *cyd, CydChannel *chn, Uint8 enable)
 		chn->adsr.envelope_state = RELEASE;
 		
 		//chn->adsr.env_speed = (int)((double)envspd(cyd, chn->adsr.r) * chn->env_ksl_mult);
-		
-		if(chn->env_ksl_mult == 0.0 || chn->env_ksl_mult == 1.0)
-		{
-			chn->adsr.env_speed = envspd(cyd, chn->adsr.r);
-		}
-		
-		else
+
+		chn->adsr.env_speed = envspd(cyd, chn->adsr.r);
+
+		if(chn->env_ksl_mult != 0.0 && chn->env_ksl_mult != 1.0)
 		{
 			chn->adsr.env_speed = (int)((double)envspd(cyd, chn->adsr.r) * chn->env_ksl_mult);
 		}
@@ -1599,6 +1697,7 @@ void cyd_lock(CydEngine *cyd, Uint8 enable)
 	{
 		SDL_LockMutex(cyd->mutex);
 	}
+	
 	else
 	{
 		SDL_UnlockMutex(cyd->mutex);
@@ -1611,6 +1710,7 @@ void cyd_lock(CydEngine *cyd, Uint8 enable)
 	{
 		EnterCriticalSection(&cyd->mutex);
 	}
+	
 	else
 	{
 		LeaveCriticalSection(&cyd->mutex);

@@ -354,7 +354,7 @@ void mus_init_engine(MusEngine *mus, CydEngine *cyd)
 	mus->volume = MAX_VOLUME;
 	mus->play_volume = MAX_VOLUME;
 
-	for (int i = 0; i < MUS_MAX_CHANNELS; ++i)
+	for (int i = 0; i < cyd->n_channels; ++i)
 		mus->channel[i].volume = MAX_VOLUME;
 
 #ifndef CYD_DISABLE_INACCURACY
@@ -2361,12 +2361,12 @@ int mus_load_instrument_RW(Uint8 version, RWops *ctx, MusInstrument *inst, CydWa
 	_VER_READ(&inst->cydflags, 0);
 	_VER_READ(&inst->adsr, 0);
 	
-	if(inst->cydflags & CYD_CHN_ENABLE_VOLUME_KEY_SCALING)
+	if((inst->cydflags & CYD_CHN_ENABLE_VOLUME_KEY_SCALING) && version >= 32)
 	{
 		VER_READ(version, 32, 0xff, &inst->vol_ksl_level, 0); 
 	}
 	
-	if(inst->cydflags & CYD_CHN_ENABLE_ENVELOPE_KEY_SCALING)
+	if((inst->cydflags & CYD_CHN_ENABLE_ENVELOPE_KEY_SCALING) && version >= 32)
 	{
 		VER_READ(version, 32, 0xff, &inst->env_ksl_level, 0);
 	}
@@ -2386,7 +2386,7 @@ int mus_load_instrument_RW(Uint8 version, RWops *ctx, MusInstrument *inst, CydWa
 	Uint8 progsteps = 0;
 	_VER_READ(&progsteps, 0);
 	
-	if(progsteps > 0)
+	if(progsteps > 0 && version >= 32)
 	{
 		for (int i = 0; i < progsteps / 8 + 1; ++i)
 		{
@@ -2881,6 +2881,11 @@ static void inner_load_fx(RWops *ctx, CydFxSerialized *fx, int version)
 				{
 					fx->rvb.tap[i].flags = 0;
 				}
+				
+				if(fx->rvb.taps_quant == 0)
+				{
+					fx->rvb.tap[0].flags = 1;
+				}
 			}
 		}
 		
@@ -3001,10 +3006,15 @@ static void inner_load_fx(RWops *ctx, CydFxSerialized *fx, int version)
 	
 	else
 	{
-		if((fx->flags & CYDFX_ENABLE_CRUSH_DITHER) || version < 32)
+		if(((fx->flags & CYDFX_ENABLE_CRUSH_DITHER) && version == 32) || ((version > 32) && (fx->flags & CYDFX_ENABLE_CRUSH)) || version < 32)
 		{
 			my_RWread(ctx, &fx->crushex.gain, 1, 1);
 		}
+	}
+	
+	if(version == 32)
+	{
+		fx->crushex.gain = 128;
 	}
 
 	FIX_ENDIAN(fx->flags);
@@ -3119,6 +3129,9 @@ int mus_load_song_RW(RWops *ctx, MusSong *song, CydWavetableEntry *wavetable_ent
 		}
 
 		my_RWread(ctx, &song->num_instruments, 1, sizeof(song->num_instruments));
+		
+		debug("Song has %d instruments", song->num_instruments);
+		
 		my_RWread(ctx, &song->num_patterns, 1, sizeof(song->num_patterns));
 		my_RWread(ctx, &song->num_sequences, 1, sizeof(song->num_sequences[0]) * (int)song->num_channels); //my_RWread(ctx, song->num_sequences, 1, sizeof(song->num_sequences[0]) * (int)song->num_channels);
 		my_RWread(ctx, &song->song_length, 1, sizeof(song->song_length));
@@ -3138,7 +3151,7 @@ int mus_load_song_RW(RWops *ctx, MusSong *song, CydWavetableEntry *wavetable_ent
 		if (version > 2) my_RWread(ctx, &song->flags, 1, sizeof(song->flags));
 		else song->flags = 0;
 		
-		if(song->flags & MUS_16_BIT_RATE)
+		if((song->flags & MUS_16_BIT_RATE) && version >= 32)
 		{
 			my_RWread(ctx, &song->song_rate, 1, sizeof(song->song_rate));
 		}
@@ -3206,7 +3219,7 @@ int mus_load_song_RW(RWops *ctx, MusSong *song, CydWavetableEntry *wavetable_ent
 			}
 		}
 		
-		debug("Name: \"%s\"", song->title);
+		debug("Name: \"%s\", its length: %d", song->title, title_len);
 		
 		//delay(25000);
 
@@ -3443,13 +3456,15 @@ int mus_load_song_RW(RWops *ctx, MusSong *song, CydWavetableEntry *wavetable_ent
 					if (bits & MUS_PAK_BIT_CTRL)
 					{
 						//debug("coding bits loaded %d, ctrl bit %d", num_additional_commands, temp_ctrl);
-						
-						for(int k = 0; k < num_additional_commands; k++)
+						if(version >= 32)
 						{
-							my_RWread(ctx, &song->pattern[i].step[s].command[k + 1], 1, sizeof(song->pattern[i].step[s].command[k + 1]));
-							
-							FIX_ENDIAN(song->pattern[i].step[s].command[k + 1]);
-							//debug("dumb read, %d", temp_ctrl);
+							for(int k = 0; k < num_additional_commands; k++)
+							{
+								my_RWread(ctx, &song->pattern[i].step[s].command[k + 1], 1, sizeof(song->pattern[i].step[s].command[k + 1]));
+								
+								FIX_ENDIAN(song->pattern[i].step[s].command[k + 1]);
+								//debug("dumb read, %d", temp_ctrl);
+							}
 						}
 					}
 

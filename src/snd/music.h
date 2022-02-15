@@ -39,7 +39,7 @@ OTHER DEALINGS IN THE SOFTWARE.
 #define MUS_PROG_LEN 255
 #define MUS_MAX_CHANNELS CYD_MAX_CHANNELS
 
-#define MUS_VERSION 32
+#define MUS_VERSION 33
 
 #define MUS_SONG_TITLE_LEN 255
 #define MUS_INSTRUMENT_NAME_LEN 255
@@ -166,6 +166,16 @@ typedef struct
 
 typedef struct
 {
+	Uint8 note[MUS_FM_NUM_OPS];
+	Uint8 instrument[MUS_FM_NUM_OPS];
+	Uint8 ctrl[MUS_FM_NUM_OPS];
+	Uint8 volume[MUS_FM_NUM_OPS];
+	
+	Uint16 command[MUS_MAX_COMMANDS];
+} Mus4opStep;
+
+typedef struct
+{
 	Uint16 position; 
 	Uint16 pattern;
 	Sint8 note_offset;
@@ -178,6 +188,11 @@ typedef struct
 	Uint8 color;
 	
 	Uint8 command_columns; //wasn't there
+	
+	bool is_expanded_4op;
+	
+	Mus4opStep *four_op_step;
+	
 } MusPattern;
 
 typedef struct
@@ -367,10 +382,15 @@ enum
 	MUS_FX_SET_RINGSRC = 0x7b00,
 	MUS_FX_SET_WAVETABLE_ITEM = 0x3b00,
 	MUS_FX_SET_DOWNSAMPLE = 0x1e00,
-	MUS_FX_WAVETABLE_OFFSET = 0x5000,
+	MUS_FX_WAVETABLE_OFFSET = 0x5000, //if sample is looped, it would set starting point
+	MUS_FX_WAVETABLE_OFFSET_UP = 0x4400, //wasn't there
+	MUS_FX_WAVETABLE_OFFSET_DOWN = 0x4500, //wasn't there
 	MUS_FX_CUTOFF_FINE_SET = 0x6000,
 	MUS_FX_PW_FINE_SET = 0x8000, //wasn't there
 	MUS_FX_MORPH = 0x9000, //wasn't there //9xxy, morph to wave xx with speed of y
+	MUS_FX_WAVETABLE_END_POINT = 0xE000, //wasn't there if sample is looped, it would set ending point. Exxx
+	MUS_FX_WAVETABLE_END_POINT_UP = 0x4500, //wasn't there
+	MUS_FX_WAVETABLE_END_POINT_DOWN = 0x4600, //wasn't there
 	MUS_FX_END = 0xffff,
 	MUS_FX_JUMP = 0xff00,
 	MUS_FX_LABEL = 0xfd00,
@@ -407,6 +427,9 @@ enum //song flags
 	MUS_PATTERNS_COMPRESS_GRAY = 1024,
 	
 	MUS_16_BIT_RATE = 2048,
+	
+	MUS_HAS_DESCRIPTION = 4096,
+	MUS_SHOW_DESCRIPTION = 8192, //show description automatically when song is loaded, BETTER FUCKING LEAVE IT AS 0!!!
 };
 
 enum

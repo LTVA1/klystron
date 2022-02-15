@@ -72,7 +72,7 @@ Sint32 cyd_osc(Uint32 flags, Uint32 accumulator, Uint32 pw, Uint32 random, Uint3
 		
 		if(mixmode == 3) //C64 8580 SID combined waves from 4096 samples-long arrays that are generated at every startup of the tracker
 		{
-			return PulseTri_8580[cyd_saw(accumulator) / 8] & cyd_pulse(accumulator, pw);
+			return 65535 - (PulseTri_8580[cyd_saw(accumulator) / 8] & cyd_pulse(accumulator, pw));
 		}
 		
 		if(mixmode == 4) //bitwise XOR
@@ -99,7 +99,7 @@ Sint32 cyd_osc(Uint32 flags, Uint32 accumulator, Uint32 pw, Uint32 random, Uint3
 		
 		if(mixmode == 3)
 		{
-			return PulseSaw_8580[cyd_saw(accumulator) / 16];
+			return 65535 - PulseSaw_8580[cyd_saw(accumulator) / 16];
 		}
 		
 		if(mixmode == 4)
@@ -148,7 +148,7 @@ Sint32 cyd_osc(Uint32 flags, Uint32 accumulator, Uint32 pw, Uint32 random, Uint3
 		
 		if(mixmode == 3)
 		{
-			return TriSaw_8580[cyd_saw(accumulator) / 16];
+			return 65535 - TriSaw_8580[cyd_saw(accumulator) / 16];
 		}
 		
 		if(mixmode == 4)
@@ -219,7 +219,7 @@ Sint32 cyd_osc(Uint32 flags, Uint32 accumulator, Uint32 pw, Uint32 random, Uint3
 		
 		if(mixmode == 3)
 		{
-			return PulseTriSaw_8580[cyd_saw(accumulator) / 16];
+			return 65535 - PulseTriSaw_8580[cyd_saw(accumulator) / 16];
 		}
 		
 		if(mixmode == 4)
@@ -246,7 +246,7 @@ Sint32 cyd_osc(Uint32 flags, Uint32 accumulator, Uint32 pw, Uint32 random, Uint3
 		
 		if(mixmode == 3)
 		{
-			return PulseTri_8580[cyd_saw(accumulator) / 8] & cyd_pulse(accumulator, pw) & cyd_noise(random);
+			return (65535 - (PulseTri_8580[cyd_saw(accumulator) / 8] & cyd_pulse(accumulator, pw))) & cyd_noise(random);
 		}
 		
 		if(mixmode == 4)
@@ -273,7 +273,7 @@ Sint32 cyd_osc(Uint32 flags, Uint32 accumulator, Uint32 pw, Uint32 random, Uint3
 		
 		if(mixmode == 3)
 		{
-			return TriSaw_8580[cyd_saw(accumulator) / 16] & cyd_noise(random);
+			return (65535 - TriSaw_8580[cyd_saw(accumulator) / 16]) & cyd_noise(random);
 		}
 		
 		if(mixmode == 4)
@@ -300,7 +300,7 @@ Sint32 cyd_osc(Uint32 flags, Uint32 accumulator, Uint32 pw, Uint32 random, Uint3
 		
 		if(mixmode == 3)
 		{
-			return PulseSaw_8580[cyd_saw(accumulator) / 16] & cyd_noise(random);
+			return (65535 - PulseSaw_8580[cyd_saw(accumulator) / 16]) & cyd_noise(random);
 		}
 		
 		if(mixmode == 4)
@@ -327,7 +327,7 @@ Sint32 cyd_osc(Uint32 flags, Uint32 accumulator, Uint32 pw, Uint32 random, Uint3
 		
 		if(mixmode == 3)
 		{
-			return PulseTriSaw_8580[cyd_saw(accumulator) / 16] & cyd_noise(random);
+			return (65535 - PulseTriSaw_8580[cyd_saw(accumulator) / 16]) & cyd_noise(random);
 		}
 		
 		if(mixmode == 4)
@@ -447,7 +447,7 @@ Sint32 cyd_osc(Uint32 flags, Uint32 accumulator, Uint32 pw, Uint32 random, Uint3
 		
 		if(mixmode == 3)
 		{
-			return PulseTri_8580[cyd_saw(accumulator) / 8] & cyd_pulse(accumulator, pw) & cyd_lfsr(lfsr_acc);
+			return ((65535 - PulseTri_8580[cyd_saw(accumulator) / 8]) & cyd_pulse(accumulator, pw)) & cyd_lfsr(lfsr_acc);
 		}
 		
 		if(mixmode == 4)
@@ -474,7 +474,7 @@ Sint32 cyd_osc(Uint32 flags, Uint32 accumulator, Uint32 pw, Uint32 random, Uint3
 		
 		if(mixmode == 3)
 		{
-			return PulseSaw_8580[cyd_saw(accumulator) / 16] & cyd_lfsr(lfsr_acc);
+			return (65535 - PulseSaw_8580[cyd_saw(accumulator) / 16]) & cyd_lfsr(lfsr_acc);
 		}
 		
 		if(mixmode == 4)
@@ -523,7 +523,7 @@ Sint32 cyd_osc(Uint32 flags, Uint32 accumulator, Uint32 pw, Uint32 random, Uint3
 		
 		if(mixmode == 3)
 		{
-			return TriSaw_8580[cyd_saw(accumulator) / 16] & cyd_lfsr(lfsr_acc);
+			return (65535 - TriSaw_8580[cyd_saw(accumulator) / 16]) & cyd_lfsr(lfsr_acc);
 		}
 		
 		if(mixmode == 4)
@@ -594,7 +594,7 @@ Sint32 cyd_osc(Uint32 flags, Uint32 accumulator, Uint32 pw, Uint32 random, Uint3
 		
 		if(mixmode == 3)
 		{
-			return PulseTriSaw_8580[cyd_saw(accumulator) / 16] & cyd_lfsr(lfsr_acc);
+			return (65535 - PulseTriSaw_8580[cyd_saw(accumulator) / 16]) & cyd_lfsr(lfsr_acc);
 		}
 		
 		if(mixmode == 4)
@@ -621,7 +621,7 @@ Sint32 cyd_osc(Uint32 flags, Uint32 accumulator, Uint32 pw, Uint32 random, Uint3
 		
 		if(mixmode == 3)
 		{
-			return PulseTri_8580[cyd_saw(accumulator) / 8] & cyd_pulse(accumulator, pw) & cyd_lfsr(lfsr_acc) & cyd_noise(random);
+			return ((65535 - PulseTri_8580[cyd_saw(accumulator) / 8]) & cyd_pulse(accumulator, pw)) & cyd_lfsr(lfsr_acc) & cyd_noise(random);
 		}
 		
 		if(mixmode == 4)
@@ -675,7 +675,7 @@ Sint32 cyd_osc(Uint32 flags, Uint32 accumulator, Uint32 pw, Uint32 random, Uint3
 		
 		if(mixmode == 3)
 		{
-			return PulseSaw_8580[cyd_saw(accumulator) / 16] & cyd_lfsr(lfsr_acc) & cyd_noise(random);
+			return (65535 - PulseSaw_8580[cyd_saw(accumulator) / 16]) & cyd_lfsr(lfsr_acc) & cyd_noise(random);
 		}
 		
 		if(mixmode == 4)
@@ -702,7 +702,7 @@ Sint32 cyd_osc(Uint32 flags, Uint32 accumulator, Uint32 pw, Uint32 random, Uint3
 		
 		if(mixmode == 3)
 		{
-			return PulseTriSaw_8580[cyd_saw(accumulator) / 16] & cyd_lfsr(lfsr_acc) & cyd_noise(random);
+			return (65535 - PulseTriSaw_8580[cyd_saw(accumulator) / 16]) & cyd_lfsr(lfsr_acc) & cyd_noise(random);
 		}
 		
 		if(mixmode == 4)
