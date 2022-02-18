@@ -66,7 +66,7 @@ typedef struct
 	
 	Uint8 ym_env_shape;
 #ifdef STEREOOUTPUT
-	Uint8 panning; // 0-128, 64 = center
+	Uint8 panning; // 0-255, 128 = center
 	Sint32 gain_left, gain_right;
 #endif
 	// ---- internal

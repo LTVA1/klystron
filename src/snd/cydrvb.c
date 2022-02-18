@@ -145,6 +145,7 @@ void cydrvb_set_tap(CydReverb *rvb, int idx, int delay_ms, int gain_db, int pann
                 rvb->tap[idx].gain = 0;
 #endif
 	}
+	
 	else
 	{
 #ifdef STEREOOUTPUT

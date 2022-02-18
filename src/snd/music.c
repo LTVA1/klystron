@@ -377,6 +377,51 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 	CydChannel *cydchn = &mus->cyd->channel[chan];
 	CydEngine *cyd = mus->cyd;
 	MusTrackStatus *track_status = &mus->song_track[chan];
+	
+	switch (inst & 0xfff0)
+	{
+		case MUS_FX_SET_EXPONENTIALS:
+		{
+			cydchn->flags &= ~(0xf << 24);
+			cydchn->flags |= ((inst & 0xf) << 24);
+		}
+		break;
+		
+		case MUS_FX_FM_SET_EXPONENTIALS:
+		{
+			cydchn->fm.flags &= ~(0xf << 24);
+			cydchn->fm.flags |= ((inst & 0xf) << 24);
+		}
+		break;
+		
+		case MUS_FX_FM_SET_FEEDBACK:
+		{
+			cydchn->fm.feedback = inst & 7;
+		}
+		break;
+		
+		case MUS_FX_FM_EXT_FADE_VOLUME_DN: //wasn't there
+		{
+			if (!(chn->flags & MUS_CHN_DISABLED))
+			{
+				cydchn->fm.adsr.volume -= inst & 0xf;
+				if (cydchn->fm.adsr.volume > MAX_VOLUME) cydchn->fm.adsr.volume = 0;
+				//update_volumes(mus, track_status, chn, cydchn, track_status->volume);
+			}
+		}
+		break;
+		
+		case MUS_FX_FM_EXT_FADE_VOLUME_UP: //wasn't there
+		{
+			if (!(chn->flags & MUS_CHN_DISABLED))
+			{
+				cydchn->fm.adsr.volume += inst & 0xf;
+				if (cydchn->fm.adsr.volume > MAX_VOLUME) cydchn->fm.adsr.volume = MAX_VOLUME;
+				//update_volumes(mus, track_status, chn, cydchn, track_status->volume);
+			}
+		}
+		break;
+	}
 
 	switch (inst & 0xff00)
 	{
@@ -555,6 +600,20 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 			}
 		}
 		break;
+		
+		case MUS_FX_FM_FADE_VOLUME: //wasn't there
+		{
+			if (!(chn->flags & MUS_CHN_DISABLED))
+			{
+				cydchn->fm.adsr.volume -= inst & 0xf;
+				if (track_status->volume > MAX_VOLUME) cydchn->fm.adsr.volume = 0;
+				cydchn->fm.adsr.volume += (inst >> 4) & 0xf;
+				if (track_status->volume > MAX_VOLUME) cydchn->fm.adsr.volume = MAX_VOLUME;
+
+				update_volumes(mus, track_status, chn, cydchn, track_status->volume);
+			}
+		}
+		break;
 #ifdef STEREOOUTPUT
 		case MUS_FX_PAN_RIGHT:
 		case MUS_FX_PAN_LEFT:
@@ -564,6 +623,7 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 			{
 				p -= inst & 0x00ff;
 			}
+			
 			else
 			{
 				p += inst & 0x00ff;
@@ -662,7 +722,7 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 						}
 					}
 					break;
-
+					
 					case MUS_FX_EXT_PORTA_UP:
 					{
 						Uint32 prev = chn->note;
@@ -693,7 +753,7 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 			switch (inst & 0xf000)
 			{
 #ifndef CYD_DISABLE_FILTER
-				case MUS_FX_CUTOFF_FINE_SET:
+				case MUS_FX_CUTOFF_FINE_SET: //wasn't there
 				{
 					track_status->filter_cutoff = (inst & 0xfff);
 					if (track_status->filter_cutoff > 0xfff) track_status->filter_cutoff = 0xfff; //if (track_status->filter_cutoff > 0x7ff) track_status->filter_cutoff = 0x7ff;
@@ -788,12 +848,6 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 				case MUS_FX_FM_SET_HARMONIC:
 				{
 					cydchn->fm.harmonic = inst & 0xff;
-				}
-				break;
-
-				case MUS_FX_FM_SET_FEEDBACK:
-				{
-					cydchn->fm.feedback = inst & 7;
 				}
 				break;
 
@@ -911,7 +965,7 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 				}
 				break;
 				
-				case MUS_FX_SET_RATE_HIGHER_BYTE:
+				case MUS_FX_SET_RATE_HIGHER_BYTE: //wasn't there
 				{
 					if((mus->song->song_rate & 0x00FF) + ((inst & 0xff) << 8) <= 44100)
 					{
@@ -977,7 +1031,7 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 				{
 					if ((inst & 0xff) != 0xff)
 					{
-						cydchn->sync_source = (inst & 0xff) % CYD_MAX_FX_CHANNELS;
+						cydchn->sync_source = (inst & 0xff);
 						cydchn->flags |= CYD_CHN_ENABLE_SYNC;
 					}
 					else
@@ -989,7 +1043,7 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 				{
 					if ((inst & 0xff) != 0xff)
 					{
-						cydchn->ring_mod = (inst & 0xff) % CYD_MAX_FX_CHANNELS;
+						cydchn->ring_mod = (inst & 0xff);
 						cydchn->flags |= CYD_CHN_ENABLE_RING_MODULATION;
 					}
 					else
@@ -1076,11 +1130,11 @@ static void mus_exec_track_command(MusEngine *mus, int chan, int first_tick)
 	switch (vol & 0xf0)
 	{
 		case MUS_NOTE_VOLUME_PAN_LEFT:
-			do_command(mus, chan, mus->song_counter, MUS_FX_PAN_LEFT | ((Uint16)(vol & 0xf)), 0);
+			do_command(mus, chan, mus->song_counter, MUS_FX_PAN_LEFT | ((Uint16)(vol & 0xf) * 2), 0);
 			break;
 
 		case MUS_NOTE_VOLUME_PAN_RIGHT:
-			do_command(mus, chan, mus->song_counter, MUS_FX_PAN_RIGHT | ((Uint16)(vol & 0xf)), 0);
+			do_command(mus, chan, mus->song_counter, MUS_FX_PAN_RIGHT | ((Uint16)(vol & 0xf) * 2), 0);
 			break;
 
 		case MUS_NOTE_VOLUME_SET_PAN:
@@ -2396,7 +2450,7 @@ int mus_load_instrument_RW(Uint8 version, RWops *ctx, MusInstrument *inst, CydWa
 	
 	if (progsteps)
 	{
-		_VER_READ(&inst->program, (int)progsteps*sizeof(inst->program[0]));
+		_VER_READ(&inst->program, (int)progsteps * sizeof(inst->program[0]));
 	}
 	
 	if(version < 32) //to account for extended command range
@@ -2428,7 +2482,15 @@ int mus_load_instrument_RW(Uint8 version, RWops *ctx, MusInstrument *inst, CydWa
 		{
 			if((inst->program[i] & 0xff00) != 0xfc00 && (inst->program[i] & 0xff00) != MUS_FX_JUMP)
 			{
-				inst->program_unite_bits[i / 8] ^= (((inst->program[i] & 0x8000) ? 1 : 0) << (i % 8));
+				if(inst->program[i] & 0x8000)
+				{
+					inst->program_unite_bits[i / 8] |= (1 << (i % 8));
+				}
+				
+				else
+				{
+					inst->program_unite_bits[i / 8] &= ~(1 << (i % 8));
+				}
 			}
 			
 			else if((inst->program[i] & 0xff00) != 0xff00 && (inst->program[i] & 0xff00) != 0xfe00 && (inst->program[i] & 0xff00) != 0xfc00  && (inst->program[i] & 0xff00) != 0xfd00)
@@ -2446,8 +2508,28 @@ int mus_load_instrument_RW(Uint8 version, RWops *ctx, MusInstrument *inst, CydWa
 				inst->program[i] = 0x7c00 + (inst->program[i] & 0xff);
 			}
 		}
-	}
 		
+		
+	}
+	
+	if(version < 33)
+	{
+		for(int i = 0; i < progsteps; i++)
+		{
+			if(((inst->program[i] & (version < 32 ? 0x7f00 : 0xff00)) == MUS_FX_SET_PANNING) 
+				|| ((inst->program[i] & (version < 32 ? 0x7f00 : 0xff00)) == MUS_FX_PAN_LEFT) 
+				|| ((inst->program[i] & (version < 32 ? 0x7f00 : 0xff00)) == MUS_FX_PAN_RIGHT)) 
+				//to account for extended panning range
+			{
+				//debug("yay");
+				
+				Uint8 temp = inst->program[i] & 0xff;
+				inst->program[i] &= 0xff00;
+				inst->program[i] += my_min(temp * 2, 255);
+			}
+		}
+	}
+	
 	_VER_READ(&inst->prog_period, 0);
 	
 	if(((inst->flags & MUS_INST_SAVE_LFO_SETTINGS) && version >= 31) || version < 31)
@@ -2483,8 +2565,21 @@ int mus_load_instrument_RW(Uint8 version, RWops *ctx, MusInstrument *inst, CydWa
 
 	if(((inst->cydflags & CYD_CHN_ENABLE_FILTER) && version >= 31) || version < 31)
 	{
-		VER_READ(version, 1, 0xff, &inst->cutoff, 0);
-		VER_READ(version, 1, 0xff, &inst->resonance, 0);
+		if(version < 33)
+		{
+			VER_READ(version, 1, 0xff, &inst->cutoff, 0);
+			VER_READ(version, 1, 0xff, &inst->resonance, 0);
+		}
+		
+		else
+		{
+			Uint16 temp = 0;
+			VER_READ(version, 33, 0xff, &temp, 0);
+			
+			inst->cutoff = temp & 0x0fff;
+			inst->resonance = (temp & 0xf000) >> 12;
+		}
+		
 		VER_READ(version, 1, 0xff, &inst->flttype, 0);
 		
 		VER_READ(version, 30, 0xff, &inst->slope, 0); //wasn't there
@@ -2683,8 +2778,8 @@ void mus_get_default_instrument(MusInstrument *inst)
 	inst->adsr.a = 1 * ENVELOPE_SCALE;
 	inst->adsr.d = 12 * ENVELOPE_SCALE;
 	inst->volume = MAX_VOLUME;
-	inst->vol_ksl_level = 0x80;
-	inst->env_ksl_level = 0x80;
+	inst->vol_ksl_level = 0x80; //wasn't there
+	inst->env_ksl_level = 0x80; //wasn't there
 	inst->base_note = MIDDLE_C;
 	
 	inst->fm_base_note = MIDDLE_C; //wasn't there
@@ -2827,6 +2922,11 @@ static void inner_load_fx(RWops *ctx, CydFxSerialized *fx, int version)
 				{
 					my_RWread(ctx, &fx->rvb.tap[i].panning, 1, 1);
 					my_RWread(ctx, &fx->rvb.tap[i].flags, 1, 1);
+					
+					if(version < 33)
+					{
+						fx->rvb.tap[i].panning = my_min(fx->rvb.tap[i].panning * 2, 255);
+					}
 				}
 				
 				else
@@ -2900,6 +3000,11 @@ static void inner_load_fx(RWops *ctx, CydFxSerialized *fx, int version)
 				{
 					my_RWread(ctx, &fx->rvb.tap[i].panning, 1, 1);
 					my_RWread(ctx, &fx->rvb.tap[i].flags, 1, 1);
+					
+					if(version < 33)
+					{
+						fx->rvb.tap[i].panning = my_min(fx->rvb.tap[i].panning * 2, 255);
+					}
 				}
 				
 				else
@@ -2962,6 +3067,11 @@ static void inner_load_fx(RWops *ctx, CydFxSerialized *fx, int version)
 				my_RWread(ctx, &fx->rvb.tap[i].gain, 2, 1);
 				my_RWread(ctx, &fx->rvb.tap[i].panning, 1, 1);
 				my_RWread(ctx, &fx->rvb.tap[i].flags, 1, 1);
+				
+				if(version < 33)
+				{
+					fx->rvb.tap[i].panning = my_min(fx->rvb.tap[i].panning * 2, 255);
+				}
 			}
 			
 			for(int i = fx->rvb.taps_quant; i < CYDRVB_TAPS; i++)
@@ -3293,6 +3403,11 @@ int mus_load_song_RW(RWops *ctx, MusSong *song, CydWavetableEntry *wavetable_ent
 			my_RWread(ctx, &song->default_volume[0], sizeof(song->default_volume[0]), song->num_channels);
 			debug("Loading default panning at offset %x", (Uint32)my_RWtell(ctx));
 			my_RWread(ctx, &song->default_panning[0], sizeof(song->default_panning[0]), song->num_channels);
+			
+			if(version < 33)
+			{
+				song->default_panning[0] = my_min(song->default_panning[0] * 2, 255);
+			}
 		}
 
 		if (song->instrument == NULL)
@@ -3417,8 +3532,8 @@ int mus_load_song_RW(RWops *ctx, MusSong *song, CydWavetableEntry *wavetable_ent
 						song->pattern[i].step[s].instrument = MUS_NOTE_NO_INSTRUMENT;
 					
 					
-					Uint8 temp_ctrl;
-					Uint8 num_additional_commands;
+					Uint8 temp_ctrl = 0;
+					Uint8 num_additional_commands = 0;
 
 					if (bits & MUS_PAK_BIT_CTRL)
 					{
@@ -3451,6 +3566,18 @@ int mus_load_song_RW(RWops *ctx, MusSong *song, CydWavetableEntry *wavetable_ent
 					
 					
 					
+					if(((song->pattern[i].step[s].command[0] & (version < 32 ? 0x7f00 : 0xff00)) == MUS_FX_SET_PANNING 
+					|| (song->pattern[i].step[s].command[0] & (version < 32 ? 0x7f00 : 0xff00)) == MUS_FX_PAN_LEFT 
+					|| (song->pattern[i].step[s].command[0] & (version < 32 ? 0x7f00 : 0xff00)) == MUS_FX_PAN_RIGHT) && version < 33) 
+					//to account for extended panning range
+					{
+						Uint8 temp = song->pattern[i].step[s].command[0] & 0xff;
+						song->pattern[i].step[s].command[0] &= 0xff00;
+						song->pattern[i].step[s].command[0] += my_min(temp * 2, 255);
+					}
+					
+					
+					
 					//debug("%d", temp_ctrl);
 					
 					if (bits & MUS_PAK_BIT_CTRL)
@@ -3464,6 +3591,16 @@ int mus_load_song_RW(RWops *ctx, MusSong *song, CydWavetableEntry *wavetable_ent
 								
 								FIX_ENDIAN(song->pattern[i].step[s].command[k + 1]);
 								//debug("dumb read, %d", temp_ctrl);
+								
+								if(((song->pattern[i].step[s].command[k + 1] & (version < 32 ? 0x7f00 : 0xff00)) == MUS_FX_SET_PANNING 
+								|| (song->pattern[i].step[s].command[k + 1] & (version < 32 ? 0x7f00 : 0xff00)) == MUS_FX_PAN_LEFT 
+								|| (song->pattern[i].step[s].command[k + 1] & (version < 32 ? 0x7f00 : 0xff00)) == MUS_FX_PAN_RIGHT) && version < 33) 
+								//to account for extended panning range
+								{
+									Uint8 temp = song->pattern[i].step[s].command[k + 1] & 0xff;
+									song->pattern[i].step[s].command[k + 1] &= 0xff00;
+									song->pattern[i].step[s].command[k + 1] += my_min(temp * 2, 255);
+								}
 							}
 						}
 					}

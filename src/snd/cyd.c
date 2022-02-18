@@ -106,7 +106,7 @@ static void cyd_init_channel(CydEngine *cyd, CydChannel *chn)
 }
 
 #define EXPONENT 2.718281828459045
-#define e_pow_2 7.3890461584 //e ^ 2 since range is [-4; 2]
+#define e_pow_2 7.3890461584 //e ^ 2 since range is [-2; 2]
 
 double map_double(double x, double in_min, double in_max, double out_min, double out_max)
 {
@@ -117,7 +117,7 @@ static void cyd_init_log_tables(CydEngine *cyd)
 {
 	for(int i = 0; i < EXP_LUT_SIZE; ++i)
 	{
-		cyd->lookup_table_exponential[i] = (Uint16)(pow(EXPONENT, map_double(i, 0, EXP_LUT_SIZE, -4, 2)) * 65535.0 / e_pow_2);
+		cyd->lookup_table_exponential[i] = (Uint16)(pow(EXPONENT, map_double(i, 0, EXP_LUT_SIZE, -2, 2)) * 65535.0 / e_pow_2);
 		
 		//debug("%d", cyd->lookup_table_exponential[i]);
 	}
@@ -130,17 +130,6 @@ static void cyd_init_log_tables(CydEngine *cyd)
 	cyd->lookup_table_exponential[0] = 0;
 	cyd->lookup_table_exponential[EXP_LUT_SIZE - 1] = 65535;
 	
-	for(int i = 0; i < EXP_LUT_SIZE; ++i)
-	{
-		//debug("%d", cyd->lookup_table_exponential[i]);
-		
-		if(cyd->lookup_table_exponential[i] == 0)
-		{
-			
-			debug("%d element is 0", i);
-		}
-	}
-	
 	/*for(int i = 1; i < EXP_LUT_SIZE; ++i)
 	{
 		cyd->lookup_table_exponential[i] -= cyd->lookup_table_exponential[0]; //so our "tail" starts at 0 level
@@ -152,6 +141,8 @@ static void cyd_init_log_tables(CydEngine *cyd)
 	{
 		cyd->lookup_table[i] = i * (i/2) / ((LUT_SIZE*LUT_SIZE / 65536)/2);
 	}
+	
+	//debug("%d", cyd->lookup_table[1023]);
 	
 #ifndef CYD_DISABLE_BUZZ
 	for (int i = 0; i < YM_LUT_SIZE; ++i)
@@ -671,7 +662,7 @@ Sint32 cyd_env_output(const CydEngine *cyd, Uint32 chn_flags, const CydAdsr *ads
 		if (adsr->envelope_state == ATTACK)
 		{
 			if(chn_flags & CYD_CHN_ENABLE_EXPONENTIAL_ATTACK)
-			{                                                                                                                                                                                 //                                _
+			{                                                                                                                                                                                //                                _
 				return ((Sint64)input * (65535 - cyd->lookup_table_exponential[(65535 - (adsr->envelope / 0x800) - 1) & (EXP_LUT_SIZE - 1)])) / 65536 * (Sint32)(adsr->volume) / MAX_VOLUME; //so attack goes curvy like this /
 			} //EXP_LUT_SIZE
 			
@@ -685,14 +676,30 @@ Sint32 cyd_env_output(const CydEngine *cyd, Uint32 chn_flags, const CydAdsr *ads
 		{
 			if(chn_flags & CYD_CHN_ENABLE_EXPONENTIAL_DECAY)
 			{
-				return ((Sint64)input * (cyd->lookup_table_exponential[(((adsr->envelope - 0xff0000) / 0x800) - 1) & (EXP_LUT_SIZE - 1)])) / 65536 * (Sint32)(adsr->volume) / MAX_VOLUME; //so decay (and release below) go curvy like this  \_
-			} //EXP_LUT_SIZE
+				Sint64 out = ((Sint64)input * (cyd->lookup_table_exponential[(Uint32)((((double)adsr->envelope - (double)0xff0000) * (double)32 / ((double)32 - (double)adsr->s) / (double)0x800) - (double)1) & (EXP_LUT_SIZE - 1)])) / 65536 * (Sint32)(adsr->volume) / MAX_VOLUME;// * (32 - adsr->s) / 32; //so decay (and release below) go curvy like this  \_
+				return (Sint64)((double)out * (double)(cyd->lookup_table[1023] - cyd->lookup_table[adsr->s * 32]) / (double)cyd->lookup_table[1023]) + (Sint64)((double)((Sint64)input * (Sint32)(adsr->volume) / MAX_VOLUME) * (double)cyd->lookup_table[adsr->s * 32] / (double)cyd->lookup_table[1023]);
+			}
 			
 			else
 			{
 				return ((Sint64)input * (cyd->lookup_table[(adsr->envelope / (65536 * 256 / LUT_SIZE)) & (LUT_SIZE - 1)]) / 65536) * (Sint32)(adsr->volume) / MAX_VOLUME;
 			}
 		}
+		
+		if (adsr->envelope_state == RELEASE)
+		{
+			if(chn_flags & CYD_CHN_ENABLE_EXPONENTIAL_RELEASE)
+			{
+				Sint64 out = ((Sint64)input * (cyd->lookup_table_exponential[(Uint32)((((double)adsr->envelope - (double)(adsr->s << 19)) * (double)32 / ((double)adsr->s) / (double)0x800) - (double)1) & (EXP_LUT_SIZE - 1)])) / 65536 * (Sint32)(adsr->volume) / MAX_VOLUME;
+				return (Sint64)((double)out * (double)(cyd->lookup_table[adsr->s * 32]) / (double)cyd->lookup_table[1023]);
+			}
+			
+			else
+			{
+				return ((Sint64)input * (cyd->lookup_table[(adsr->envelope / (65536 * 256 / LUT_SIZE)) & (LUT_SIZE - 1)]) / 65536) * (Sint32)(adsr->volume) / MAX_VOLUME;
+			}
+		}
+		
 		else
 		{
 			return ((Sint64)input * (cyd->lookup_table[(adsr->envelope / (65536 * 256 / LUT_SIZE)) & (LUT_SIZE - 1)]) / 65536) * (Sint32)(adsr->volume) / MAX_VOLUME;
@@ -827,6 +834,11 @@ static Sint32 cyd_output(CydEngine *cyd)
 			if (chn->flags & CYD_CHN_ENABLE_RING_MODULATION)
 			{
 				o = cyd_env_output(cyd, chn->flags, &chn->adsr, s[i] * (s[chn->ring_mod] + (WAVE_AMP / 2)) / WAVE_AMP) * (cyd->channel[i].curr_tremolo + 512) / 512 * ((chn->flags & CYD_CHN_ENABLE_VOLUME_KEY_SCALING) ? chn->vol_ksl_mult : 1);
+			}
+			
+			if(chn->flags & CYD_CHN_ENABLE_EXPONENTIAL_VOLUME)
+			{
+				o = (Sint32)((double)o * (double)cyd->lookup_table_exponential[chn->adsr.volume * 32] / (double)cyd->lookup_table_exponential[4096]);
 			}
 			
 #ifndef CYD_DISABLE_FM

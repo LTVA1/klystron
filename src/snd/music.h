@@ -212,7 +212,7 @@ typedef struct
 	Uint8 multiplex_period, pitch_inaccuracy;
 	char title[MUS_SONG_TITLE_LEN + 1];
 	
-	char32_t song_info[8388608]; //wasn't there
+	//char32_t song_info[8388608]; //wasn't there
 	
 	CydFxSerialized fx[CYD_MAX_FX_CHANNELS];
 	Uint8 master_volume;
@@ -234,7 +234,7 @@ typedef struct
 	Uint8 filter_resonance;
 	Uint8 filter_slope; //wasn't there
 	Uint8 extarp1, extarp2;
-	Uint8 volume;
+	Uint16 volume; //was Uint8
 	Uint8 vibrato_delay;
 	
 	Uint8 pwm_delay, tremolo_delay; //wasn't there
@@ -318,6 +318,10 @@ enum
 	MUS_FX_SET_EXT_ARP = 0x1000,
 	MUS_FX_PORTA_UP = 0x0100,
 	MUS_FX_PORTA_DN = 0x0200,
+	
+	MUS_FX_FM_PORTA_UP = 0x4700, //wasn't there
+	MUS_FX_FM_PORTA_DN = 0x4800, //wasn't there
+	
 	MUS_FX_PORTA_UP_LOG = 0x0500,
 	MUS_FX_PORTA_DN_LOG = 0x0600,
 	MUS_FX_SLIDE = 0x0300,
@@ -328,6 +332,14 @@ enum
 	MUS_FX_FM_VIBRATO = 0x2700, //wasn't there
 	MUS_FX_FM_TREMOLO = 0x2800, //wasn't there
 	MUS_FX_FADE_VOLUME = 0x0a00,
+	
+	MUS_FX_FM_FADE_VOLUME = 0x4a00, //wasn't there
+	MUS_FX_FM_EXT_FADE_VOLUME_DN = 0x34a0, //wasn't there
+	MUS_FX_FM_EXT_FADE_VOLUME_UP = 0x34b0, //wasn't there
+	
+	MUS_FX_SET_EXPONENTIALS = 0x0e40, //wasn't there
+	MUS_FX_FM_SET_EXPONENTIALS = 0x34c0, //wasn't there
+	
 	MUS_FX_SET_VOLUME = 0x0c00,
 	MUS_FX_LOOP_PATTERN = 0x0d00,
 	MUS_FX_SKIP_PATTERN = 0x2d00,

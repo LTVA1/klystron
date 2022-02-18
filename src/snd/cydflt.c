@@ -49,7 +49,7 @@ void cydflt_set_coeff(CydFilter *flt, Uint16 frequency, Uint16 resonance, Uint32
 	
 	double sample_rate_d = (double)sample_rate; //was 44100
 	//double dbGain = 1.0; //this was 1.0
-	double Q = 0.7 + resonance * 0.25; //this variables may need some tweaking (this was 5.0) 0.7071
+	double Q = 0.6 + resonance * 0.25; //this variables may need some tweaking (this was 5.0) 0.7071
 	
 	//double A = pow(10, dbGain / 40); //convert to db
     double omega = 2 * M_PI * frequency / sample_rate_d; //I really don't know what the fuck is going on

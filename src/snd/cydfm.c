@@ -95,7 +95,12 @@ void cydfm_cycle(const CydEngine *cyd, CydFm *fm)
 {
 	cyd_cycle_adsr(cyd, 0, 0, &fm->adsr, fm->fm_env_ksl_mult);
 	
-	fm->env_output = cyd_env_output(cyd, 0, &fm->adsr, MODULATOR_MAX);
+	fm->env_output = cyd_env_output(cyd, (fm->flags & (CYD_FM_ENABLE_EXPONENTIAL_RELEASE | CYD_FM_ENABLE_EXPONENTIAL_DECAY | CYD_FM_ENABLE_EXPONENTIAL_ATTACK)), &fm->adsr, MODULATOR_MAX); //was fm->env_output = cyd_env_output(cyd, 0, &fm->adsr, MODULATOR_MAX);
+	
+	if(fm->flags & CYD_FM_ENABLE_EXPONENTIAL_VOLUME)
+	{
+		fm->env_output = (Uint32)((double)fm->env_output * (double)cyd->lookup_table_exponential[fm->adsr.volume * 32] / (double)cyd->lookup_table_exponential[4096]);
+	}
 	
 	cyd_wave_cycle(&fm->wave, fm->wave_entry);
 	
