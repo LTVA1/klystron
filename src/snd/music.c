@@ -176,11 +176,25 @@ static void update_volumes(MusEngine *mus, MusTrackStatus *ts, MusChannel *chn, 
 	{
 		ts->volume = volume;
 		cydchn->adsr.volume = (chn->flags & MUS_CHN_DISABLED) ? 0 : (int)chn->instrument->volume * volume / MAX_VOLUME * (int)mus->volume / MAX_VOLUME * (int)mus->play_volume / MAX_VOLUME * (int)chn->volume / MAX_VOLUME;
+		
+		if((cydchn->fm.flags & CYD_FM_ENABLE_ADDITIVE) && (cydchn->flags & CYD_CHN_ENABLE_FM))
+		{
+			cydchn->fm.adsr.volume = (chn->flags & MUS_CHN_DISABLED) ? 0 : (int)chn->instrument->fm_modulation * volume / MAX_VOLUME * (int)mus->volume / MAX_VOLUME * (int)mus->play_volume / MAX_VOLUME * (int)chn->volume / MAX_VOLUME;
+		}
 	}
+	
 	else
 	{
 		ts->volume = volume;
 		cydchn->adsr.volume = (chn->flags & MUS_CHN_DISABLED) ? 0 : ts->volume * (int)mus->volume / MAX_VOLUME * (int)mus->play_volume / MAX_VOLUME * (int)chn->volume / MAX_VOLUME;
+		
+		//debug("1");
+		
+		if((cydchn->fm.flags & CYD_FM_ENABLE_ADDITIVE) && (cydchn->flags & CYD_CHN_ENABLE_FM))
+		{
+			cydchn->fm.adsr.volume = (chn->flags & MUS_CHN_DISABLED) ? 0 : ts->fm_volume * (int)mus->volume / MAX_VOLUME * (int)mus->play_volume / MAX_VOLUME * (int)mus->play_volume / MAX_VOLUME * (int)chn->volume / MAX_VOLUME;
+			//debug("2, vol %d", cydchn->fm.adsr.volume);
+		}
 	}
 }
 
@@ -338,6 +352,24 @@ static void mus_set_note(MusEngine *mus, int chan, Uint16 note, int update_note,
 	mus_set_buzz_frequency(mus, chan, note);
 }
 
+static void mus_set_noise_fixed_pitch_note(MusEngine *mus, int chan, Uint16 note, int update_note, int divider)
+{
+	CydChannel *chn = &mus->cyd->channel[chan];
+
+	Uint32 frequency = (get_freq(note) & mus->pitch_mask) / divider;
+	
+	//debug("%d", frequency);
+	
+	for(int i = 0; i < CYD_SUB_OSCS; ++i)
+	{
+		if (frequency != 0)
+		{
+			chn->subosc[i].noise_frequency = (Uint64)(ACC_LENGTH >> (mus->cyd->oversample))/16 * (Uint64)(frequency) / (Uint64)mus->cyd->sample_rate;
+		}
+		
+		//debug("noi freq %d at channel %d", chn->subosc[i].noise_frequency, chan);
+	}
+}
 
 static void mus_set_slide(MusEngine *mus, int chan, Uint32 note)
 {
@@ -369,7 +401,6 @@ void mus_init_engine(MusEngine *mus, CydEngine *cyd)
 	}
 #endif
 }
-
 
 static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from_program)
 {
@@ -425,6 +456,187 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 
 	switch (inst & 0xff00)
 	{
+#ifndef CYD_DISABLE_WAVETABLE
+		case MUS_FX_WAVETABLE_OFFSET_UP: //wasn't there
+		{
+			if (cydchn->wave_entry)
+			{
+				if ((cydchn->wave_entry->flags & CYD_WAVE_LOOP) && (cydchn->subosc[0].wave.start_offset + (cydchn->subosc[0].wave.start_offset + (inst & 0xff) * 16 > 0xffff ? 0xffff : (inst & 0xff) * 16) < cydchn->subosc[0].wave.end_offset))
+				{
+					for (int s = 0; s < CYD_SUB_OSCS; ++s)
+					{
+						cydchn->subosc[s].wave.start_offset += (cydchn->subosc[s].wave.start_offset + (inst & 0xff) * 16 > 0xffff ? 0xffff : (inst & 0xff) * 16);
+						
+						cydchn->subosc[s].wave.start_point_track_status = (Uint64)cydchn->subosc[s].wave.start_offset * WAVETABLE_RESOLUTION * cydchn->wave_entry->samples / 0x10000;
+						
+						cydchn->subosc[s].wave.use_start_track_status_offset = true;
+					}	
+				}
+			}
+		}
+		break;
+		
+		case MUS_FX_WAVETABLE_OFFSET_DOWN: //wasn't there
+		{
+			if (cydchn->wave_entry)
+			{
+				if ((cydchn->wave_entry->flags & CYD_WAVE_LOOP) && (cydchn->subosc[0].wave.start_offset - ((Sint32)cydchn->subosc[0].wave.start_offset - (inst & 0xff) * 16 < 0 ? 0 : (inst & 0xff) * 16) < cydchn->subosc[0].wave.end_offset))
+				{
+					for (int s = 0; s < CYD_SUB_OSCS; ++s)
+					{
+						cydchn->subosc[s].wave.start_offset -= ((Sint32)cydchn->subosc[s].wave.start_offset - (inst & 0xff) * 16 < 0 ? 0 : (inst & 0xff) * 16);
+						
+						cydchn->subosc[s].wave.start_point_track_status = (Uint64)cydchn->subosc[s].wave.start_offset * WAVETABLE_RESOLUTION * cydchn->wave_entry->samples / 0x10000;
+						
+						cydchn->subosc[s].wave.use_start_track_status_offset = true;
+					}	
+				}
+			}
+		}
+		break;
+		
+		case MUS_FX_WAVETABLE_END_POINT_UP: //wasn't there
+		{
+			if (cydchn->wave_entry)
+			{
+				if ((cydchn->wave_entry->flags & CYD_WAVE_LOOP) && (cydchn->subosc[0].wave.end_offset - ((Sint32)cydchn->subosc[0].wave.end_offset - (inst & 0xff) * 16 < 0 ? 0 : (inst & 0xff) * 16) > cydchn->subosc[0].wave.start_offset))
+				{
+					for (int s = 0; s < CYD_SUB_OSCS; ++s)
+					{
+						cydchn->subosc[s].wave.end_offset -= ((Sint32)cydchn->subosc[s].wave.end_offset - (inst & 0xff) * 16 < 0 ? 0 : (inst & 0xff) * 16);
+						
+						cydchn->subosc[s].wave.end_point_track_status = (Uint64)cydchn->subosc[s].wave.end_offset * WAVETABLE_RESOLUTION * cydchn->wave_entry->samples / 0x10000;
+						
+						cydchn->subosc[s].wave.use_end_track_status_offset = true;
+					}	
+				}
+			}
+		}
+		break;
+		
+		case MUS_FX_WAVETABLE_END_POINT_DOWN: //wasn't there
+		{
+			if (cydchn->wave_entry)
+			{
+				if ((cydchn->wave_entry->flags & CYD_WAVE_LOOP) && (cydchn->subosc[0].wave.end_offset + (cydchn->subosc[0].wave.end_offset + (inst & 0xff) * 16 > 0xffff ? 0xffff : (inst & 0xff) * 16) > cydchn->subosc[0].wave.start_offset))
+				{
+					for (int s = 0; s < CYD_SUB_OSCS; ++s)
+					{
+						cydchn->subosc[s].wave.end_offset += (cydchn->subosc[s].wave.end_offset + (inst & 0xff) * 16 > 0xffff ? 0xffff : (inst & 0xff) * 16);
+						
+						cydchn->subosc[s].wave.end_point_track_status = (Uint64)cydchn->subosc[s].wave.end_offset * WAVETABLE_RESOLUTION * cydchn->wave_entry->samples / 0x10000;
+						
+						cydchn->subosc[s].wave.use_end_track_status_offset = true;
+					}	
+				}
+			}
+		}
+		break;
+		
+		case MUS_FX_FM_WAVETABLE_OFFSET: //wasn't there
+		{
+			int offset = ((inst & 0xff) << 4);
+			
+			if (cydchn->fm.wave_entry)
+			{
+				if(cydchn->fm.wave_entry->flags & CYD_WAVE_LOOP)
+				{
+					cydchn->fm.wave.start_offset = offset * 16;
+					
+					cydchn->fm.wave.start_point_track_status = (Uint64)cydchn->fm.wave.start_offset * WAVETABLE_RESOLUTION * cydchn->fm.wave_entry->samples / 0x10000;
+					
+					cydchn->fm.wave.use_start_track_status_offset = true;
+				}
+			}
+		}
+		break;
+		
+		case MUS_FX_FM_WAVETABLE_END_POINT: //wasn't there
+		{
+			int offset = ((inst & 0xff) << 4);
+			
+			if (cydchn->fm.wave_entry)
+			{
+				if(cydchn->fm.wave_entry->flags & CYD_WAVE_LOOP)
+				{
+					cydchn->fm.wave.end_offset = (0x10000 - offset * 16) > 0xFFFF ? 0xffff : (0x10000 - offset * 16);
+					
+					cydchn->fm.wave.end_point_track_status = (Uint64)cydchn->fm.wave.end_offset * WAVETABLE_RESOLUTION * cydchn->fm.wave_entry->samples / 0x10000;
+					
+					cydchn->fm.wave.use_end_track_status_offset = true;
+				}
+			}
+		}
+		break;
+		
+		case MUS_FX_FM_WAVETABLE_OFFSET_UP: //wasn't there
+		{
+			if (cydchn->fm.wave_entry)
+			{
+				//if(cydchn->fm.wave_entry->flags & CYD_WAVE_LOOP)
+				if ((cydchn->fm.wave_entry->flags & CYD_WAVE_LOOP) && (cydchn->fm.wave.start_offset + (cydchn->fm.wave.start_offset + (inst & 0xff) * 16 > 0xffff ? 0xffff : (inst & 0xff) * 16) < cydchn->fm.wave.end_offset))
+				{
+					cydchn->fm.wave.start_offset += (cydchn->fm.wave.start_offset + (inst & 0xff) * 16 > 0xffff ? 0xffff : (inst & 0xff) * 16);
+					
+					cydchn->fm.wave.start_point_track_status = (Uint64)cydchn->fm.wave.start_offset * WAVETABLE_RESOLUTION * cydchn->fm.wave_entry->samples / 0x10000;
+					
+					cydchn->fm.wave.use_start_track_status_offset = true;
+				}
+			}
+		}
+		break;
+		
+		case MUS_FX_FM_WAVETABLE_OFFSET_DOWN: //wasn't there
+		{
+			if (cydchn->fm.wave_entry)
+			{
+				//if(cydchn->fm.wave_entry->flags & CYD_WAVE_LOOP)
+				if ((cydchn->fm.wave_entry->flags & CYD_WAVE_LOOP) && (cydchn->fm.wave.start_offset - ((Sint32)cydchn->fm.wave.start_offset - (inst & 0xff) * 16 < 0 ? 0 : (inst & 0xff) * 16) < cydchn->fm.wave.end_offset))
+				{
+					cydchn->fm.wave.start_offset -= ((Sint32)cydchn->fm.wave.start_offset - (inst & 0xff) * 16 < 0 ? 0 : (inst & 0xff) * 16);
+					
+					cydchn->fm.wave.start_point_track_status = (Uint64)cydchn->fm.wave.start_offset * WAVETABLE_RESOLUTION * cydchn->fm.wave_entry->samples / 0x10000;
+					
+					cydchn->fm.wave.use_start_track_status_offset = true;
+				}
+			}
+		}
+		break;
+		
+		case MUS_FX_FM_WAVETABLE_END_POINT_UP: //wasn't there
+		{
+			if (cydchn->fm.wave_entry)
+			{
+				//if(cydchn->fm.wave_entry->flags & CYD_WAVE_LOOP)
+				if ((cydchn->fm.wave_entry->flags & CYD_WAVE_LOOP) && (cydchn->fm.wave.end_offset - ((Sint32)cydchn->fm.wave.end_offset - (inst & 0xff) * 16 < 0 ? 0 : (inst & 0xff) * 16) > cydchn->fm.wave.start_offset))
+				{
+					cydchn->fm.wave.end_offset -= ((Sint32)cydchn->fm.wave.end_offset - (inst & 0xff) * 16 < 0 ? 0 : (inst & 0xff) * 16);
+					
+					cydchn->fm.wave.end_point_track_status = (Uint64)cydchn->fm.wave.end_offset * WAVETABLE_RESOLUTION * cydchn->fm.wave_entry->samples / 0x10000;
+					
+					cydchn->fm.wave.use_end_track_status_offset = true;
+				}
+			}
+		}
+		break;
+		
+		case MUS_FX_FM_WAVETABLE_END_POINT_DOWN: //wasn't there
+		{
+			if (cydchn->fm.wave_entry)
+			{
+				//if(cydchn->fm.wave_entry->flags & CYD_WAVE_LOOP)
+				if ((cydchn->fm.wave_entry->flags & CYD_WAVE_LOOP) && (cydchn->fm.wave.end_offset + (cydchn->fm.wave.end_offset + (inst & 0xff) * 16 > 0xffff ? 0xffff : (inst & 0xff) * 16) > cydchn->fm.wave.start_offset))
+				{
+					cydchn->fm.wave.end_offset += (cydchn->fm.wave.end_offset + (inst & 0xff) * 16 > 0xffff ? 0xffff : (inst & 0xff) * 16);
+					
+					cydchn->fm.wave.end_point_track_status = (Uint64)cydchn->fm.wave.end_offset * WAVETABLE_RESOLUTION * cydchn->fm.wave_entry->samples / 0x10000;
+					
+					cydchn->fm.wave.use_end_track_status_offset = true;
+				}
+			}
+		}
+		break;
+#endif
 		case MUS_FX_SET_VOL_KSL_LEVEL: //wasn't there
 		{
 			cydchn->vol_ksl_level = inst & 0xff;
@@ -641,13 +853,29 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 
 			switch (inst & 0xfff0)
 			{
-				case MUS_FX_FILTER_SLOPE:
+				case MUS_FX_FILTER_SLOPE: //wasn't there
 				{
 					//track_status->filter_slope = inst & 0xf;
 					cydchn->flt_slope = inst & 0xf;
 					track_status->filter_slope = inst & 0xf;
 					
 					cyd_set_filter_coeffs(mus->cyd, cydchn, track_status->filter_cutoff, track_status->filter_resonance);
+				}
+				break;
+				
+				case MUS_FX_SET_NOISE_MODE: //wasn't there
+				{
+					bool fixed_pitch_bit = (inst & 0b100); //setting fixed pitch noise mode
+					cydchn->flags &= ~(1 << 29);
+					cydchn->flags |= ((fixed_pitch_bit ? 1 : 0) << 29);
+					
+					bool metal_bit = (inst & 0b10); //setting metal noise mode
+					cydchn->flags &= ~(1 << 7);
+					cydchn->flags |= ((metal_bit ? 1 : 0) << 7);
+					
+					bool one_bit = (inst & 0b1); //setting 1-bit noise mode
+					cydchn->flags &= ~(1 << 30);
+					cydchn->flags |= ((one_bit ? 1 : 0) << 30);
 				}
 				break;
 				
@@ -753,7 +981,7 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 			switch (inst & 0xf000)
 			{
 #ifndef CYD_DISABLE_FILTER
-				case MUS_FX_CUTOFF_FINE_SET: //wasn't there
+				case MUS_FX_CUTOFF_FINE_SET:
 				{
 					track_status->filter_cutoff = (inst & 0xfff);
 					if (track_status->filter_cutoff > 0xfff) track_status->filter_cutoff = 0xfff; //if (track_status->filter_cutoff > 0x7ff) track_status->filter_cutoff = 0x7ff;
@@ -768,9 +996,15 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 					cyd_set_wavetable_offset(cydchn, inst & 0xfff);
 				}
 				break;
+				
+				case MUS_FX_WAVETABLE_END_POINT: //wasn't there
+				{
+					cyd_set_wavetable_end_offset(cydchn, inst & 0xfff);
+				}
+				break;
 #endif
 				
-				case MUS_FX_PW_FINE_SET:
+				case MUS_FX_PW_FINE_SET: //wasn't there
 				{
 					track_status->pw = inst & 0xfff;
 				}
@@ -1018,6 +1252,20 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 						chn->arpeggio_note = inst & 0xff;
 				}
 				break;
+				
+				case MUS_FX_SET_NOISE_CONSTANT_PITCH:
+				{
+					Uint32 frequency = get_freq(((inst & 0xff) << 8) & mus->pitch_mask) / ((cydchn->musflags & MUS_INST_QUARTER_FREQ) ? 4 : 1);
+					
+					for(int i = 0; i < CYD_SUB_OSCS; ++i)
+					{
+						if (frequency != 0)
+						{
+							cydchn->subosc[i].noise_frequency = (Uint64)(ACC_LENGTH >> (mus->cyd->oversample))/16 * (Uint64)(frequency) / (Uint64)mus->cyd->sample_rate;
+						}
+					}
+				}
+				break;
 
 				case MUS_FX_SET_VOLUME:
 				{
@@ -1218,14 +1466,14 @@ static void mus_exec_prog_tick(MusEngine *mus, int chan, int advance)
 				
 				if(((inst & 0x00ff) != tick - 1) && (tick < 2))
 				{
-					chn->instrument->program_unite_bits[(tick - 1) / 8] |= (1 << ((tick - 1) % 8)); //wasn't there
+					chn->instrument->program_unite_bits[(tick - 1) / 8] |= (1 << ((tick - 1) & 7)); //wasn't there
 				}
 				
 				else if((inst & 0x00ff) != tick - 1)
 				{
-					if(!(chn->instrument->program_unite_bits[(tick - 2) / 8] & (1 << ((tick - 2) % 8))))
+					if(!(chn->instrument->program_unite_bits[(tick - 2) / 8] & (1 << ((tick - 2) & 7))))
 					{
-						chn->instrument->program_unite_bits[(tick - 1) / 8] |= (1 << ((tick - 1) % 8));
+						chn->instrument->program_unite_bits[(tick - 1) / 8] |= (1 << ((tick - 1) & 7));
 					}
 				}
 
@@ -1240,13 +1488,13 @@ static void mus_exec_prog_tick(MusEngine *mus, int chan, int advance)
 
 			case MUS_FX_LABEL:
 			{
-				chn->instrument->program_unite_bits[tick / 8] |= (1 << (tick % 8)); //wasn't there
+				chn->instrument->program_unite_bits[tick / 8] |= (1 << (tick & 7)); //wasn't there
 			}
 			break;
 
 			case MUS_FX_LOOP:
 			{
-				chn->instrument->program_unite_bits[tick / 8] |= (1 << (tick % 8)); //wasn't there
+				chn->instrument->program_unite_bits[tick / 8] |= (1 << (tick & 7)); //wasn't there
 				
 				if (chn->program_loop == (inst & 0xff))
 				{
@@ -1262,7 +1510,7 @@ static void mus_exec_prog_tick(MusEngine *mus, int chan, int advance)
 					while ((chn->instrument->program[tick] & 0xff00) != MUS_FX_LABEL && tick > 0)
 					{
 						--tick;
-						if (!(chn->instrument->program_unite_bits[tick / 8] & (1 << (tick % 8)))) ++l;
+						if (!(chn->instrument->program_unite_bits[tick / 8] & (1 << (tick & 7)))) ++l;
 						//old command if (!(chn->instrument->program[tick] & 0x8000)) ++l;
 					}
 
@@ -1294,7 +1542,7 @@ static void mus_exec_prog_tick(MusEngine *mus, int chan, int advance)
 
 	if(tick > 0)
 	{
-		if ((chn->instrument->program_unite_bits[(tick - 1) / 8] & (1 << ((tick - 1) % 8))) && inst != MUS_FX_NOP && !dont_reloop) //old command if ((inst & 0x8000) && inst != MUS_FX_NOP && !dont_reloop)
+		if ((chn->instrument->program_unite_bits[(tick - 1) / 8] & (1 << ((tick - 1) & 7))) && inst != MUS_FX_NOP && !dont_reloop) //old command if ((inst & 0x8000) && inst != MUS_FX_NOP && !dont_reloop)
 		{
 			goto do_it_again;
 		}
@@ -1302,7 +1550,7 @@ static void mus_exec_prog_tick(MusEngine *mus, int chan, int advance)
 	
 	else
 	{
-		if ((program_unite_bits & (1 << (tick % 8))) && inst != MUS_FX_NOP && !dont_reloop) //old command if ((inst & 0x8000) && inst != MUS_FX_NOP && !dont_reloop)
+		if ((program_unite_bits & (1 << (tick & 7))) && inst != MUS_FX_NOP && !dont_reloop) //old command if ((inst & 0x8000) && inst != MUS_FX_NOP && !dont_reloop)
 		{
 			goto do_it_again;
 		}
@@ -1369,7 +1617,7 @@ int mus_trigger_instrument_internal(MusEngine* mus, int chan, MusInstrument *ins
 		}
 
 		if (chan == -1)
-			chan = (rand() %  mus->cyd->n_channels);
+			chan = (rand() % mus->cyd->n_channels);
 	}
 
 	CydChannel *cydchn = &mus->cyd->channel[chan];
@@ -1392,6 +1640,8 @@ int mus_trigger_instrument_internal(MusEngine* mus, int chan, MusInstrument *ins
 	}
 	
 	cydchn->flags = ins->cydflags;
+	
+	cydchn->musflags = ins->flags;
 	
 	cydchn->vol_ksl_level = ins->vol_ksl_level;
 	cydchn->env_ksl_level = ins->env_ksl_level;
@@ -1421,8 +1671,14 @@ int mus_trigger_instrument_internal(MusEngine* mus, int chan, MusInstrument *ins
 	{
 		note += (Uint16)((int)ins->base_note-MIDDLE_C) << 8;
 	}
+	
+	//if(cydchn->flags & CYD_CHN_ENABLE_FIXED_NOISE_PITCH)
+	//{
+		mus_set_noise_fixed_pitch_note(mus, chan, (Uint16)(ins->noise_note << 8), 1, ins->flags & MUS_INST_QUARTER_FREQ ? 4 : 1);
+	//}
 
 	mus_set_note(mus, chan, ((Uint16)note) + ins->finetune, 1, ins->flags & MUS_INST_QUARTER_FREQ ? 4 : 1);
+	
 	chn->last_note = chn->target_note = (((Uint32)note) + ins->finetune);
 	chn->current_tick = 0;
 
@@ -1518,16 +1774,46 @@ int mus_trigger_instrument_internal(MusEngine* mus, int chan, MusInstrument *ins
 	{
 		cyd_set_wave_entry(cydchn, NULL);
 	}
+	
+	for(int i = 0; i < CYD_SUB_OSCS; ++i)
+	{
+		cydchn->subosc[i].wave.end_offset = 0xffff;
+		cydchn->subosc[i].wave.start_offset = 0;
+		
+		cydchn->subosc[i].wave.start_point_track_status = 0;
+		cydchn->subosc[i].wave.end_point_track_status = 0;
+		
+		cydchn->subosc[i].wave.use_start_track_status_offset = false;
+		cydchn->subosc[i].wave.use_end_track_status_offset = false;
+	}
 
 #ifndef CYD_DISABLE_FM
 	if (ins->fm_flags & CYD_FM_ENABLE_WAVE)
 	{
 		cydfm_set_wave_entry(&cydchn->fm, &mus->cyd->wavetable_entries[ins->fm_wave]);
+		
+		cydchn->fm.wave.end_offset = 0xffff;
+		cydchn->fm.wave.start_offset = 0;
+		
+		cydchn->fm.wave.start_point_track_status = 0;
+		cydchn->fm.wave.end_point_track_status = 0;
+		
+		cydchn->fm.wave.use_start_track_status_offset = false;
+		cydchn->fm.wave.use_end_track_status_offset = false;
 	}
 	
 	else
 	{
 		cydfm_set_wave_entry(&cydchn->fm, NULL);
+		
+		cydchn->fm.wave.end_offset = 0xffff;
+		cydchn->fm.wave.start_offset = 0;
+		
+		cydchn->fm.wave.start_point_track_status = 0;
+		cydchn->fm.wave.end_point_track_status = 0;
+		
+		cydchn->fm.wave.use_start_track_status_offset = false;
+		cydchn->fm.wave.use_end_track_status_offset = false;
 	}
 #endif
 #endif
@@ -1551,6 +1837,8 @@ int mus_trigger_instrument_internal(MusEngine* mus, int chan, MusInstrument *ins
 	fm->adsr.s = ins->fm_adsr.s;
 	fm->adsr.r = ins->fm_adsr.r;
 	fm->adsr.volume = ins->fm_modulation;
+	
+	track->fm_volume = ins->fm_modulation;
 	
 	fm->fm_vol_ksl_level = ins->fm_vol_ksl_level;
 	fm->fm_env_ksl_level = ins->fm_env_ksl_level;
@@ -2166,6 +2454,7 @@ int mus_advance_tick(void* udata)
 				{
 					update_volumes(mus, &mus->song_track[i], &mus->channel[i], cydchn, mus->song_track[i].volume);
 				}
+				
 				else
 				{
 					cydchn->adsr.volume = 0;
@@ -2176,6 +2465,18 @@ int mus_advance_tick(void* udata)
 				mus->multiplex_ctr = 0;
 		}
 #endif
+	}
+	
+	for(int i = 0; i < mus->cyd->n_channels; ++i)
+	{
+		MusTrackStatus *track_status = &mus->song_track[i];
+		CydChannel *cydchn = &mus->cyd->channel[i];
+		MusChannel *muschn = &mus->channel[i];
+		
+		if(cydchn->fm.flags & CYD_FM_ENABLE_ADDITIVE)
+		{
+			update_volumes(mus, track_status, muschn, cydchn, mus->song_track[i].volume); //wasn't there
+		}
 	}
 	
 	return 1;
@@ -2415,6 +2716,11 @@ int mus_load_instrument_RW(Uint8 version, RWops *ctx, MusInstrument *inst, CydWa
 	_VER_READ(&inst->cydflags, 0);
 	_VER_READ(&inst->adsr, 0);
 	
+	if(inst->cydflags & CYD_CHN_ENABLE_FIXED_NOISE_PITCH)
+	{
+		VER_READ(version, 33, 0xff, &inst->noise_note, 0);
+	}
+	
 	if((inst->cydflags & CYD_CHN_ENABLE_VOLUME_KEY_SCALING) && version >= 32)
 	{
 		VER_READ(version, 32, 0xff, &inst->vol_ksl_level, 0); 
@@ -2463,7 +2769,7 @@ int mus_load_instrument_RW(Uint8 version, RWops *ctx, MusInstrument *inst, CydWa
 				{
 					if((inst->program[i] & 0x00ff) != i - 1)
 					{
-						inst->program_unite_bits[(i - 1) / 8] |= (1 << ((i - 1) % 8)); //wasn't there
+						inst->program_unite_bits[(i - 1) / 8] |= (1 << ((i - 1) & 7)); //wasn't there
 					}
 				}
 				
@@ -2471,7 +2777,7 @@ int mus_load_instrument_RW(Uint8 version, RWops *ctx, MusInstrument *inst, CydWa
 				{
 					if(((inst->program[i] & 0x00ff) != i - 1) && !(inst->program[i - 2] & 0x8000))
 					{
-						inst->program_unite_bits[(i - 1) / 8] |= (1 << ((i - 1) % 8)); //wasn't there
+						inst->program_unite_bits[(i - 1) / 8] |= (1 << ((i - 1) & 7)); //wasn't there
 					}
 				}
 				//chn->instrument->program_unite_bits[(tick - 1) / 8] |= (1 << ((tick - 1) % 8)); //wasn't there	
@@ -2484,12 +2790,12 @@ int mus_load_instrument_RW(Uint8 version, RWops *ctx, MusInstrument *inst, CydWa
 			{
 				if(inst->program[i] & 0x8000)
 				{
-					inst->program_unite_bits[i / 8] |= (1 << (i % 8));
+					inst->program_unite_bits[i / 8] |= (1 << (i & 7));
 				}
 				
 				else
 				{
-					inst->program_unite_bits[i / 8] &= ~(1 << (i % 8));
+					inst->program_unite_bits[i / 8] &= ~(1 << (i & 7));
 				}
 			}
 			
@@ -2780,8 +3086,9 @@ void mus_get_default_instrument(MusInstrument *inst)
 	inst->volume = MAX_VOLUME;
 	inst->vol_ksl_level = 0x80; //wasn't there
 	inst->env_ksl_level = 0x80; //wasn't there
-	inst->base_note = MIDDLE_C;
 	
+	inst->base_note = MIDDLE_C;
+	inst->noise_note = MIDDLE_C;
 	inst->fm_base_note = MIDDLE_C; //wasn't there
 	
 	inst->finetune = 0;
@@ -3348,9 +3655,14 @@ int mus_load_song_RW(RWops *ctx, MusSong *song, CydWavetableEntry *wavetable_ent
 		Uint8 n_fx = 0;
 
 		if (version >= 10)
+		{
 			my_RWread(ctx, &n_fx, 1, sizeof(n_fx));
+		}
+		
 		else if (song->flags & MUS_ENABLE_REVERB)
+		{
 			n_fx = 1;
+		}
 
 		if (n_fx > 0)
 		{
@@ -3362,7 +3674,9 @@ int mus_load_song_RW(RWops *ctx, MusSong *song, CydWavetableEntry *wavetable_ent
 				debug("Loading fx at offset %x (%d/%d)", (Uint32)my_RWtell(ctx), (int)sizeof(song->fx[0]) * n_fx, (int)sizeof(song->fx[0]));
 
 				for (int fx = 0; fx < n_fx; ++fx)
+				{
 					inner_load_fx(ctx, &song->fx[fx], version);
+				}
 			}
 			
 			else
@@ -3406,7 +3720,10 @@ int mus_load_song_RW(RWops *ctx, MusSong *song, CydWavetableEntry *wavetable_ent
 			
 			if(version < 33)
 			{
-				song->default_panning[0] = my_min(song->default_panning[0] * 2, 255);
+				for(int i = 0; i < song->num_channels; ++i)
+				{
+					song->default_panning[i] = my_min(song->default_panning[i] * 2, 255);
+				}
 			}
 		}
 
@@ -3923,7 +4240,21 @@ int mus_load_patch_RW(RWops *ctx, WgSettings *settings) //wasn't there
 				my_RWread(ctx, &settings->chain[i].mult, sizeof(settings->chain[i].mult), 1);
 				my_RWread(ctx, &settings->chain[i].shift, sizeof(settings->chain[i].shift), 1);
 				my_RWread(ctx, &settings->chain[i].exp, sizeof(settings->chain[i].exp), 1);
-				my_RWread(ctx, &settings->chain[i].vol, sizeof(settings->chain[i].vol), 1);
+				
+				if(version >= 33)
+				{
+					my_RWread(ctx, &settings->chain[i].vol, sizeof(settings->chain[i].vol), 1);
+				}
+				
+				else
+				{
+					Uint8 temp;
+					my_RWread(ctx, &temp, sizeof(temp), 1);
+					settings->chain[i].vol = temp;
+					
+					settings->chain[i].shift *= 16;
+				}
+				
 				my_RWread(ctx, &settings->chain[i].exp_c, sizeof(settings->chain[i].exp_c), 1);
 				my_RWread(ctx, &settings->chain[i].flags, sizeof(settings->chain[i].flags), 1);
 			}

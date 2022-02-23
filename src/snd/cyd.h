@@ -42,6 +42,10 @@ typedef struct
 {
 	Uint32 frequency;
 	Uint32 accumulator;
+	
+	Uint32 noise_frequency; //wasn't there
+	Uint32 noise_accumulator;
+	
 	Uint32 random; // random lfsr
 	Uint32 lfsr, lfsr_period, lfsr_ctr, lfsr_acc; // lfsr state
 	Uint32 reg4, reg5, reg9; // "pokey" lfsr registers
@@ -52,6 +56,9 @@ typedef struct
 {
 	// ---- interface
 	Uint32 flags;
+	
+	Uint32 musflags;
+	
 	Uint16 pw; // 0-2047
 	Uint8 sync_source, ring_mod; // channel
 	Uint8 flttype;
@@ -150,6 +157,9 @@ enum
 	CYD_CHN_ENABLE_EXPONENTIAL_RELEASE = 134217728,
 	
 	CYD_CHN_ENABLE_AY8930_BUZZ_MODE = 268435456,
+	
+	CYD_CHN_ENABLE_FIXED_NOISE_PITCH = 536870912,
+	CYD_CHN_ENABLE_1_BIT_NOISE = 1073741824,
 };
 
 enum
@@ -247,22 +257,6 @@ enum
 // YM2149 envelope shape flags, CONT is assumed to be always set
 
 enum { CYD_YM_ENV_ATT = 1, CYD_YM_ENV_ALT = 2};
-
-/////////////////777
-
-//static inline int two_pow(int a, int x); //to avoid using much slower pow()
-/*{
-	int temp = a;
-	
-	a = 1;
-	
-	for(int i = 0; i < x; ++i)
-	{
-		a *= temp;
-	}
-	
-	return a;
-}*/
 
 void cyd_init(CydEngine *cyd, Uint32 sample_rate, int initial_channels);
 void cyd_set_oversampling(CydEngine *cyd, int oversampling);

@@ -137,7 +137,7 @@ const Uint32 frequency_table[FREQ_TAB_SIZE] =
 	(Uint32)(7458.62 * 16),
 	(Uint32)(7902.13 * 16),
 	
-	(Uint32)(8372.02 * 16), //ok, one even more, C-9 to B-9, because after I'd need to draw special chars for octave numbers (and freq goes beyond what human can hear)
+	(Uint32)(8372.02 * 16), //ok, one even more, C-9 to B-9, because after I'd need to draw special chars for octave numbers (and frequency goes beyond what human can hear)
 	(Uint32)(8869.84 * 16),
 	(Uint32)(9397.27 * 16),
 	(Uint32)(9956.06 * 16),

@@ -70,6 +70,7 @@ static Sint32 cyd_wave_get_sample_linear(const CydWavetableEntry *entry, CydWave
 			else
 				return entry->data[a] + (entry->data[b] - entry->data[a]) * ((CydWaveAccSigned)wave_acc % WAVETABLE_RESOLUTION) / WAVETABLE_RESOLUTION;
 		}
+		
 		else
 		{
 			int a = wave_acc / WAVETABLE_RESOLUTION;
@@ -212,6 +213,119 @@ void cyd_wave_cycle(CydWaveState *wave, const CydWavetableEntry *wave_entry)
 	{
 		if (wave->direction == 0)
 		{
+			//wave->acc += wave->frequency;
+			wave->acc += (Sint32)((double)wave->frequency * ((double)0x10000 - (double)wave->start_offset - ((double)0x10000 - (double)wave->end_offset)) / (double)0x10000);
+			
+			if ((wave_entry->flags & CYD_WAVE_LOOP) && wave_entry->loop_end != wave_entry->loop_begin)
+			{
+				if(!(wave->use_start_track_status_offset) && !(wave->use_end_track_status_offset))
+				{
+					if (wave->acc / WAVETABLE_RESOLUTION >= (Uint64)wave_entry->loop_end)
+					{
+						if (wave_entry->flags & CYD_WAVE_PINGPONG) 
+						{
+							wave->acc = (Uint64)wave_entry->loop_end * WAVETABLE_RESOLUTION - (wave->acc - (Uint64)wave_entry->loop_end * WAVETABLE_RESOLUTION);
+							wave->direction = 1;
+						}
+						
+						else
+						{
+							wave->acc = wave->acc - (Uint64)wave_entry->loop_end * WAVETABLE_RESOLUTION + (Uint64)wave_entry->loop_begin * WAVETABLE_RESOLUTION;
+						}
+					}
+				}
+				
+				else
+				{
+					if ((wave->use_end_track_status_offset ? (wave->acc >= wave->end_point_track_status) : (wave->acc / WAVETABLE_RESOLUTION >= (Uint64)wave_entry->loop_end)))
+					{
+						if (wave_entry->flags & CYD_WAVE_PINGPONG) 
+						{
+							wave->acc = (wave->use_end_track_status_offset ? wave->end_point_track_status : (wave_entry->loop_end * WAVETABLE_RESOLUTION)) - (wave->acc - (Uint64)(wave->use_end_track_status_offset ? wave->end_point_track_status : (wave_entry->loop_end * WAVETABLE_RESOLUTION)));
+							wave->direction = 1;
+						}
+						
+						else
+						{
+							wave->acc = wave->acc - (Uint64)(wave->use_end_track_status_offset ? wave->end_point_track_status : (wave_entry->loop_end * WAVETABLE_RESOLUTION)) + (Uint64)(wave->use_start_track_status_offset ? wave->start_point_track_status : (wave_entry->loop_begin * WAVETABLE_RESOLUTION));
+						}
+					}
+				}
+			}
+			
+			else
+			{
+				if (wave->acc / WAVETABLE_RESOLUTION >= (Uint64)wave_entry->samples)
+				{
+					// stop playback
+					wave->playing = false;
+				}
+			}
+		}
+		
+		else
+		{
+			wave->acc -= (Sint32)((double)wave->frequency * ((double)0x10000 - (double)wave->start_offset - ((double)0x10000 - (double)wave->end_offset)) / (double)0x10000);
+			
+			if ((wave_entry->flags & CYD_WAVE_LOOP) && wave_entry->loop_end != wave_entry->loop_begin)
+			{
+				if(!(wave->use_start_track_status_offset) && !(wave->use_end_track_status_offset))
+				{
+					if ((WaveAccSigned)wave->acc / WAVETABLE_RESOLUTION < (WaveAccSigned)wave_entry->loop_begin)
+					{
+						if (wave_entry->flags & CYD_WAVE_PINGPONG) 
+						{
+							wave->acc = (WaveAccSigned)wave_entry->loop_begin * WAVETABLE_RESOLUTION - ((WaveAccSigned)wave->acc - (WaveAccSigned)wave_entry->loop_begin * WAVETABLE_RESOLUTION);
+							wave->direction = 0;
+						}
+						
+						else
+						{
+							wave->acc = wave->acc - (Uint64)wave_entry->loop_begin * WAVETABLE_RESOLUTION + (Uint64)wave_entry->loop_end * WAVETABLE_RESOLUTION;
+						}
+					}
+				}
+				
+				else
+				{
+					if ((wave->use_start_track_status_offset ? ((WaveAccSigned)wave->acc < (WaveAccSigned)wave->start_point_track_status) : ((WaveAccSigned)wave->acc / WAVETABLE_RESOLUTION < (WaveAccSigned)wave_entry->loop_begin)))
+					{
+						if (wave_entry->flags & CYD_WAVE_PINGPONG) 
+						{
+							wave->acc = (WaveAccSigned)(wave->use_start_track_status_offset ? wave->start_point_track_status : (wave_entry->loop_begin * WAVETABLE_RESOLUTION)) - ((WaveAccSigned)wave->acc - (WaveAccSigned)(wave->use_start_track_status_offset ? wave->start_point_track_status : (wave_entry->loop_begin * WAVETABLE_RESOLUTION)));
+							wave->direction = 0;
+						}
+						
+						else
+						{
+							wave->acc = wave->acc - (Uint64)(wave->use_start_track_status_offset ? wave->start_point_track_status : (wave_entry->loop_begin * WAVETABLE_RESOLUTION)) + (Uint64)(wave->use_end_track_status_offset ? wave->end_point_track_status : (wave_entry->loop_end * WAVETABLE_RESOLUTION));
+						}
+					}
+				}
+			}
+			
+			else
+			{
+				if ((WaveAccSigned)wave->acc < 0)
+				{
+					// stop playback
+					wave->playing = false;
+				}
+			}
+		}
+	}
+	
+#endif // CYD_DISABLE_WAVETABLE
+}
+
+/*void cyd_wave_cycle(CydWaveState *wave, const CydWavetableEntry *wave_entry)
+{
+#ifndef CYD_DISABLE_WAVETABLE
+
+	if (wave_entry && wave->playing)
+	{
+		if (wave->direction == 0)
+		{
 			wave->acc += wave->frequency;
 			
 			if ((wave_entry->flags & CYD_WAVE_LOOP) && wave_entry->loop_end != wave_entry->loop_begin)
@@ -269,4 +383,4 @@ void cyd_wave_cycle(CydWaveState *wave, const CydWavetableEntry *wave_entry)
 	}
 	
 #endif // CYD_DISABLE_WAVETABLE
-}
+}*/

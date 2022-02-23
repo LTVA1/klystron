@@ -82,6 +82,9 @@ typedef struct
 	Uint8 fm_tremolo_speed, fm_tremolo_delay, fm_tremolo_shape, fm_tremolo_depth; //wasn't there
 	
 	Uint8 base_note;
+	
+	Uint8 noise_note; //wasn't there
+	
 	Uint16 cutoff;
 	Uint8 resonance; //was 0-3, now 0-15
 	Uint8 flttype;
@@ -179,6 +182,8 @@ typedef struct
 	Uint16 position; 
 	Uint16 pattern;
 	Sint8 note_offset;
+	
+	bool is_pattern_there;
 } MusSeqPattern;
 
 typedef struct
@@ -234,7 +239,7 @@ typedef struct
 	Uint8 filter_resonance;
 	Uint8 filter_slope; //wasn't there
 	Uint8 extarp1, extarp2;
-	Uint16 volume; //was Uint8
+	Uint16 volume, fm_volume; //was Uint8
 	Uint8 vibrato_delay;
 	
 	Uint8 pwm_delay, tremolo_delay; //wasn't there
@@ -314,13 +319,17 @@ enum
 enum
 {
 	MUS_FX_ARPEGGIO = 0x0000,
+	
+	MUS_FX_SET_NOISE_CONSTANT_PITCH = 0x3000, //wasn't there
+	MUS_FX_SET_NOISE_MODE = 0x0e50, //wasn't there
+	
 	MUS_FX_ARPEGGIO_ABS = 0x4000,
 	MUS_FX_SET_EXT_ARP = 0x1000,
 	MUS_FX_PORTA_UP = 0x0100,
 	MUS_FX_PORTA_DN = 0x0200,
 	
-	MUS_FX_FM_PORTA_UP = 0x4700, //wasn't there
-	MUS_FX_FM_PORTA_DN = 0x4800, //wasn't there
+	MUS_FX_FM_PORTA_UP = 0x4800, //wasn't there
+	MUS_FX_FM_PORTA_DN = 0x4900, //wasn't there
 	
 	MUS_FX_PORTA_UP_LOG = 0x0500,
 	MUS_FX_PORTA_DN_LOG = 0x0600,
@@ -401,8 +410,17 @@ enum
 	MUS_FX_PW_FINE_SET = 0x8000, //wasn't there
 	MUS_FX_MORPH = 0x9000, //wasn't there //9xxy, morph to wave xx with speed of y
 	MUS_FX_WAVETABLE_END_POINT = 0xE000, //wasn't there if sample is looped, it would set ending point. Exxx
-	MUS_FX_WAVETABLE_END_POINT_UP = 0x4500, //wasn't there
-	MUS_FX_WAVETABLE_END_POINT_DOWN = 0x4600, //wasn't there
+	MUS_FX_WAVETABLE_END_POINT_UP = 0x4600, //wasn't there
+	MUS_FX_WAVETABLE_END_POINT_DOWN = 0x4700, //wasn't there
+	
+	MUS_FX_FM_WAVETABLE_OFFSET = 0x4b00, //wasn't there
+	MUS_FX_FM_WAVETABLE_OFFSET_UP = 0x4e00, //wasn't there
+	MUS_FX_FM_WAVETABLE_OFFSET_DOWN = 0x4f00, //wasn't there
+	
+	MUS_FX_FM_WAVETABLE_END_POINT = 0x7000, //wasn't there
+	MUS_FX_FM_WAVETABLE_END_POINT_UP = 0x7100, //wasn't there
+	MUS_FX_FM_WAVETABLE_END_POINT_DOWN = 0x7200, //wasn't there
+	
 	MUS_FX_END = 0xffff,
 	MUS_FX_JUMP = 0xff00,
 	MUS_FX_LABEL = 0xfd00,

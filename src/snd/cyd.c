@@ -166,6 +166,55 @@ static void cyd_init_log_tables(CydEngine *cyd)
 }
 
 
+void cyd_set_wavetable_offset(CydChannel *chn, Uint16 offset /* 0..0x1000 = 0-100% */) //if sample is looped, set start offset
+{
+#ifndef CYD_DISABLE_WAVETABLE
+	if (chn->wave_entry)
+	{
+		if(chn->wave_entry->flags & CYD_WAVE_LOOP)
+		{
+			for (int s = 0; s < CYD_SUB_OSCS; ++s)
+			{
+				chn->subosc[s].wave.start_offset = offset * 16;
+				
+				chn->subosc[s].wave.start_point_track_status = (Uint64)chn->subosc[s].wave.start_offset * WAVETABLE_RESOLUTION * chn->wave_entry->samples / 0x10000;
+				
+				chn->subosc[s].wave.use_start_track_status_offset = true;
+			}	
+		}
+		
+		else
+		{
+			for (int s = 0; s < CYD_SUB_OSCS; ++s)
+			{
+				chn->subosc[s].wave.acc = (Uint64)offset * WAVETABLE_RESOLUTION * chn->wave_entry->samples / 0x1000;
+			}
+		}
+	}
+#endif
+}
+
+void cyd_set_wavetable_end_offset(CydChannel *chn, Uint16 offset /* 0..0x1000 = 0-100% */) //if sample is looped, set end offset
+{
+#ifndef CYD_DISABLE_WAVETABLE
+	if (chn->wave_entry)
+	{
+		if(chn->wave_entry->flags & CYD_WAVE_LOOP)
+		{
+			for (int s = 0; s < CYD_SUB_OSCS; ++s)
+			{
+				chn->subosc[s].wave.end_offset = (0x10000 - offset * 16) > 0xFFFF ? 0xffff : (0x10000 - offset * 16);
+				
+				chn->subosc[s].wave.end_point_track_status = (Uint64)chn->subosc[s].wave.end_offset * WAVETABLE_RESOLUTION * chn->wave_entry->samples / 0x10000;
+				
+				chn->subosc[s].wave.use_end_track_status_offset = true;
+			}
+		}
+	}
+#endif
+}
+
+
 void cyd_reset_wavetable(CydEngine *cyd)
 {
 #ifndef CYD_DISABLE_WAVETABLE
@@ -182,6 +231,7 @@ void cyd_reset_wavetable(CydEngine *cyd)
 void cyd_init(CydEngine *cyd, Uint32 sample_rate, int channels)
 {
 	memset(cyd, 0, sizeof(*cyd));
+	
 	cyd->sample_rate = sample_rate;
 	cyd->lookup_table = malloc(sizeof(*cyd->lookup_table) * LUT_SIZE);
 	cyd->oversample = MAX_OVERSAMPLE;
@@ -206,13 +256,26 @@ void cyd_init(CydEngine *cyd, Uint32 sample_rate, int channels)
 	
 	cyd_init_log_tables(cyd);
 	
+	//debug("cydfx init");
+	//SDL_Delay(5000);
+	
 	for (int i = 0; i < CYD_MAX_FX_CHANNELS; ++i)
 		cydfx_init(&cyd->fx[i], sample_rate);
 #ifndef CYD_DISABLE_WAVETABLE
+	
+	//debug("cydfx inited");
+	//SDL_Delay(3000);
+
 	cyd->wavetable_entries = calloc(sizeof(cyd->wavetable_entries[0]), CYD_WAVE_MAX_ENTRIES);
+	
+	//debug("waves inited");
+	//SDL_Delay(3000);
 	
 	cyd_reset_wavetable(cyd);
 #endif
+	
+	//debug("waves reset");
+	//SDL_Delay(3000);
 	
 	cyd_reserve_channels(cyd, channels);
 	
@@ -245,7 +308,14 @@ void cyd_reserve_channels(CydEngine *cyd, int channels)
 	if (cyd->channel)
 		free(cyd->channel);
 	
+	//SDL_Delay(3000);
+	//debug("cyd reserve 64 * %d bytes", sizeof(*cyd->channel));
+	//SDL_Delay(3000);
+	
 	cyd->channel = calloc(sizeof(*cyd->channel), CYD_MAX_CHANNELS);
+	
+	//debug("cyd reserved 64 * %d bytes", sizeof(*cyd->channel));
+	//SDL_Delay(3000);
 	
 	cyd_reset(cyd);
 	
@@ -507,6 +577,8 @@ static void cyd_sync_channel(CydEngine *cyd, CydChannel *chn)
 			chn->subosc[i].reg5 = 1;
 			chn->subosc[i].reg9 = 1;
 			chn->subosc[i].lfsr_ctr = 0;
+			
+			chn->subosc[i].noise_accumulator = 0;
 		}
 	}
 }
@@ -516,27 +588,71 @@ static void cyd_advance_oscillators(CydEngine *cyd, CydChannel *chn)
 {
 	for (int s = 0; s < CYD_SUB_OSCS; ++s)
 	{
+		Uint32 prev_noise_acc;
+		
 		Uint32 prev_acc = chn->subosc[s].accumulator;
 		chn->subosc[s].accumulator = (chn->subosc[s].accumulator + (Uint32)chn->subosc[s].frequency);
+		
+		if(chn->flags & CYD_CHN_ENABLE_FIXED_NOISE_PITCH)
+		{
+			//debug("freq %d noise freq %d", chn->subosc[s].frequency, chn->subosc[s].noise_frequency);
+			prev_noise_acc = chn->subosc[s].noise_accumulator;
+			chn->subosc[s].noise_accumulator = (chn->subosc[s].noise_accumulator + (Uint32)chn->subosc[s].noise_frequency);
+		}
 		
 		/* only subosc #0 can set the sync bit */
 		
 		if (s == 0)
 			chn->sync_bit |= chn->subosc[s].accumulator & ACC_LENGTH;
+		
+		if(chn->flags & CYD_CHN_ENABLE_FIXED_NOISE_PITCH)
+		{
+			if(chn->subosc[0].noise_accumulator & ACC_LENGTH)
+			{
+				chn->subosc[s].noise_accumulator = 0;
+			}
+		}
 			
 		chn->subosc[s].accumulator &= ACC_LENGTH - 1;
 		
-		if ((prev_acc & (ACC_LENGTH/32)) != (chn->subosc[s].accumulator & (ACC_LENGTH/32)))
+		if(chn->flags & CYD_CHN_ENABLE_FIXED_NOISE_PITCH)
 		{
-			if (chn->flags & CYD_CHN_ENABLE_METAL)
+			chn->subosc[s].noise_accumulator &= ACC_LENGTH - 1;
+		}
+		
+		if(chn->flags & CYD_CHN_ENABLE_FIXED_NOISE_PITCH)
+		{
+			if ((prev_noise_acc & (ACC_LENGTH/32)) != (chn->subosc[s].noise_accumulator & (ACC_LENGTH/32)))
 			{
-				shift_lfsr(&chn->subosc[s].random, 0xe, 8);
-				chn->subosc[s].random &= (1 << (0xe + 1)) - 1;
+				if (chn->flags & CYD_CHN_ENABLE_METAL)
+				{
+					shift_lfsr(&chn->subosc[s].random, 0xe, 8);
+					chn->subosc[s].random &= (1 << (0xe + 1)) - 1;
+				}
+				
+				else
+				{
+					shift_lfsr(&chn->subosc[s].random, 22, 17);
+					chn->subosc[s].random &= (1 << (22 + 1)) - 1;
+				}
 			}
-			else
+		}
+		
+		else
+		{
+			if ((prev_acc & (ACC_LENGTH/32)) != (chn->subosc[s].accumulator & (ACC_LENGTH/32)))
 			{
-				shift_lfsr(&chn->subosc[s].random, 22, 17);
-				chn->subosc[s].random &= (1 << (22 + 1)) - 1;
+				if (chn->flags & CYD_CHN_ENABLE_METAL)
+				{
+					shift_lfsr(&chn->subosc[s].random, 0xe, 8);
+					chn->subosc[s].random &= (1 << (0xe + 1)) - 1;
+				}
+				
+				else
+				{
+					shift_lfsr(&chn->subosc[s].random, 22, 17);
+					chn->subosc[s].random &= (1 << (22 + 1)) - 1;
+				}
 			}
 		}
 	
@@ -849,15 +965,15 @@ static Sint32 cyd_output(CydEngine *cyd)
 				{
 					if(cyd->channel[i].fm.current_modulation != 0) //to avoid clicks
 					{
-						o += (cyd->channel[i].fm.current_modulation) * 32 - 65536 * 32;
+						o += ((cyd->channel[i].fm.current_modulation) * 32 - 65536 * 32);
 					}
 				}
 				
-				else
-				{
-					o += (cyd->channel[i].fm.current_modulation) - 32768;
+				//else
+				//{
+					//o += (cyd->channel[i].fm.current_modulation) * 256 - 32768 * 257;
 					//debug("yay %d", cyd->channel[i].fm.current_modulation - 32768);
-				}
+				//}
 			}
 #endif
 
@@ -1234,6 +1350,7 @@ void cyd_set_wavetable_frequency(CydEngine *cyd, CydChannel *chn, int subosc, Ui
 	{
 		chn->subosc[subosc].wave.frequency = (Uint64)WAVETABLE_RESOLUTION * (Uint64)chn->wave_entry->sample_rate / (Uint64)cyd->sample_rate * (Uint64)frequency / (Uint64)get_freq(chn->wave_entry->base_note);
 	}
+
 	else
 	{
 		chn->subosc[subosc].wave.playing = false;
@@ -1320,6 +1437,10 @@ void cyd_enable_gate(CydEngine *cyd, CydChannel *chn, Uint8 enable)
 			for (int s = 0; s < CYD_SUB_OSCS; ++s)
 			{
 				chn->subosc[s].accumulator = 0;
+				
+				chn->subosc[s].noise_accumulator = 0;
+				chn->subosc[s].wave.acc = 0;
+				
 				chn->subosc[s].reg4 = chn->subosc[s].reg5 = chn->subosc[s].reg9 = 1;
 				chn->subosc[s].lfsr_ctr = 0;
 			}
@@ -1758,21 +1879,6 @@ void cyd_set_wave_entry(CydChannel *chn, const CydWavetableEntry * entry)
 		chn->subosc[s].wave.direction = 0;
 	}
 }
-
-
-void cyd_set_wavetable_offset(CydChannel *chn, Uint16 offset /* 0..0x1000 = 0-100% */)
-{
-#ifndef CYD_DISABLE_WAVETABLE
-	if (chn->wave_entry)
-	{
-		for (int s = 0; s < CYD_SUB_OSCS; ++s)
-		{
-			chn->subosc[s].wave.acc = (Uint64)offset * WAVETABLE_RESOLUTION * chn->wave_entry->samples / 0x1000;
-		}
-	}
-#endif
-}
-
 
 void cyd_pause(CydEngine *cyd, Uint8 enable)
 {

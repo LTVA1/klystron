@@ -7,16 +7,40 @@
 
 #include "music_defs.h"
 
-
-
 typedef struct //wasn't there
 {
-    Uint16 input, output;
+    Sint64 input, output;
+	
+	bool is_modulating; //if true modulate input op's accumulator and spit out modulated acc's wave at output. If false, just spit out its own signal.
+	
+	Uint8 input_op;
+	
+	bool depends_on_main_freq; //if depends, display mult and detune settings. If no, display standard base note/finetune thing
+	
+	Uint8 harmonic; //freq mult
+	Uint8 alg; //algorithm
     
     Uint32 flags;
-    Uint32 cydflags;
     CydAdsr adsr;
-    Uint8 sync_source, ring_mod; // 0xff == self, 0xfc-0xfe -- other ops
+	
+	Uint32 period;
+	Uint32 wave_period;
+	Uint64 accumulator;
+	const CydWavetableEntry *wave_entry;
+	CydWaveState wave;
+	Uint8 wavetable_entry;
+	
+	Uint8 vol_ksl_level;
+	Uint8 env_ksl_level;
+	Uint32 freq_for_ksl;
+	double vol_ksl_mult;
+	double env_ksl_mult;
+	
+	Uint32 fb1, fb2, env_output;
+	Uint32 current_modulation;
+	Uint8 attack_start;
+	
+    Uint8 sync_source, ring_mod; // 0xff == self, 0xfb-0xfe -- other ops
     Uint16 pw;
     Uint8 volume;
     
@@ -32,22 +56,21 @@ typedef struct //wasn't there
     Uint8 tremolo_speed, tremolo_delay, tremolo_shape, tremolo_depth;
     Uint8 vibrato_speed, vibrato_delay, vibrato_shape, vibrato_depth;
     Uint8 pwm_speed, pwm_delay, pwm_shape, pwm_depth;
+	
     Uint8 base_note;
     Sint8 finetune;
+	
     Uint8 mult, feedback;
     Uint16 cutoff;
     Uint8 resonance; //was 0-3, now 0-15
     Uint8 flttype;
     Uint8 fx_bus;
-    Uint8 wavetable_entry;
     Uint8 lfsr_type;
 } CydFmOp;
 
 typedef struct
 {
 	Uint32 flags;
-	
-	Uint8 alg;
 	
 	Uint8 feedback; // 0-7 
 	Uint8 harmonic; // 0-15

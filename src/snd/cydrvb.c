@@ -50,7 +50,6 @@ void cydrvb_init(CydReverb *rvb, int rate)
 	}
 }
 
-
 void cydrvb_deinit(CydReverb *rvb)
 {
 	free(rvb->buffer);
