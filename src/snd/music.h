@@ -148,6 +148,9 @@ typedef struct
 {
 	MusInstrument *instrument;
 	Uint32 note;
+	
+	Uint8 noise_note;
+	
 	Uint8 volume;
 	// ------
 	Uint8 arpeggio_note;
@@ -174,7 +177,7 @@ typedef struct
 	Uint8 ctrl[MUS_FM_NUM_OPS];
 	Uint8 volume[MUS_FM_NUM_OPS];
 	
-	Uint16 command[MUS_MAX_COMMANDS];
+	Uint16 commands[MUS_FM_NUM_OPS][MUS_MAX_COMMANDS];
 } Mus4opStep;
 
 typedef struct

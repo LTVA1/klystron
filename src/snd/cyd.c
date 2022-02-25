@@ -1327,10 +1327,10 @@ void cyd_set_frequency(CydEngine *cyd, CydChannel *chn, int subosc, Uint32 frequ
 {
 	if (frequency != 0)
 	{
-		chn->subosc[subosc].frequency = (Uint64)(ACC_LENGTH >> (cyd->oversample))/16 * (Uint64)(frequency) / (Uint64)cyd->sample_rate;
+		chn->subosc[subosc].frequency = (Uint64)(ACC_LENGTH >> (cyd->oversample)) / 64 * (Uint64)(frequency) / (Uint64)cyd->sample_rate;
 
 #ifndef CYD_DISABLE_LFSR	
-		chn->subosc[subosc].lfsr_period = (Uint64)cyd->sample_rate * 16 / frequency;
+		chn->subosc[subosc].lfsr_period = (Uint64)cyd->sample_rate * 64 / frequency;
 #endif
 	}
 	else
@@ -1338,7 +1338,10 @@ void cyd_set_frequency(CydEngine *cyd, CydChannel *chn, int subosc, Uint32 frequ
 	
 #ifndef CYD_DISABLE_FM
 	if (subosc == 0)
+	{
 		cydfm_set_frequency(cyd, &chn->fm, frequency);
+		chn->true_freq = frequency;
+	}
 #endif
 }
 
@@ -1360,17 +1363,19 @@ void cyd_set_wavetable_frequency(CydEngine *cyd, CydChannel *chn, int subosc, Ui
 }
 
 
-void cyd_set_env_frequency(CydEngine *cyd, CydChannel *chn, Uint16 frequency)
+void cyd_set_env_frequency(CydEngine *cyd, CydChannel *chn, Uint32 frequency)
 {
 #ifndef CYD_DISABLE_BUZZ
+	chn->subosc[0].buzz_detune_freq = frequency;
+	
 	if(chn->flags & CYD_CHN_ENABLE_AY8930_BUZZ_MODE)
 	{
-		chn->adsr.env_speed = (Uint64)YM_LENGTH * 2/32 * (Uint64)frequency / (Uint64)cyd->sample_rate;
+		chn->adsr.env_speed = (Uint64)YM_LENGTH * 2/32 * (Uint64)frequency / (Uint64)cyd->sample_rate / 4;
 	}
 	
 	else
 	{
-		chn->adsr.env_speed = (Uint64)YM_LENGTH/16 * (Uint64)frequency / (Uint64)cyd->sample_rate;
+		chn->adsr.env_speed = (Uint64)YM_LENGTH/16 * (Uint64)frequency / (Uint64)cyd->sample_rate / 4;
 	}
 #endif
 }

@@ -41,10 +41,12 @@ OTHER DEALINGS IN THE SOFTWARE.
 typedef struct
 {
 	Uint32 frequency;
-	Uint32 accumulator;
+	Uint64 accumulator;
+	
+	Uint16 buzz_detune_freq;
 	
 	Uint32 noise_frequency; //wasn't there
-	Uint32 noise_accumulator;
+	Uint64 noise_accumulator;
 	
 	Uint32 random; // random lfsr
 	Uint32 lfsr, lfsr_period, lfsr_ctr, lfsr_acc; // lfsr state
@@ -67,6 +69,9 @@ typedef struct
 	Uint8 vol_ksl_level;
 	Uint8 env_ksl_level;
 	Uint32 freq_for_ksl;
+	
+	Uint32 true_freq;
+	
 	double vol_ksl_mult;
 	double env_ksl_mult;
 	double fm_env_ksl_mult;
@@ -267,7 +272,7 @@ void cyd_set_frequency(CydEngine *cyd, CydChannel *chn, int subosc, Uint32 frequ
 void cyd_set_wavetable_frequency(CydEngine *cyd, CydChannel *chn, int subosc, Uint32 frequency);
 void cyd_reset_wavetable(CydEngine *cyd);
 void cyd_set_wavetable_offset(CydChannel *chn, Uint16 offset /* 0..0x1000 = 0-100% */);
-void cyd_set_env_frequency(CydEngine *cyd, CydChannel *chn, Uint16 frequency);
+void cyd_set_env_frequency(CydEngine *cyd, CydChannel *chn, Uint32 frequency);
 void cyd_set_env_shape(CydChannel *chn, Uint8 shape);
 void cyd_enable_gate(CydEngine *cyd, CydChannel *chn, Uint8 enable);
 void cyd_set_waveform(CydChannel *chn, Uint32 wave);

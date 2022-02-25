@@ -213,9 +213,9 @@ static void mus_set_buzz_frequency(MusEngine *mus, int chan, Uint16 note)
 	if (chn->instrument && chn->instrument->flags & MUS_INST_YM_BUZZ)
 	{
 #ifndef CYD_DISABLE_INACCURACY
-		Uint16 buzz_frequency = get_freq(note + chn->buzz_offset) & mus->pitch_mask;
+		Uint32 buzz_frequency = get_freq(note + chn->buzz_offset) & mus->pitch_mask;
 #else
-		Uint16 buzz_frequency = get_freq(note + chn->buzz_offset);
+		Uint32 buzz_frequency = get_freq(note + chn->buzz_offset);
 #endif
 		cyd_set_env_frequency(mus->cyd, &mus->cyd->channel[chan], buzz_frequency);
 	}
@@ -665,7 +665,7 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 		{
 			Uint32 prev = chn->note;
 			chn->note += ((inst & 0xff) << 2);
-			if (prev > chn->note) chn->note = 0xffff;
+			if (prev > chn->note) chn->note = 0xfffff;
 
 			mus_set_slide(mus, chan, chn->note);
 		}
@@ -689,7 +689,7 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 			Uint32 prev = chn->note;
 			chn->note += my_max(1, ((Uint64)frequency_table[MIDDLE_C] * (Uint64)(inst & 0xff) / (Uint64)get_freq(chn->note)));
 
-			if (prev > chn->note) chn->note = 0xffff;
+			if (prev > chn->note) chn->note = 0xfffff;
 
 			mus_set_slide(mus, chan, chn->note);
 		}
@@ -956,7 +956,7 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 						Uint32 prev = chn->note;
 						chn->note += ((inst & 0x0f));
 
-						if (prev > chn->note) chn->note = 0xffff;
+						if (prev > chn->note) chn->note = 0x7ffff;
 
 						mus_set_slide(mus, chan, chn->note);
 					}
@@ -1214,7 +1214,7 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 				case MUS_FX_PORTA_UP_SEMI:
 				{
 					Uint32 prev = chn->note;
-					chn->note += (inst&0xff) << 8;
+					chn->note += (inst & 0xff) << 8;
 					if (prev > chn->note || chn->note >= (FREQ_TAB_SIZE << 8)) chn->note = ((FREQ_TAB_SIZE-1) << 8);
 					mus_set_slide(mus, chan, chn->note);
 				}
@@ -1223,7 +1223,7 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 				case MUS_FX_PORTA_DN_SEMI:
 				{
 					Uint32 prev = chn->note;
-					chn->note -= (inst&0xff) << 8;
+					chn->note -= (inst & 0xff) << 8;
 					if (prev < chn->note) chn->note = 0x0;
 					mus_set_slide(mus, chan, chn->note);
 				}
@@ -1672,10 +1672,11 @@ int mus_trigger_instrument_internal(MusEngine* mus, int chan, MusInstrument *ins
 		note += (Uint16)((int)ins->base_note-MIDDLE_C) << 8;
 	}
 	
-	//if(cydchn->flags & CYD_CHN_ENABLE_FIXED_NOISE_PITCH)
-	//{
+	if(cydchn->flags & CYD_CHN_ENABLE_FIXED_NOISE_PITCH)
+	{
 		mus_set_noise_fixed_pitch_note(mus, chan, (Uint16)(ins->noise_note << 8), 1, ins->flags & MUS_INST_QUARTER_FREQ ? 4 : 1);
-	//}
+		chn->noise_note = ins->noise_note;
+	}
 
 	mus_set_note(mus, chan, ((Uint16)note) + ins->finetune, 1, ins->flags & MUS_INST_QUARTER_FREQ ? 4 : 1);
 	

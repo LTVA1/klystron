@@ -184,9 +184,9 @@ void cydfm_set_frequency(const CydEngine *cyd, CydFm *fm, Uint32 base_frequency)
 }
 
 
-Uint32 cydfm_modulate(const CydEngine *cyd, const CydFm *fm, Uint32 accumulator)
+Uint64 cydfm_modulate(const CydEngine *cyd, const CydFm *fm, Uint32 accumulator)
 {
-	Uint32 mod = (Uint64)fm->current_modulation * ACC_LENGTH * 8 / MODULATOR_MAX;
+	Uint64 mod = (Uint64)fm->current_modulation * ACC_LENGTH * 8 / MODULATOR_MAX;
 	
 	return (mod + accumulator) % ACC_LENGTH;
 }
