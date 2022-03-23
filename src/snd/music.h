@@ -39,7 +39,7 @@ OTHER DEALINGS IN THE SOFTWARE.
 #define MUS_PROG_LEN 255
 #define MUS_MAX_CHANNELS CYD_MAX_CHANNELS
 
-#define MUS_VERSION 33
+#define MUS_VERSION 34
 
 #define MUS_SONG_TITLE_LEN 255
 #define MUS_INSTRUMENT_NAME_LEN 255
@@ -53,6 +53,51 @@ typedef struct
 {
 	Uint8 a, d, s, r; // 0-63 for a, d, r; 0-31 for s
 } MusAdsr;
+
+typedef struct //wasn't there
+{
+	Uint8 harmonic; //freq mult
+	Uint8 alg; //algorithm
+    
+    Uint32 flags;
+	//Uint32 musflags;
+    MusAdsr adsr;
+
+	Uint8 wavetable_entry;
+	
+	Uint8 vol_ksl_level;
+	Uint8 env_ksl_level;
+	
+	Uint16 program[MUS_PROG_LEN];
+	Uint8 program_unite_bits[MUS_PROG_LEN / 8 + 1];
+	
+	Uint8 attack_start;
+	
+    Uint8 sync_source, ring_mod; // 0xff == self, 0xfb-0xfe -- other ops
+    Uint16 pw;
+    Uint8 volume;
+    
+    Uint8 mixmode;
+	
+	Uint8 ssg_note;
+	Sint8 ssg_finetune;
+	
+	Uint8 env_offset, program_offset; //<-----
+	
+    Uint8 prog_period; 
+    Uint8 slide_speed;
+    Uint8 tremolo_speed, tremolo_delay, tremolo_shape, tremolo_depth;
+    Uint8 vibrato_speed, vibrato_delay, vibrato_shape, vibrato_depth;
+    Uint8 pwm_speed, pwm_delay, pwm_shape, pwm_depth;
+	
+    Uint8 base_note;
+    Sint8 finetune;
+	
+    Uint8 feedback;
+    Uint16 cutoff;
+    Uint8 resonance; //was 0-3, now 0-15
+    Uint8 flttype;
+} MusFmOp;
 
 typedef struct
 {
@@ -111,6 +156,8 @@ typedef struct
 	
 	Uint8 fm_base_note; //weren't there
 	Sint8 fm_finetune; //wasn't there
+	
+	MusFmOp ops[MUS_FM_NUM_OPS];
 
 } MusInstrument;
 

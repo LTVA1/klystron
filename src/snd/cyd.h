@@ -188,6 +188,49 @@ enum
 	CYD_FM_ENABLE_EXPONENTIAL_RELEASE = CYD_CHN_ENABLE_EXPONENTIAL_RELEASE,
 };
 
+enum
+{
+	CYD_FM_OP_ENABLE_NOISE = 1,
+	CYD_FM_OP_ENABLE_PULSE = 2,
+	CYD_FM_OP_ENABLE_TRIANGLE = 4,
+	CYD_FM_OP_ENABLE_SAW = 8,
+	CYD_FM_OP_ENABLE_SYNC = 16,
+	CYD_FM_OP_ENABLE_GATE = 32,
+	CYD_FM_OP_ENABLE_KEY_SYNC = 64,
+	CYD_FM_OP_ENABLE_METAL = 128,
+	CYD_FM_OP_ENABLE_RING_MODULATION = 256,
+	CYD_FM_OP_ENABLE_FILTER = 512,
+	CYD_FM_OP_ENABLE_WAVE = 1024,
+	CYD_FM_OP_WAVE_OVERRIDE_ENV = 2048,
+	
+	CYD_FM_OP_ENABLE_VOLUME_KEY_SCALING = 4096,
+	CYD_FM_OP_ENABLE_ENVELOPE_KEY_SCALING = 8192,
+	
+	CYD_FM_OP_ENABLE_EXPONENTIAL_VOLUME = 16384,
+	CYD_FM_OP_ENABLE_EXPONENTIAL_ATTACK = 32768,
+	CYD_FM_OP_ENABLE_EXPONENTIAL_DECAY = 65536,
+	CYD_FM_OP_ENABLE_EXPONENTIAL_RELEASE = 65536 << 1,
+	
+	CYD_FM_OP_ENABLE_FIXED_NOISE_PITCH = 65536 << 2,
+	CYD_FM_OP_ENABLE_1_BIT_NOISE = 65536 << 3,
+	
+	//musflags
+	
+	CYD_FM_OP_PROG_SPEED_MODE = 65536 << 4, //0 - relative, 1 - absolute
+	CYD_FM_OP_INVERT_VIBRATO_BIT = 65536 << 5,
+	CYD_FM_OP_LOCK_NOTE = 65536 << 6,
+	CYD_FM_OP_SET_PW = 65536 << 7,
+	CYD_FM_OP_SET_CUTOFF = 65536 << 8,
+	CYD_FM_OP_RELATIVE_VOLUME = 65536 << 9,
+	
+	CYD_FM_OP_ENABLE_SSG_EG = 65536 << 10,
+	
+	CYD_FM_OP_WAVE_LOCK_NOTE = 65536 << 11,
+	CYD_FM_OP_NO_PROG_RESTART = 65536 << 12,
+	CYD_FM_OP_SAVE_LFO_SETTINGS = 65536 << 13,
+	CYD_FM_OP_INVERT_TREMOLO_BIT = 65536 << 14,
+};
+
 enum {
 	ATTACK,
 	DECAY,
@@ -213,6 +256,8 @@ enum
 #define CYD_NUM_WO_BUFFERS 4
 
 #define CYD_NUM_LFSR 16
+
+extern Uint16 PulseTri_8580[8192];
 
 typedef struct CydEngine_t
 {
@@ -250,6 +295,10 @@ typedef struct CydEngine_t
 #endif
 	Uint64 samples_played;
 	int oversample;
+	
+	Uint16 TriSaw_8580[4096]; //wasn't there
+	Uint16 PulseSaw_8580[4096];
+	Uint16 PulseTriSaw_8580[4096];
 } CydEngine;
 
 enum
@@ -306,3 +355,6 @@ Sint32 cyd_env_output(const CydEngine *cyd, Uint32 channel_flags, const CydAdsr 
 Uint32 cyd_cycle_adsr(const CydEngine *eng, Uint32 flags, Uint32 ym_env_shape, CydAdsr *adsr, double env_ksl_mult);
 
 #endif
+
+long map_Arduino(long x, long in_min, long in_max, long out_min, long out_max);
+void createCombinedWF(Uint16 wfarray[], float bitmul, float bitstrength, float treshold); //from jsSID emulator

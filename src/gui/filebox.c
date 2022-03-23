@@ -410,7 +410,7 @@ void title_view(GfxDomain *dest_surface, const SDL_Rect *area, const SDL_Event *
 	button.w = CLOSE_BUTTON;
 	button.x = area->w + area->x - CLOSE_BUTTON;
 	font_write(data.largefont, dest_surface, &titlearea, title);
-	if (button_event(dest_surface, event, &button, data.gfx, BEV_BUTTON, BEV_BUTTON_ACTIVE, DECAL_CLOSE, NULL, MAKEPTR(1), 0, 0) & 1)
+	if (button_event(dest_surface, event, &button, data.gfx, BEV_BUTTON, BEV_BUTTON_ACTIVE, DECAL_CLOSE, NULL, MAKEPTR(1), 0, 0) & 1) //button to exit filebox
 		data.quit = 1;
 }
 

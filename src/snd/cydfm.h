@@ -21,10 +21,13 @@ typedef struct //wasn't there
 	Uint8 alg; //algorithm
     
     Uint32 flags;
+	//Uint32 musflags;
     CydAdsr adsr;
 	
-	Uint32 period;
-	Uint32 wave_period;
+	Uint32 ssg_eg_freq;
+	
+	Uint32 frequency;
+	Uint32 wave_frequency;
 	Uint64 accumulator;
 	const CydWavetableEntry *wave_entry;
 	CydWaveState wave;
@@ -46,26 +49,15 @@ typedef struct //wasn't there
     
     Uint8 mixmode; 
     
-    Uint16 program[MUS_PROG_LEN];
-	Uint8 program_unite_bits[MUS_PROG_LEN / 8 + 1];
+    //Uint16 program[MUS_PROG_LEN];
+	//Uint8 program_unite_bits[MUS_PROG_LEN / 8 + 1];
 	
 	Uint8 env_offset, program_offset; //<-----
 	
-    Uint8 prog_period; 
-    Uint8 slide_speed;
-    Uint8 tremolo_speed, tremolo_delay, tremolo_shape, tremolo_depth;
-    Uint8 vibrato_speed, vibrato_delay, vibrato_shape, vibrato_depth;
-    Uint8 pwm_speed, pwm_delay, pwm_shape, pwm_depth;
-	
-    Uint8 base_note;
-    Sint8 finetune;
-	
-    Uint8 mult, feedback;
+    Uint8 feedback;
     Uint16 cutoff;
     Uint8 resonance; //was 0-3, now 0-15
     Uint8 flttype;
-    Uint8 fx_bus;
-    Uint8 lfsr_type;
 } CydFmOp;
 
 typedef struct

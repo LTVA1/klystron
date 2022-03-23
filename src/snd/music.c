@@ -1567,24 +1567,24 @@ static Sint8 mus_shape(Uint16 position, Uint8 shape)
 	switch (shape)
 	{
 		case MUS_SHAPE_SINE:
-			return sine_table[position % VIB_TAB_SIZE];
+			return sine_table[position & (VIB_TAB_SIZE - 1)];
 			break;
 
 		case MUS_SHAPE_SQUARE:
-			return ((position % VIB_TAB_SIZE) & (VIB_TAB_SIZE / 2)) ? -128 : 127;
+			return ((position & (VIB_TAB_SIZE - 1)) & (VIB_TAB_SIZE / 2)) ? -128 : 127;
 			break;
 
 		case MUS_SHAPE_RAMP_UP:
-			return (position % VIB_TAB_SIZE) * 2 - 128;
+			return (position & (VIB_TAB_SIZE - 1)) * 2 - 128;
 			break;
 
 		case MUS_SHAPE_RAMP_DN:
-			return 127 - (position % VIB_TAB_SIZE) * 2;
+			return 127 - (position & (VIB_TAB_SIZE - 1)) * 2;
 			break;
 
 		default:
 		case MUS_SHAPE_RANDOM:
-			return rnd_table[(position / 8) % VIB_TAB_SIZE];
+			return rnd_table[(position / 8) & (VIB_TAB_SIZE - 1)];
 			break;
 	}
 }
@@ -2717,6 +2717,17 @@ int mus_load_instrument_RW(Uint8 version, RWops *ctx, MusInstrument *inst, CydWa
 	_VER_READ(&inst->cydflags, 0);
 	_VER_READ(&inst->adsr, 0);
 	
+	if((inst->cydflags & CYD_CHN_ENABLE_FILTER) && version > 33)
+	{
+		inst->slope = ((inst->adsr.s & 0b11100000) >> 5);
+		inst->flttype = (((inst->adsr.a) & 0b11000000) >> 5) | (((inst->adsr.d) & 0b01000000) >> 6);
+	}
+	
+	inst->adsr.a &= 0b00111111;
+	inst->adsr.d &= 0b00111111;
+	inst->adsr.s &= 0b00011111;
+	inst->adsr.r &= 0b00111111;
+	
 	if(inst->cydflags & CYD_CHN_ENABLE_FIXED_NOISE_PITCH)
 	{
 		VER_READ(version, 33, 0xff, &inst->noise_note, 0);
@@ -2887,9 +2898,11 @@ int mus_load_instrument_RW(Uint8 version, RWops *ctx, MusInstrument *inst, CydWa
 			inst->resonance = (temp & 0xf000) >> 12;
 		}
 		
-		VER_READ(version, 1, 0xff, &inst->flttype, 0);
-		
-		VER_READ(version, 30, 0xff, &inst->slope, 0); //wasn't there
+		if(version < 34)
+		{
+			VER_READ(version, 1, 0xff, &inst->flttype, 0);
+			VER_READ(version, 30, 0xff, &inst->slope, 0); //wasn't there
+		}
 	}
 	
 	if(((inst->flags & MUS_INST_YM_BUZZ) && version >= 31) || version < 31)
@@ -2915,7 +2928,16 @@ int mus_load_instrument_RW(Uint8 version, RWops *ctx, MusInstrument *inst, CydWa
 		VER_READ(version, 18, 0xff, &inst->lfsr_type, 0);
 	}
 	
-	VER_READ(version, 28, 0xff, &inst->mixmode, 0); //wasn't there
+	if(version < 34)
+	{
+		VER_READ(version, 28, 0xff, &inst->mixmode, 0); //wasn't there
+	}
+	
+	else
+	{
+		inst->mixmode = ((inst->pw & 0xf000) >> 12);
+		inst->pw &= 0x0fff;
+	}
 	
 	VER_READ(version, 12, 0xff, &inst->wavetable_entry, 0);
 	
@@ -2934,15 +2956,34 @@ int mus_load_instrument_RW(Uint8 version, RWops *ctx, MusInstrument *inst, CydWa
 			VER_READ(version, 32, 0xff, &inst->fm_env_ksl_level, 0);
 		}
 		
-		VER_READ(version, 23, 0xff, &inst->fm_feedback, 0);
+		if(version < 34)
+		{
+			VER_READ(version, 23, 0xff, &inst->fm_feedback, 0);
+		}
+		
 		VER_READ(version, 23, 0xff, &inst->fm_harmonic, 0);
 		VER_READ(version, 23, 0xff, &inst->fm_adsr, 0);
+		
+		if(version >= 34)
+		{
+			inst->fm_freq_LUT = inst->fm_adsr.a >> 6;
+			inst->fm_feedback = inst->fm_adsr.s >> 5;
+		}
+		
+		inst->fm_adsr.a &= 0b00111111;
+		inst->fm_adsr.d &= 0b00111111;
+		inst->fm_adsr.s &= 0b00011111;
+		inst->fm_adsr.r &= 0b00111111;
+		
 		VER_READ(version, 25, 0xff, &inst->fm_attack_start, 0);
 		
 		VER_READ(version, 29, 0xff, &inst->fm_base_note, 0); //wasn't there
 		VER_READ(version, 29, 0xff, &inst->fm_finetune, 0); //wasn't there
 		
-		VER_READ(version, 31, 0xff, &inst->fm_freq_LUT, 0);
+		if(version < 34)
+		{
+			VER_READ(version, 31, 0xff, &inst->fm_freq_LUT, 0);
+		}
 		
 		if(inst->fm_flags & CYD_FM_SAVE_LFO_SETTINGS)
 		{

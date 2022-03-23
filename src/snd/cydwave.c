@@ -68,7 +68,7 @@ static Sint32 cyd_wave_get_sample_linear(const CydWavetableEntry *entry, CydWave
 			if (b >= entry->samples)
 				return entry->data[a];
 			else
-				return entry->data[a] + (entry->data[b] - entry->data[a]) * ((CydWaveAccSigned)wave_acc % WAVETABLE_RESOLUTION) / WAVETABLE_RESOLUTION;
+				return entry->data[a] + (entry->data[b] - entry->data[a]) * ((CydWaveAccSigned)wave_acc & (WAVETABLE_RESOLUTION - 1)) / WAVETABLE_RESOLUTION;
 		}
 		
 		else
@@ -90,7 +90,7 @@ static Sint32 cyd_wave_get_sample_linear(const CydWavetableEntry *entry, CydWave
 			if (b < 0)
 				return entry->data[a];
 			else
-				return entry->data[a] + (entry->data[b] - entry->data[a]) * (WAVETABLE_RESOLUTION - ((CydWaveAccSigned)wave_acc % WAVETABLE_RESOLUTION)) / WAVETABLE_RESOLUTION;
+				return entry->data[a] + (entry->data[b] - entry->data[a]) * (WAVETABLE_RESOLUTION - ((CydWaveAccSigned)wave_acc & (WAVETABLE_RESOLUTION - 1))) / WAVETABLE_RESOLUTION;
 		}
 	}
 	else
@@ -127,7 +127,7 @@ static Sint32 cyd_wave_get_sample_cosine(const CydWavetableEntry *entry, CydWave
                 {
                     //double x = (double)((CydWaveAccSigned)wave_acc % WAVETABLE_RESOLUTION) / (double) WAVETABLE_RESOLUTION;
                     //return (Sint32) (((1 - cos(M_PI * x)) / 2) * (entry->data[b] - entry->data[a]) + entry->data[a]);
-                    double x = (double)((CydWaveAccSigned)wave_acc % WAVETABLE_RESOLUTION) / (double) WAVETABLE_RESOLUTION;
+                    double x = (double)((CydWaveAccSigned)wave_acc & (WAVETABLE_RESOLUTION - 1)) / (double) WAVETABLE_RESOLUTION;
                     //mu2 = (1-cos(mu*PI))/2;
                     double x2 = (1 - cos(x * M_PI)) / 2.00000000;
                     return (Sint32) (entry->data[a] * (1 - x2) + entry->data[b] * x2);
@@ -155,7 +155,7 @@ static Sint32 cyd_wave_get_sample_cosine(const CydWavetableEntry *entry, CydWave
 			
             else
             {
-                double x = (double)(WAVETABLE_RESOLUTION - ((CydWaveAccSigned)wave_acc % WAVETABLE_RESOLUTION)) / (double) WAVETABLE_RESOLUTION;
+                double x = (double)(WAVETABLE_RESOLUTION - ((CydWaveAccSigned)wave_acc & (WAVETABLE_RESOLUTION - 1))) / (double) WAVETABLE_RESOLUTION;
                 double x2 = (1 - cos(x * M_PI)) / 2.00000000;
                 return (Sint32) (entry->data[a] * (1 - x2) + entry->data[b] * x2);
                 // return (Sint32) (((1 - cos(M_PI * x)) / 2) * (entry->data[b] - entry->data[a]) + entry->data[a]);

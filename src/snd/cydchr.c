@@ -107,7 +107,9 @@ void cydchr_set(CydChorus *chr, int rate, int min_delay, int max_delay, int ster
 		chr->max_delay = max_delay;
 		
 		for (int i = 0; i < chr->lut_size; ++i)
+		{
 			chr->lut[i] = (int)(((sin((double)i / chr->lut_size * M_PI * 2) * 0.5 + 0.5) * (max_delay - min_delay) + min_delay) * CHORUS_ACCURACY * chr->sample_rate / 10000) % (chr->buf_size * CHORUS_ACCURACY);
+		}
 	}
 	else
 	{

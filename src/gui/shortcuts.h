@@ -28,7 +28,7 @@ OTHER DEALINGS IN THE SOFTWARE.
 
 #include "SDL.h"
 
-typedef struct { int mod, key; void (*action)(void*,void*,void*); void *p1, *p2, *p3; const char *description; } KeyShortcut;
+typedef struct { int mod, key; void (*action)(void*, void*, void*); void *p1, *p2, *p3; const char *description; } KeyShortcut;
 
 void do_shortcuts(SDL_KeyboardEvent *e, const KeyShortcut *shortcuts);
 const char * get_shortcut_string(const KeyShortcut *sc);

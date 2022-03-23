@@ -27,7 +27,7 @@ OTHER DEALINGS IN THE SOFTWARE.
 
 const Uint32 frequency_table[FREQ_TAB_SIZE] =
 {
-	(Uint32)(16.35 * 64), //0
+	(Uint32)(16.35 * 64), //0 octave
 	(Uint32)(17.32 * 64),
 	(Uint32)(18.35 * 64),
 	(Uint32)(19.45 * 64),
