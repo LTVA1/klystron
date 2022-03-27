@@ -507,6 +507,11 @@ Uint32 cyd_cycle_adsr(const CydEngine *eng, Uint32 flags, Uint32 ym_env_shape, C
 	{
 #ifndef CYD_DISABLE_BUZZ	
 		// YM2149 style envelope HOLD is not processed
+		
+		//if(osc_freq == buzz_freq && osc_acc == 0)
+		//{
+			//adsr->envelope = 0;
+		//}
 	
 		switch (adsr->envelope_state)
 		{
@@ -1409,15 +1414,7 @@ void cyd_set_env_frequency(CydEngine *cyd, CydChannel *chn, Uint32 frequency)
 #ifndef CYD_DISABLE_BUZZ
 	chn->subosc[0].buzz_detune_freq = frequency;
 	
-	if(chn->flags & CYD_CHN_ENABLE_AY8930_BUZZ_MODE)
-	{
-		chn->adsr.env_speed = (Uint64)YM_LENGTH * 2/32 * (Uint64)frequency / (Uint64)cyd->sample_rate / 4;
-	}
-	
-	else
-	{
-		chn->adsr.env_speed = (Uint64)YM_LENGTH/16 * (Uint64)frequency / (Uint64)cyd->sample_rate / 4;
-	}
+	chn->adsr.env_speed = (Uint64)YM_LENGTH / 16 * (Uint64)frequency / (Uint64)cyd->sample_rate / 4;
 #endif
 }
 

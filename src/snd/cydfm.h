@@ -24,8 +24,6 @@ typedef struct //wasn't there
 	//Uint32 musflags;
     CydAdsr adsr;
 	
-	Uint32 ssg_eg_freq;
-	
 	Uint32 frequency;
 	Uint32 wave_frequency;
 	Uint64 accumulator;

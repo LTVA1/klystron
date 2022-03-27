@@ -142,4 +142,23 @@ int check_drag_event(const SDL_Event *event, const SDL_Rect *rect, void (*action
 	return motion_param == param; // For identifying individual elements
 }
 
+//fix from here https://github.com/kometbomb/klystrack/pull/300
+int should_process_mouse(const SDL_Event *event)
+{
+	// If current event is a mouse click, break immediately to pass the event to the
+	// draw/event code.
+	if (event->type == SDL_MOUSEBUTTONDOWN)
+		return 1;
 
+	if (event->type == SDL_MOUSEMOTION)
+	{
+		// If the next event is not a mouse movement event with the same buttons held,
+		// process current mouse movement event immediately.
+		SDL_Event next_event;
+		if (SDL_PeepEvents(&next_event, 1, SDL_PEEKEVENT, SDL_MOUSEMOTION, SDL_MOUSEMOTION) <= 0)
+			return 1;
+		if (next_event.motion.state != event->motion.state)
+			return 1;
+	}
+	return 0;
+}

@@ -57,10 +57,9 @@ typedef struct
 typedef struct //wasn't there
 {
 	Uint8 harmonic; //freq mult
-	Uint8 alg; //algorithm
     
-    Uint32 flags;
-	//Uint32 musflags;
+    Uint32 cydflags;
+	Uint32 flags; //musflags
     MusAdsr adsr;
 
 	Uint8 wavetable_entry;
@@ -79,9 +78,6 @@ typedef struct //wasn't there
     
     Uint8 mixmode;
 	
-	Uint8 ssg_note;
-	Sint8 ssg_finetune;
-	
 	Uint8 env_offset, program_offset; //<-----
 	
     Uint8 prog_period; 
@@ -92,10 +88,14 @@ typedef struct //wasn't there
 	
     Uint8 base_note;
     Sint8 finetune;
+	Uint8 noise_note;
+	
+	Sint8 detune, coarse_detune;
 	
     Uint8 feedback;
     Uint16 cutoff;
     Uint8 resonance; //was 0-3, now 0-15
+	Uint8 slope;
     Uint8 flttype;
 } MusFmOp;
 
@@ -158,6 +158,7 @@ typedef struct
 	Sint8 fm_finetune; //wasn't there
 	
 	MusFmOp ops[MUS_FM_NUM_OPS];
+	Uint8 alg; //algorithm
 
 } MusInstrument;
 
