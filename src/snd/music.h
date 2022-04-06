@@ -59,8 +59,9 @@ typedef struct //wasn't there
 	Uint8 harmonic; //freq mult
     
     Uint32 cydflags;
-	Uint32 flags; //musflags
+	Uint16 flags; //musflags
     MusAdsr adsr;
+	Uint8 ssg_eg_type; //0-7
 
 	Uint8 wavetable_entry;
 	
@@ -90,13 +91,17 @@ typedef struct //wasn't there
     Sint8 finetune;
 	Uint8 noise_note;
 	
-	Sint8 detune, coarse_detune;
+	Sint8 detune; //-3..3, 16 * finetune
+	Uint8 coarse_detune; //OPM DT2, 0..3
 	
     Uint8 feedback;
     Uint16 cutoff;
     Uint8 resonance; //was 0-3, now 0-15
 	Uint8 slope;
     Uint8 flttype;
+	
+	Uint8 trigger_delay; //how many ticks to wait after general trigger to trigger specific operator, can be very creative
+
 } MusFmOp;
 
 typedef struct
@@ -157,7 +162,7 @@ typedef struct
 	Uint8 fm_base_note; //weren't there
 	Sint8 fm_finetune; //wasn't there
 	
-	MusFmOp ops[MUS_FM_NUM_OPS];
+	MusFmOp ops[CYD_FM_NUM_OPS];
 	Uint8 alg; //algorithm
 
 } MusInstrument;
@@ -220,12 +225,12 @@ typedef struct
 
 typedef struct
 {
-	Uint8 note[MUS_FM_NUM_OPS];
-	Uint8 instrument[MUS_FM_NUM_OPS];
-	Uint8 ctrl[MUS_FM_NUM_OPS];
-	Uint8 volume[MUS_FM_NUM_OPS];
+	Uint8 note[CYD_FM_NUM_OPS];
+	Uint8 instrument[CYD_FM_NUM_OPS];
+	Uint8 ctrl[CYD_FM_NUM_OPS];
+	Uint8 volume[CYD_FM_NUM_OPS];
 	
-	Uint16 commands[MUS_FM_NUM_OPS][MUS_MAX_COMMANDS];
+	Uint16 command[CYD_FM_NUM_OPS][MUS_MAX_COMMANDS];
 } Mus4opStep;
 
 typedef struct
@@ -244,6 +249,7 @@ typedef struct
 	Uint8 color;
 	
 	Uint8 command_columns; //wasn't there
+	Uint8 fourop_command_columns[CYD_FM_NUM_OPS];
 	
 	bool is_expanded_4op;
 	
@@ -278,6 +284,22 @@ typedef struct
 	int num_wavetables;
 } MusSong;
 
+typedef struct
+{
+	Uint8 trigger_delay; //how many ticks to wait after general trigger to trigger specific operator, can be very creative
+	Uint8 last_ctrl;
+	Uint8 ssg_eg_type;
+	Uint16 vibrato_position, pwm_position, tremolo_position;
+	Sint8 note_offset;
+	Uint16 filter_cutoff;
+	Uint8 filter_resonance;
+	Uint8 filter_slope; //wasn't there
+	Uint16 volume; //was Uint8
+	Uint8 vibrato_delay, pwm_delay, tremolo_delay; //wasn't there
+	Uint8 tremolo_speed, tremolo_depth; //wasn't there
+	Uint8 vibrato_speed, vibrato_depth;
+	Uint8 pwm_speed, pwm_depth; //wasn't there
+} MusFmOpTrackStatus;
 
 typedef struct
 {
@@ -304,6 +326,8 @@ typedef struct
 	Uint8 fm_tremolo_speed, fm_tremolo_depth, fm_tremolo_shape; //wasn't there
 	Uint8 fm_vibrato_speed, fm_vibrato_depth, fm_vibrato_shape; //wasn't there
 	Uint16 fm_vibrato_position, fm_tremolo_position; //wasn't there
+	
+	MusFmOpTrackStatus ops_status[CYD_FM_NUM_OPS];
 } MusTrackStatus;
 
 typedef struct

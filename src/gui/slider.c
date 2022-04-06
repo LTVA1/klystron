@@ -30,6 +30,8 @@ OTHER DEALINGS IN THE SOFTWARE.
 #include "dialog.h"
 #include "view.h"
 
+#include "../../../src/mused.h"
+
 int quant(int v, int g)
 {
 	return v - v % (g);
@@ -71,127 +73,130 @@ static void drag_begin(void *event, void *_param, void *area)
 
 void slider(GfxDomain *dest_surface, const SDL_Rect *_area, const SDL_Event *event, void *_param)
 {
-	SliderParam *param = _param;
-	
-	int button_size = (param->orientation == SLIDER_HORIZONTAL) ? _area->h : _area->w;
-	int area_size = ((param->orientation == SLIDER_HORIZONTAL) ? _area->w : _area->h) - button_size * 2;
-	int area_start = ((param->orientation == SLIDER_HORIZONTAL) ? _area->x : _area->y) + button_size;
-	int bar_size = area_size;
-	int bar_top = area_start;
-	int sbsize = my_min(_area->w, _area->h);
-	bool shrunk = false;
-	
-	if (param->last != param->first)
+	if(((_param == &mused.four_op_slider_param) && mused.show_four_op_menu) || _param != &mused.four_op_slider_param)
 	{
-		bar_top = (area_size) * param->visible_first / (param->last - param->first) + area_start;
-		int bar_bottom = (area_size ) * param->visible_last / (param->last - param->first) + area_start;
-		bar_size = my_min(area_size, bar_bottom - bar_top);
+		SliderParam *param = _param;
 		
-		if (bar_size < sbsize)
+		int button_size = (param->orientation == SLIDER_HORIZONTAL) ? _area->h : _area->w;
+		int area_size = ((param->orientation == SLIDER_HORIZONTAL) ? _area->w : _area->h) - button_size * 2;
+		int area_start = ((param->orientation == SLIDER_HORIZONTAL) ? _area->x : _area->y) + button_size;
+		int bar_size = area_size;
+		int bar_top = area_start;
+		int sbsize = my_min(_area->w, _area->h);
+		bool shrunk = false;
+		
+		if (param->last != param->first)
 		{
-			bar_top = (area_size - sbsize) * param->visible_first / (param->last - param->first) + area_start;
-			bar_bottom = bar_top + sbsize;
-			bar_size = sbsize;
+			bar_top = (area_size) * param->visible_first / (param->last - param->first) + area_start;
+			int bar_bottom = (area_size ) * param->visible_last / (param->last - param->first) + area_start;
+			bar_size = my_min(area_size, bar_bottom - bar_top);
 			
-			shrunk = true;
+			if (bar_size < sbsize)
+			{
+				bar_top = (area_size - sbsize) * param->visible_first / (param->last - param->first) + area_start;
+				bar_bottom = bar_top + sbsize;
+				bar_size = sbsize;
+				
+				shrunk = true;
+			}
 		}
-	}
-	
-	SDL_Rect dragarea = { _area->x, _area->y, _area->w, _area->h };
-	
-	if (param->orientation == SLIDER_HORIZONTAL)
-	{
-		dragarea.x += button_size;
-		dragarea.w -= button_size * 2;
-	}
-	else
-	{
-		dragarea.y += button_size;
-		dragarea.h -= button_size * 2;
-	}
-	
-	bevel(dest_surface, &dragarea, param->gfx, BEV_SLIDER_BG);
-	
-	{
-		SDL_Rect area = { _area->x, _area->y, _area->w, _area->h };
+		
+		SDL_Rect dragarea = { _area->x, _area->y, _area->w, _area->h };
 		
 		if (param->orientation == SLIDER_HORIZONTAL)
 		{
-			area.w = bar_top - dragarea.x;
-			area.x = dragarea.x;
+			dragarea.x += button_size;
+			dragarea.w -= button_size * 2;
 		}
 		else
 		{
-			area.h = bar_top - dragarea.y;
-			area.y = dragarea.y;
+			dragarea.y += button_size;
+			dragarea.h -= button_size * 2;
 		}
 		
-		check_event(event, &area, modify_position, MAKEPTR(-(param->visible_last - param->visible_first)), param, 0);
-	}
-	
-	{
-		SDL_Rect area = { _area->x, _area->y, _area->w, _area->h };
+		bevel(dest_surface, &dragarea, param->gfx, BEV_SLIDER_BG);
 		
-		if (param->orientation == SLIDER_HORIZONTAL)
 		{
-			area.x += bar_top - _area->x;
-			area.w = bar_size;
+			SDL_Rect area = { _area->x, _area->y, _area->w, _area->h };
+			
+			if (param->orientation == SLIDER_HORIZONTAL)
+			{
+				area.w = bar_top - dragarea.x;
+				area.x = dragarea.x;
+			}
+			else
+			{
+				area.h = bar_top - dragarea.y;
+				area.y = dragarea.y;
+			}
+			
+			check_event(event, &area, modify_position, MAKEPTR(-(param->visible_last - param->visible_first)), param, 0);
 		}
-		else
+		
 		{
-			area.y += bar_top - _area->y;
-			area.h = bar_size;
+			SDL_Rect area = { _area->x, _area->y, _area->w, _area->h };
+			
+			if (param->orientation == SLIDER_HORIZONTAL)
+			{
+				area.x += bar_top - _area->x;
+				area.w = bar_size;
+			}
+			else
+			{
+				area.y += bar_top - _area->y;
+				area.h = bar_size;
+			}
+			
+			SDL_Rect motion_area;
+			copy_rect(&motion_area, &dragarea);
+			
+			if (param->orientation == SLIDER_HORIZONTAL)
+			{
+				motion_area.w -= bar_size;
+			}
+			else
+			{
+				motion_area.h -= bar_size;
+			}
+			
+			int pressed = check_event(event, &area, drag_begin, MAKEPTR(event), param, MAKEPTR(shrunk ? &motion_area : &dragarea));
+			pressed |= check_drag_event(event, &area, drag_motion, MAKEPTR(param));
+			button(dest_surface, &area, param->gfx, pressed ? BEV_SLIDER_HANDLE_ACTIVE : BEV_SLIDER_HANDLE, (param->orientation == SLIDER_HORIZONTAL) ? DECAL_GRAB_HORIZ : DECAL_GRAB_VERT);
 		}
 		
-		SDL_Rect motion_area;
-		copy_rect(&motion_area, &dragarea);
-		
-		if (param->orientation == SLIDER_HORIZONTAL)
 		{
-			motion_area.w -= bar_size;
+			SDL_Rect area = { _area->x, _area->y, _area->w, _area->h };
+			
+			if (param->orientation == SLIDER_HORIZONTAL)
+			{
+				area.x = bar_top + bar_size;
+				area.w = dragarea.x + dragarea.w - bar_size - bar_top;
+			}
+			else
+			{
+				area.y = bar_top + bar_size;
+				area.h = dragarea.y + dragarea.h - bar_size - bar_top;
+			}
+			
+			check_event(event, &area, modify_position, MAKEPTR(param->visible_last - param->visible_first), param, 0);
 		}
-		else
+		
 		{
-			motion_area.h -= bar_size;
+			SDL_Rect area = { _area->x, _area->y, sbsize, sbsize };
+			
+			button_event(dest_surface, event, &area, param->gfx, BEV_BUTTON, BEV_BUTTON_ACTIVE, param->orientation == SLIDER_HORIZONTAL ? DECAL_LEFTARROW : DECAL_UPARROW, modify_position, MAKEPTR(-param->granularity), param, 0);
+			
+			if (param->orientation == SLIDER_HORIZONTAL)
+			{
+				area.x += area_size + button_size;
+			}
+			else
+			{
+				area.y += area_size + button_size;
+			}
+			
+			button_event(dest_surface, event, &area, param->gfx, BEV_BUTTON, BEV_BUTTON_ACTIVE, param->orientation == SLIDER_HORIZONTAL ? DECAL_RIGHTARROW : DECAL_DOWNARROW, modify_position, MAKEPTR(param->granularity), param, 0);
 		}
-		
-		int pressed = check_event(event, &area, drag_begin, MAKEPTR(event), param, MAKEPTR(shrunk ? &motion_area : &dragarea));
-		pressed |= check_drag_event(event, &area, drag_motion, MAKEPTR(param));
-		button(dest_surface, &area, param->gfx, pressed ? BEV_SLIDER_HANDLE_ACTIVE : BEV_SLIDER_HANDLE, (param->orientation == SLIDER_HORIZONTAL) ? DECAL_GRAB_HORIZ : DECAL_GRAB_VERT);
-	}
-	
-	{
-		SDL_Rect area = { _area->x, _area->y, _area->w, _area->h };
-		
-		if (param->orientation == SLIDER_HORIZONTAL)
-		{
-			area.x = bar_top + bar_size;
-			area.w = dragarea.x + dragarea.w - bar_size - bar_top;
-		}
-		else
-		{
-			area.y = bar_top + bar_size;
-			area.h = dragarea.y + dragarea.h - bar_size - bar_top;
-		}
-		
-		check_event(event, &area, modify_position, MAKEPTR(param->visible_last - param->visible_first), param, 0);
-	}
-	
-	{
-		SDL_Rect area = { _area->x, _area->y, sbsize, sbsize };
-		
-		button_event(dest_surface, event, &area, param->gfx, BEV_BUTTON, BEV_BUTTON_ACTIVE, param->orientation == SLIDER_HORIZONTAL ? DECAL_LEFTARROW : DECAL_UPARROW, modify_position, MAKEPTR(-param->granularity), param, 0);
-		
-		if (param->orientation == SLIDER_HORIZONTAL)
-		{
-			area.x += area_size + button_size;
-		}
-		else
-		{
-			area.y += area_size + button_size;
-		}
-		
-		button_event(dest_surface, event, &area, param->gfx, BEV_BUTTON, BEV_BUTTON_ACTIVE, param->orientation == SLIDER_HORIZONTAL ? DECAL_RIGHTARROW : DECAL_DOWNARROW, modify_position, MAKEPTR(param->granularity), param, 0);
 	}
 }
 

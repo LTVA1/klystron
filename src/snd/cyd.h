@@ -38,21 +38,7 @@ OTHER DEALINGS IN THE SOFTWARE.
 
 #define envspd(cyd,slope) (slope!=0?(((Uint64)0xff0000 / ((slope) * (slope) * 256 / (ENVELOPE_SCALE * ENVELOPE_SCALE))) * CYD_BASE_FREQ / cyd->sample_rate):((Uint64)0xff0000 * CYD_BASE_FREQ / cyd->sample_rate))
 
-typedef struct
-{
-	Uint32 frequency;
-	Uint64 accumulator;
-	
-	Uint16 buzz_detune_freq;
-	
-	Uint32 noise_frequency; //wasn't there
-	Uint64 noise_accumulator;
-	
-	Uint32 random; // random lfsr
-	Uint32 lfsr, lfsr_period, lfsr_ctr, lfsr_acc; // lfsr state
-	Uint32 reg4, reg5, reg9; // "pokey" lfsr registers
-	CydWaveState wave;
-} CydOscState;
+#include "cydoscstate.h"
 
 typedef struct
 {
@@ -88,6 +74,7 @@ typedef struct
 	CydOscState subosc[CYD_SUB_OSCS];
 	CydFilter flts[CYD_NUMBER_OF_FILTER_MODULES];
 	int fx_bus;
+	
 #ifndef CYD_DISABLE_FM
 	CydFm fm;
 #endif
@@ -117,14 +104,6 @@ enum
 	FLT_ALL,
 	FLT_TYPES
 };
-
-/* enum
-{
-	FLT_LP,
-	FLT_HP,
-	FLT_BP,
-	FLT_TYPES
-}; */
 
 enum
 {
@@ -215,7 +194,6 @@ enum
 	CYD_FM_OP_ENABLE_FIXED_NOISE_PITCH = 65536 << 2,
 	CYD_FM_OP_ENABLE_1_BIT_NOISE = 65536 << 3,
 	CYD_FM_OP_ENABLE_SSG_EG = 65536 << 4,
-	CYD_FM_OP_ENABLE_3CH_EXP_MODE = 65536 << 4,
 	
 	//musflags
 	
@@ -229,6 +207,8 @@ enum
 	MUS_FM_OP_NO_PROG_RESTART = 128,
 	MUS_FM_OP_SAVE_LFO_SETTINGS = 256,
 	MUS_FM_OP_INVERT_TREMOLO_BIT = 512,
+	MUS_FM_OP_DRUM = 1024,
+	MUS_FM_OP_QUARTER_FREQ = 2048,
 };
 
 enum {

@@ -364,7 +364,7 @@ static void mus_set_noise_fixed_pitch_note(MusEngine *mus, int chan, Uint16 note
 	{
 		if (frequency != 0)
 		{
-			chn->subosc[i].noise_frequency = (Uint64)(ACC_LENGTH >> (mus->cyd->oversample))/16 * (Uint64)(frequency) / (Uint64)mus->cyd->sample_rate;
+			chn->subosc[i].noise_frequency = (Uint64)(ACC_LENGTH >> (mus->cyd->oversample)) / 16 * (Uint64)(frequency) / (Uint64)mus->cyd->sample_rate / 4;
 		}
 		
 		//debug("noi freq %d at channel %d", chn->subosc[i].noise_frequency, chan);
@@ -1710,10 +1710,10 @@ int mus_trigger_instrument_internal(MusEngine* mus, int chan, MusInstrument *ins
 	cydchn->ring_mod = ins->ring_mod == 0xff? chan : ins->ring_mod;
 
 	if (cydchn->ring_mod >= mus->cyd->n_channels)
-		cydchn->ring_mod = mus->cyd->n_channels -1;
+		cydchn->ring_mod = mus->cyd->n_channels - 1;
 
 	if (cydchn->sync_source >= mus->cyd->n_channels)
-		cydchn->sync_source = mus->cyd->n_channels -1;
+		cydchn->sync_source = mus->cyd->n_channels - 1;
 
 	cydchn->flttype = ins->flttype;
 	cydchn->lfsr_type = ins->lfsr_type;
@@ -1789,23 +1789,17 @@ int mus_trigger_instrument_internal(MusEngine* mus, int chan, MusInstrument *ins
 	}
 
 #ifndef CYD_DISABLE_FM
-	if (ins->fm_flags & CYD_FM_ENABLE_WAVE)
+	if(ins->cydflags & CYD_CHN_ENABLE_FM)
 	{
-		cydfm_set_wave_entry(&cydchn->fm, &mus->cyd->wavetable_entries[ins->fm_wave]);
+		if (ins->fm_flags & CYD_FM_ENABLE_WAVE)
+		{
+			cydfm_set_wave_entry(&cydchn->fm, &mus->cyd->wavetable_entries[ins->fm_wave]);
+		}
 		
-		cydchn->fm.wave.end_offset = 0xffff;
-		cydchn->fm.wave.start_offset = 0;
-		
-		cydchn->fm.wave.start_point_track_status = 0;
-		cydchn->fm.wave.end_point_track_status = 0;
-		
-		cydchn->fm.wave.use_start_track_status_offset = false;
-		cydchn->fm.wave.use_end_track_status_offset = false;
-	}
-	
-	else
-	{
-		cydfm_set_wave_entry(&cydchn->fm, NULL);
+		else
+		{
+			cydfm_set_wave_entry(&cydchn->fm, NULL);
+		}
 		
 		cydchn->fm.wave.end_offset = 0xffff;
 		cydchn->fm.wave.start_offset = 0;
@@ -1826,44 +1820,57 @@ int mus_trigger_instrument_internal(MusEngine* mus, int chan, MusInstrument *ins
 #endif
 
 #ifndef CYD_DISABLE_FM
-	CydFm *fm = &cydchn->fm;
+	if(ins->cydflags & CYD_CHN_ENABLE_FM)
+	{
+		CydFm *fm = &cydchn->fm;
 
-	fm->flags = ins->fm_flags;
-	fm->harmonic = ins->fm_harmonic;
-	
-	fm->fm_freq_LUT = ins->fm_freq_LUT;
-	
-	fm->adsr.a = ins->fm_adsr.a;
-	fm->adsr.d = ins->fm_adsr.d;
-	fm->adsr.s = ins->fm_adsr.s;
-	fm->adsr.r = ins->fm_adsr.r;
-	fm->adsr.volume = ins->fm_modulation;
-	
-	track->fm_volume = ins->fm_modulation;
-	
-	fm->fm_vol_ksl_level = ins->fm_vol_ksl_level;
-	fm->fm_env_ksl_level = ins->fm_env_ksl_level;
-	
-	fm->feedback = ins->fm_feedback;
-	fm->attack_start = ins->fm_attack_start;
-	
-	fm->fm_base_note = ins->fm_base_note; //weren't there
-	fm->fm_finetune = ins->fm_finetune;
-	fm->fm_carrier_base_note = ins->base_note;
-	fm->fm_carrier_finetune = ins->finetune;
-	
-	track->fm_vibrato_position = 0;
-	track->fm_tremolo_position = 0;
-	
-	track->fm_vibrato_depth = ins->fm_vibrato_depth;
-	track->fm_vibrato_speed = ins->fm_vibrato_speed;
-	
-	track->fm_tremolo_depth = ins->fm_tremolo_depth;
-	track->fm_tremolo_speed = ins->fm_tremolo_speed;
-	
-	fm->fm_curr_tremolo = 0;
-	fm->fm_tremolo = 0;
-	fm->fm_prev_tremolo = 0;
+		fm->flags = ins->fm_flags;
+		fm->harmonic = ins->fm_harmonic;
+		
+		fm->fm_freq_LUT = ins->fm_freq_LUT;
+		
+		fm->adsr.a = ins->fm_adsr.a;
+		fm->adsr.d = ins->fm_adsr.d;
+		fm->adsr.s = ins->fm_adsr.s;
+		fm->adsr.r = ins->fm_adsr.r;
+		fm->adsr.volume = ins->fm_modulation;
+		
+		track->fm_volume = ins->fm_modulation;
+		
+		fm->fm_vol_ksl_level = ins->fm_vol_ksl_level;
+		fm->fm_env_ksl_level = ins->fm_env_ksl_level;
+		
+		fm->feedback = ins->fm_feedback;
+		fm->attack_start = ins->fm_attack_start;
+		
+		fm->fm_base_note = ins->fm_base_note; //weren't there
+		fm->fm_finetune = ins->fm_finetune;
+		fm->fm_carrier_base_note = ins->base_note;
+		fm->fm_carrier_finetune = ins->finetune;
+		
+		track->fm_vibrato_position = 0;
+		track->fm_tremolo_position = 0;
+		
+		track->fm_vibrato_depth = ins->fm_vibrato_depth;
+		track->fm_vibrato_speed = ins->fm_vibrato_speed;
+		
+		track->fm_tremolo_depth = ins->fm_tremolo_depth;
+		track->fm_tremolo_speed = ins->fm_tremolo_speed;
+		
+		fm->fm_curr_tremolo = 0;
+		fm->fm_tremolo = 0;
+		fm->fm_prev_tremolo = 0;
+		
+		if(ins->fm_flags & CYD_FM_ENABLE_4OP)
+		{
+			fm->alg = ins->alg;
+			
+			for(int i = 0; i < CYD_FM_NUM_OPS; ++i)
+			{
+				
+			}
+		}
+	}
 #endif
 
 	//cyd_set_frequency(mus->cyd, cydchn, chn->frequency);
@@ -3143,7 +3150,39 @@ void mus_get_default_instrument(MusInstrument *inst)
 	inst->vibrato_delay = 0;
 
 	for (int p = 0; p < MUS_PROG_LEN; ++p)
+	{
 		inst->program[p] = MUS_FX_NOP;
+	}
+	
+	for(int i = 0; i < CYD_FM_NUM_OPS; ++i)
+	{
+		inst->ops[i].flags = MUS_INST_DRUM|MUS_INST_SET_PW|MUS_INST_SET_CUTOFF|MUS_INST_SAVE_LFO_SETTINGS;
+		inst->ops[i].pw = 0x600;
+		inst->ops[i].cydflags = CYD_CHN_ENABLE_TRIANGLE|CYD_CHN_ENABLE_KEY_SYNC;
+		
+		inst->ops[i].adsr.a = 1 * ENVELOPE_SCALE;
+		inst->ops[i].adsr.d = 12 * ENVELOPE_SCALE;
+		inst->ops[i].volume = MAX_VOLUME;
+		inst->ops[i].vol_ksl_level = 0x80; //wasn't there
+		inst->ops[i].env_ksl_level = 0x80; //wasn't there
+		
+		inst->ops[i].base_note = MIDDLE_C;
+		inst->ops[i].noise_note = MIDDLE_C;
+		
+		inst->ops[i].finetune = 0;
+		inst->ops[i].prog_period = 2;
+		inst->ops[i].cutoff = 4095;
+		inst->ops[i].slide_speed = 0x80;
+		inst->ops[i].vibrato_speed = 0x20;
+		inst->ops[i].vibrato_depth = 0x20;
+		inst->ops[i].vibrato_shape = MUS_SHAPE_SINE;
+		inst->ops[i].vibrato_delay = 0;
+		
+		for (int p = 0; p < MUS_PROG_LEN; ++p)
+		{
+			inst->ops[i].program[p] = MUS_FX_NOP;
+		}
+	}
 }
 
 

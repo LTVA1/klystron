@@ -7,9 +7,16 @@
 
 #include "music_defs.h"
 
+#include "cydoscstate.h" //wasn't there
+
 typedef struct //wasn't there
 {
-    Sint64 input, output;
+#ifdef STEREOOUTPUT
+    Sint64 inputr, outputr;
+	Sint64 inputl, outputl;
+#else
+	Sint64 input, output;
+#endif
 	
 	bool is_modulating; //if true modulate input op's accumulator and spit out modulated acc's wave at output. If false, just spit out its own signal.
 	
@@ -18,17 +25,21 @@ typedef struct //wasn't there
 	bool depends_on_main_freq; //if depends, display mult and detune settings. If no, display standard base note/finetune thing
 	
 	Uint8 harmonic; //freq mult
-	Uint8 alg; //algorithm
     
     Uint32 flags;
-	//Uint32 musflags;
+	
     CydAdsr adsr;
 	
 	Uint32 frequency;
 	Uint32 wave_frequency;
+	
+	Uint32 true_freq;
+	
 	Uint64 accumulator;
 	const CydWavetableEntry *wave_entry;
-	CydWaveState wave;
+	
+	CydOscState osc;
+	
 	Uint8 wavetable_entry;
 	
 	Uint8 vol_ksl_level;
@@ -36,6 +47,11 @@ typedef struct //wasn't there
 	Uint32 freq_for_ksl;
 	double vol_ksl_mult;
 	double env_ksl_mult;
+	
+	Sint16 tremolo; //wasn't there
+	Sint16 prev_tremolo;
+	Uint8 tremolo_interpolation_counter;
+	Sint16 curr_tremolo;
 	
 	Uint32 fb1, fb2, env_output;
 	Uint32 current_modulation;
@@ -46,16 +62,26 @@ typedef struct //wasn't there
     Uint8 volume;
     
     Uint8 mixmode; 
-    
-    //Uint16 program[MUS_PROG_LEN];
-	//Uint8 program_unite_bits[MUS_PROG_LEN / 8 + 1];
 	
-	Uint8 env_offset, program_offset; //<-----
+	Uint8 env_offset, program_offset;
 	
     Uint8 feedback;
     Uint16 cutoff;
     Uint8 resonance; //was 0-3, now 0-15
     Uint8 flttype;
+	
+	Uint8 base_note;
+	Sint8 finetune;
+	
+	Uint8 ssg_eg_type; //0-7
+	
+	Sint8 detune; //-3..3, 16 * finetune
+	Uint8 coarse_detune; //OPM DT2, 0..3
+	
+#ifdef STEREOOUTPUT
+	Uint8 panning; // 0-255, 128 = center
+	Sint32 gain_left, gain_right; //panning will work only for the operator that actually produces any sound and is not modulating other operator.
+#endif
 } CydFmOp;
 
 typedef struct
@@ -85,7 +111,7 @@ typedef struct
 	double fm_vol_ksl_mult;
 	double fm_env_ksl_mult;
 	
-	CydFmOp ops[MUS_FM_NUM_OPS];
+	CydFmOp ops[CYD_FM_NUM_OPS];
 	
 	Uint8 fm_freq_LUT;
 	
@@ -96,8 +122,8 @@ typedef struct
 	
 	Sint16 fm_vib;
 	
-	//Uint32 counter;
-	
+	Uint8 alg; //4-op algorithm
+	Sint64 four_op_output;
 } CydFm;
 
 #include "cyd.h"
