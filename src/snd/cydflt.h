@@ -1,3 +1,5 @@
+#pragma once
+
 #ifndef CYDFLT_H
 #define CYDFLT_H
 #endif

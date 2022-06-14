@@ -164,6 +164,8 @@ typedef struct
 	
 	MusFmOp ops[CYD_FM_NUM_OPS];
 	Uint8 alg; //algorithm
+	
+	Uint8 fm_4op_vol; //4-op module master volume
 
 } MusInstrument;
 
@@ -206,12 +208,31 @@ typedef struct
 	
 	Uint8 volume;
 	// ------
+	Uint32 target_note, last_note, fixed_note;
+	volatile Uint32 flags;
+	Uint32 current_tick;
+	Uint8 program_counter, program_tick, program_loop, prog_period;
+	
+} MusFmOpChannel;
+
+typedef struct
+{
+	MusInstrument *instrument;
+	Uint32 note;
+	
+	Uint8 noise_note;
+	
+	Uint8 volume;
+	// ------
 	Uint8 arpeggio_note;
 	Uint32 target_note, last_note, fixed_note;
 	volatile Uint32 flags;
 	Uint32 current_tick;
 	Uint8 program_counter, program_tick, program_loop, prog_period;
 	Sint16 buzz_offset;
+	
+	MusFmOpChannel ops[CYD_FM_NUM_OPS];
+	
 } MusChannel;
 
 typedef struct
@@ -299,6 +320,8 @@ typedef struct
 	Uint8 tremolo_speed, tremolo_depth; //wasn't there
 	Uint8 vibrato_speed, vibrato_depth;
 	Uint8 pwm_speed, pwm_depth; //wasn't there
+	Uint8 slide_speed;
+	Uint16 pw;
 } MusFmOpTrackStatus;
 
 typedef struct
@@ -326,6 +349,8 @@ typedef struct
 	Uint8 fm_tremolo_speed, fm_tremolo_depth, fm_tremolo_shape; //wasn't there
 	Uint8 fm_vibrato_speed, fm_vibrato_depth, fm_vibrato_shape; //wasn't there
 	Uint16 fm_vibrato_position, fm_tremolo_position; //wasn't there
+	
+	Uint8 fm_4op_vol;
 	
 	MusFmOpTrackStatus ops_status[CYD_FM_NUM_OPS];
 } MusTrackStatus;
@@ -534,7 +559,14 @@ enum //song flags
 	MUS_16_BIT_RATE = 2048,
 	
 	MUS_HAS_DESCRIPTION = 4096,
-	MUS_SHOW_DESCRIPTION = 8192, //show description automatically when song is loaded, BETTER FUCKING LEAVE IT AS 0!!!
+	MUS_SHOW_DESCRIPTION = 8192, // show description automatically when song is loaded, BETTER FUCKING LEAVE IT AS 0!!!
+	
+	MUS_OPL_OPN = 16384, // generate/load waves for said chips, put them on first n places, shift other samples in the song n positions down and relink all references in instruments and songs (but before check if they already were generated)
+	MUS_OPL2 = 32768, // generate from presets, load samples from special folder ('res/samples')
+	MUS_OPL3 = 65536, // if first n samples fall into these patterns, set appropriate flag (just for sure, don't even check if it is already set) and don't save these samples
+	MUS_OPZ = 65536 << 1, // upon loading see if there are n free slots, if there are don't shift samples down
+	MUS_YMF825 = 65536 << 2, // the crazy 29 waveforms: https://cdn.discordapp.com/attachments/865523470984019998/959831173146751016/ws.png
+	MUS_PC_98 = 65536 << 3, // load PC-98 drum samples
 };
 
 enum

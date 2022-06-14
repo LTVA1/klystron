@@ -38,17 +38,6 @@ Uint32 get_modulator(const CydEngine *cyd, CydFm *fm) //static Uint32 get_modula
 			acc = acc + ((Uint64)(fm->fb1 + fm->fb2) / 2 * (length * 4 / fbtab[fm->feedback]) / MODULATOR_MAX);
 		}
 		
-		/*if(fm->counter == 10000)
-		{
-			debug("%f", fm->fm_vol_ksl_mult);
-			fm->counter = 0;
-		}
-		
-		else
-		{
-			fm->counter++;
-		}*/
-		
 		return (Sint64)(cyd_wave_get_sample(&fm->wave, fm->wave_entry, acc % length)) * fm->env_output * (fm->fm_curr_tremolo + 512) / 512 * fm->fm_vol_ksl_mult / 32768 + 65536;
 	}
 	
@@ -96,7 +85,7 @@ void cydfm_cycle(const CydEngine *cyd, CydFm *fm)
 {
 	cyd_cycle_adsr(cyd, 0, 0, &fm->adsr, fm->fm_env_ksl_mult);
 	
-	fm->env_output = cyd_env_output(cyd, (fm->flags & (CYD_FM_ENABLE_EXPONENTIAL_RELEASE | CYD_FM_ENABLE_EXPONENTIAL_DECAY | CYD_FM_ENABLE_EXPONENTIAL_ATTACK)), &fm->adsr, MODULATOR_MAX); //was fm->env_output = cyd_env_output(cyd, 0, &fm->adsr, MODULATOR_MAX);
+	fm->env_output = cyd_env_output(cyd, fm->flags, &fm->adsr, MODULATOR_MAX); //was fm->env_output = cyd_env_output(cyd, 0, &fm->adsr, MODULATOR_MAX);
 	
 	//debug("%d", fm->adsr.volume);
 	

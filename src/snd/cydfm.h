@@ -4,6 +4,8 @@
 #include "cydentry.h"
 #include "cydtypes.h"
 #include "cydwave.h"
+#include "cydflt.h"
+#include "cyddefs.h"
 
 #include "music_defs.h"
 
@@ -11,19 +13,8 @@
 
 typedef struct //wasn't there
 {
-#ifdef STEREOOUTPUT
-    Sint64 inputr, outputr;
-	Sint64 inputl, outputl;
-#else
-	Sint64 input, output;
-#endif
-	
-	bool is_modulating; //if true modulate input op's accumulator and spit out modulated acc's wave at output. If false, just spit out its own signal.
-	
-	Uint8 input_op;
-	
-	bool depends_on_main_freq; //if depends, display mult and detune settings. If no, display standard base note/finetune thing
-	
+	Sint32 input, output;
+
 	Uint8 harmonic; //freq mult
     
     Uint32 flags;
@@ -31,12 +22,10 @@ typedef struct //wasn't there
     CydAdsr adsr;
 	
 	Uint32 frequency;
-	Uint32 wave_frequency;
 	
 	Uint32 true_freq;
 	
-	Uint64 accumulator;
-	const CydWavetableEntry *wave_entry;
+	const CydWavetableEntry* wave_entry;
 	
 	CydOscState osc;
 	
@@ -53,8 +42,13 @@ typedef struct //wasn't there
 	Uint8 tremolo_interpolation_counter;
 	Sint16 curr_tremolo;
 	
-	Uint32 fb1, fb2, env_output;
-	Uint32 current_modulation;
+	CydFilter flts[CYD_NUMBER_OF_FILTER_MODULES];
+	
+	Uint32 prev;
+	
+	Uint64 scale_freq;
+	
+	Uint32 env_output;
 	Uint8 attack_start;
 	
     Uint8 sync_source, ring_mod; // 0xff == self, 0xfb-0xfe -- other ops
@@ -69,6 +63,7 @@ typedef struct //wasn't there
     Uint16 cutoff;
     Uint8 resonance; //was 0-3, now 0-15
     Uint8 flttype;
+	Uint8 flt_slope;
 	
 	Uint8 base_note;
 	Sint8 finetune;
@@ -76,12 +71,7 @@ typedef struct //wasn't there
 	Uint8 ssg_eg_type; //0-7
 	
 	Sint8 detune; //-3..3, 16 * finetune
-	Uint8 coarse_detune; //OPM DT2, 0..3
-	
-#ifdef STEREOOUTPUT
-	Uint8 panning; // 0-255, 128 = center
-	Sint32 gain_left, gain_right; //panning will work only for the operator that actually produces any sound and is not modulating other operator.
-#endif
+	Uint8 coarse_detune; //OPM DT2, 0..3, 48 * finetune
 } CydFmOp;
 
 typedef struct
@@ -123,7 +113,8 @@ typedef struct
 	Sint16 fm_vib;
 	
 	Uint8 alg; //4-op algorithm
-	Sint64 four_op_output;
+	
+	Uint8 fm_4op_vol;
 } CydFm;
 
 #include "cyd.h"

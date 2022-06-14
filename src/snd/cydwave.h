@@ -36,7 +36,7 @@ typedef struct
 	bool playing;
 	
 	bool use_start_track_status_offset, use_end_track_status_offset;
-	Uint16 start_offset, end_offset; //counting from set in wavegen sample start and end respectively, 000-FFF range
+	Uint16 start_offset, end_offset; //counting from set in wavegen sample start and end respectively, 0000-FFFF range
 	Uint64 start_point_track_status, end_point_track_status; //for movable start and end positions, final values scaled from values above. These are compared with accumulator.
 	
 	CydWaveAcc acc; // probably overkill

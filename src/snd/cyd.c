@@ -104,6 +104,15 @@ static void cyd_init_channel(CydEngine *cyd, CydChannel *chn)
 		chn->subosc[s].reg4 = chn->subosc[s].reg5 = chn->subosc[s].reg9 = 1;
 	}
 	
+	if(chn->fm.flags & CYD_FM_ENABLE_4OP)
+	{
+		for (int i = 0; i < CYD_FM_NUM_OPS; ++i)
+		{
+			chn->fm.ops[i].osc.random = RANDOM_SEED;
+			chn->fm.ops[i].pw = 0x400;
+		}
+	}
+	
 #ifndef CYD_DISABLE_FM
 	cydfm_init(&chn->fm);
 #endif
@@ -122,31 +131,20 @@ static void cyd_init_log_tables(CydEngine *cyd)
 	for(int i = 0; i < EXP_LUT_SIZE; ++i)
 	{
 		cyd->lookup_table_exponential[i] = (Uint16)(pow(EXPONENT, map_double(i, 0, EXP_LUT_SIZE, -2, 2)) * 65535.0 / e_pow_2);
-		
-		//debug("%d", cyd->lookup_table_exponential[i]);
 	}
 	
 	for(int i = 1; i < EXP_LUT_SIZE - 1; ++i)
 	{
-		cyd->lookup_table_exponential[i] = map_Arduino(cyd->lookup_table_exponential[i], cyd->lookup_table_exponential[0], cyd->lookup_table_exponential[EXP_LUT_SIZE - 1], 1, 65535); //TODO: get rid of clicks, add scaling to sustain level and release
+		cyd->lookup_table_exponential[i] = map_Arduino(cyd->lookup_table_exponential[i], cyd->lookup_table_exponential[0], cyd->lookup_table_exponential[EXP_LUT_SIZE - 1], 1, 65535);
 	}
 	
 	cyd->lookup_table_exponential[0] = 0;
 	cyd->lookup_table_exponential[EXP_LUT_SIZE - 1] = 65535;
 	
-	/*for(int i = 1; i < EXP_LUT_SIZE; ++i)
-	{
-		cyd->lookup_table_exponential[i] -= cyd->lookup_table_exponential[0]; //so our "tail" starts at 0 level
-	}
-	
-	cyd->lookup_table_exponential[0] = 0;*/
-	
 	for (int i = 0; i < LUT_SIZE; ++i)
 	{
 		cyd->lookup_table[i] = i * (i/2) / ((LUT_SIZE*LUT_SIZE / 65536)/2);
 	}
-	
-	//debug("%d", cyd->lookup_table[1023]);
 	
 #ifndef CYD_DISABLE_BUZZ
 	for (int i = 0; i < YM_LUT_SIZE; ++i)
@@ -293,30 +291,20 @@ void cyd_init(CydEngine *cyd, Uint32 sample_rate, int channels)
 	
 	cyd_init_log_tables(cyd);
 	
-	createCombinedWF(cyd->PulseSaw_8580,1.4,1.9,0.68); //wasn't there
-	createCombinedWF(cyd->PulseTriSaw_8580,0.8,2.5,0.64); 
-	createCombinedWF(cyd->TriSaw_8580,0.8,2.4,0.64); 
-	
-	//debug("cydfx init");
-	//SDL_Delay(5000);
+	createCombinedWF(cyd->PulseSaw_8580, 1.4, 1.9, 0.68); //wasn't there
+	createCombinedWF(cyd->PulseTriSaw_8580, 0.8, 2.5, 0.64); 
+	createCombinedWF(cyd->TriSaw_8580, 0.8, 2.4, 0.64); 
 	
 	for (int i = 0; i < CYD_MAX_FX_CHANNELS; ++i)
+	{
 		cydfx_init(&cyd->fx[i], sample_rate);
+	}
 #ifndef CYD_DISABLE_WAVETABLE
-	
-	//debug("cydfx inited");
-	//SDL_Delay(3000);
 
 	cyd->wavetable_entries = calloc(sizeof(cyd->wavetable_entries[0]), CYD_WAVE_MAX_ENTRIES);
 	
-	//debug("waves inited");
-	//SDL_Delay(3000);
-	
 	cyd_reset_wavetable(cyd);
 #endif
-	
-	//debug("waves reset");
-	//SDL_Delay(3000);
 	
 	cyd_reserve_channels(cyd, channels);
 	
@@ -326,6 +314,15 @@ void cyd_init(CydEngine *cyd, Uint32 sample_rate, int channels)
 		cyd->channel[i].env_ksl_mult = 1.0;
 		cyd->channel[i].fm_env_ksl_mult = 1.0;
 		cyd->channel[i].fm.fm_vol_ksl_mult = 1.0;
+		
+		if(cyd->channel[i].fm.flags & CYD_FM_ENABLE_4OP)
+		{
+			for (int j = 0; j < CYD_FM_NUM_OPS; ++j)
+			{
+				cyd->channel[i].fm.ops[j].vol_ksl_mult = 1.0;
+				cyd->channel[i].fm.ops[j].env_ksl_mult = 1.0;
+			}
+		}
 	}
 }
 
@@ -344,20 +341,16 @@ void cyd_reserve_channels(CydEngine *cyd, int channels)
 	cyd->n_channels = channels;
 	
 	if (cyd->n_channels > CYD_MAX_CHANNELS)
+	{
 		cyd->n_channels = CYD_MAX_CHANNELS;
+	}
 	
 	if (cyd->channel)
+	{
 		free(cyd->channel);
-	
-	//SDL_Delay(3000);
-	//debug("cyd reserve 64 * %d bytes", sizeof(*cyd->channel));
-	//SDL_Delay(3000);
+	}
 	
 	cyd->channel = calloc(sizeof(*cyd->channel), CYD_MAX_CHANNELS);
-	
-	//debug("cyd reserved 64 * %d bytes", sizeof(*cyd->channel));
-	//SDL_Delay(3000);
-	
 	cyd_reset(cyd);
 	
 	cyd_lock(cyd, 0);
@@ -456,16 +449,17 @@ Uint32 cyd_cycle_adsr(const CydEngine *eng, Uint32 flags, Uint32 ym_env_shape, C
 				{
 					adsr->env_speed = (int)((double)envspd(eng, adsr->d) * env_ksl_mult);
 				}
-				
-				//debug("decay spd %d", adsr->env_speed);
 			}
 			
 			break;
 			
 			case DECAY:
-			
+
 				if (adsr->envelope > ((Uint32)adsr->s << 19) + adsr->env_speed)
+				{
 					adsr->envelope -= adsr->env_speed;
+				}
+				
 				else
 				{
 					adsr->envelope = (Uint32)adsr->s << 19;
@@ -480,25 +474,23 @@ Uint32 cyd_cycle_adsr(const CydEngine *eng, Uint32 flags, Uint32 ym_env_shape, C
 					{
 						adsr->env_speed = (int)((double)envspd(eng, adsr->r) * env_ksl_mult);
 					}
-					
-					//adsr->env_speed = (int)((double)envspd(eng, adsr->r) * env_ksl_mult);
 				}
 			
 			break;
 			
 			case RELEASE:
-			if (adsr->envelope > adsr->env_speed)
-			{
-				adsr->envelope -= adsr->env_speed;
-			}
-			
-			else 
-			{
-				adsr->envelope_state = DONE;
-				if ((flags & (CYD_CHN_ENABLE_WAVE|CYD_CHN_WAVE_OVERRIDE_ENV)) != (CYD_CHN_ENABLE_WAVE|CYD_CHN_WAVE_OVERRIDE_ENV)) flags &= ~CYD_CHN_ENABLE_GATE;
-				adsr->envelope = 0;
-			}
-			break;
+				if (adsr->envelope > adsr->env_speed)
+				{
+					adsr->envelope -= adsr->env_speed;
+				}
+				
+				else 
+				{
+					adsr->envelope_state = DONE;
+					if ((flags & (CYD_CHN_ENABLE_WAVE|CYD_CHN_WAVE_OVERRIDE_ENV)) != (CYD_CHN_ENABLE_WAVE|CYD_CHN_WAVE_OVERRIDE_ENV)) flags &= ~CYD_CHN_ENABLE_GATE;
+					adsr->envelope = 0;
+				}
+				break;
 		}
 #endif
 	}
@@ -572,7 +564,6 @@ Uint32 cyd_cycle_adsr(const CydEngine *eng, Uint32 flags, Uint32 ym_env_shape, C
 	return flags;
 }
 
-
 #ifndef CYD_DISABLE_LFSR
 static void run_lfsrs(CydChannel *chn)
 {
@@ -582,9 +573,14 @@ static void run_lfsrs(CydChannel *chn)
 		shift_lfsr(&chn->subosc[s].reg5, 5, 3);
 		
 		if (chn->lfsr_type & 8)
+		{
 			shift_lfsr(&chn->subosc[s].reg9, 9, 5);
+		}
+		
 		else
+		{
 			shift_lfsr(&chn->subosc[s].reg9, 17, 14);
+		}
 	}
 }
 #endif
@@ -603,7 +599,10 @@ static void cyd_cycle_channel(CydEngine *cyd, CydChannel *chn)
 	}
 	
 #ifndef CYD_DISABLE_FM
-	if (chn->flags & CYD_CHN_ENABLE_FM) cydfm_cycle(cyd, &chn->fm);
+	if (chn->flags & CYD_CHN_ENABLE_FM)
+	{
+		cydfm_cycle(cyd, &chn->fm);
+	}
 #endif
 	// cycle random lfsr
 }
@@ -625,6 +624,21 @@ static void cyd_sync_channel(CydEngine *cyd, CydChannel *chn)
 			chn->subosc[i].lfsr_ctr = 0;
 			
 			chn->subosc[i].noise_accumulator = 0;
+		}
+		
+		if(chn->fm.flags & CYD_FM_ENABLE_4OP)
+		{
+			for(int i = 0; i < CYD_FM_NUM_OPS; ++i)
+			{
+				if((chn->fm.ops[i].flags & CYD_FM_OP_ENABLE_SYNC) && cyd->channel[chn->fm.ops[i].sync_source].sync_bit)
+				{
+					chn->fm.ops[i].osc.accumulator = 0;
+					chn->fm.ops[i].osc.noise_accumulator = 0;
+					chn->fm.ops[i].osc.wave.acc = 0;
+					chn->fm.ops[i].osc.wave.direction = 0;
+					chn->fm.ops[i].osc.random = RANDOM_SEED;
+				}
+			}
 		}
 	}
 }
@@ -653,10 +667,7 @@ static void cyd_advance_oscillators(CydEngine *cyd, CydChannel *chn)
 		
 		if(chn->flags & CYD_CHN_ENABLE_FIXED_NOISE_PITCH)
 		{
-			if(chn->subosc[0].noise_accumulator & ACC_LENGTH)
-			{
-				chn->subosc[s].noise_accumulator = 0;
-			}
+			chn->subosc[s].noise_accumulator &= ACC_LENGTH - 1;
 		}
 			
 		chn->subosc[s].accumulator &= ACC_LENGTH - 1;
@@ -668,7 +679,7 @@ static void cyd_advance_oscillators(CydEngine *cyd, CydChannel *chn)
 		
 		if(chn->flags & CYD_CHN_ENABLE_FIXED_NOISE_PITCH)
 		{
-			if ((prev_noise_acc & (ACC_LENGTH/32)) != (chn->subosc[s].noise_accumulator & (ACC_LENGTH/32)))
+			if ((prev_noise_acc & (ACC_LENGTH / 32)) != (chn->subosc[s].noise_accumulator & (ACC_LENGTH / 32)))
 			{
 				if (chn->flags & CYD_CHN_ENABLE_METAL)
 				{
@@ -686,7 +697,7 @@ static void cyd_advance_oscillators(CydEngine *cyd, CydChannel *chn)
 		
 		else
 		{
-			if ((prev_acc & (ACC_LENGTH/32)) != (chn->subosc[s].accumulator & (ACC_LENGTH/32)))
+			if ((prev_acc & (ACC_LENGTH / 32)) != (chn->subosc[s].accumulator & (ACC_LENGTH / 32)))
 			{
 				if (chn->flags & CYD_CHN_ENABLE_METAL)
 				{
@@ -749,6 +760,377 @@ static void cyd_advance_oscillators(CydEngine *cyd, CydChannel *chn)
 	}
 }
 
+const static Uint32 fbtab1[] = { 0, 64, 32, 16, 8, 4, 2, 1 };
+
+static Sint32 cyd_output_fm_ops(CydEngine *cyd, CydChannel *chn, int chan_num, /*channel number*/ Sint32* s /*array of channel outputs*/)
+{
+	Sint32 ovr = 0;
+	Sint32 o[CYD_FM_NUM_OPS];
+	Sint32 out = 0;
+	
+	for(int i = 0; i < CYD_FM_NUM_OPS; ++i)
+	{
+		ovr = 0;
+		Uint32 acc, noise_acc, wave_acc;
+		
+		if((chn->fm.ops[i].flags & CYD_FM_OP_ENABLE_VOLUME_KEY_SCALING) || (chn->fm.ops[i].flags & CYD_FM_OP_ENABLE_ENVELOPE_KEY_SCALING))
+		{
+			Sint16 vol_ksl_level_final = (chn->fm.ops[i].flags & CYD_FM_OP_ENABLE_VOLUME_KEY_SCALING) ? chn->fm.ops[i].vol_ksl_level : -1;
+			
+			chn->fm.ops[i].vol_ksl_mult = (vol_ksl_level_final == -1) ? 1.0 : (pow(((Uint64)get_freq((chn->fm.ops[i].base_note << 8) + chn->fm.ops[i].finetune + chn->fm.ops[i].detune * 8 + chn->fm.ops[i].coarse_detune * 128) * (Uint64)(ACC_LENGTH) / (Uint64)64 / (Uint64)cyd->sample_rate + 1.0) / (chn->fm.ops[i].osc.frequency + 1.0), (vol_ksl_level_final == 0 ? 0 : (vol_ksl_level_final / 127.0))));
+			//chn->fm.ops[i].vol_ksl_mult = (vol_ksl_level_final == -1) ? 1.0 : (pow((get_freq((chn->fm.ops[i].base_note << 8) + chn->fm.ops[i].finetune + chn->fm.ops[i].detune * 8 + chn->fm.ops[i].coarse_detune * 128) + 1.0) / (get_freq(chn->fm.ops[i].freq_for_ksl) + 1.0), (vol_ksl_level_final == 0 ? 0 : (vol_ksl_level_final / 127.0))));
+			
+			Sint16 env_ksl_level_final = (chn->fm.ops[i].flags & CYD_FM_OP_ENABLE_ENVELOPE_KEY_SCALING) ? chn->fm.ops[i].env_ksl_level : -1;
+			
+			chn->fm.ops[i].env_ksl_mult = (env_ksl_level_final == -1) ? 1.0 : (pow(((Uint64)get_freq((chn->fm.ops[i].base_note << 8) + chn->fm.ops[i].finetune + chn->fm.ops[i].detune * 8 + chn->fm.ops[i].coarse_detune * 128) * (Uint64)(ACC_LENGTH) / (Uint64)64 / (Uint64)cyd->sample_rate + 1.0) / (chn->fm.ops[i].osc.frequency + 1.0), (env_ksl_level_final == 0 ? 0 : (env_ksl_level_final / 127.0))));
+			//chn->fm.ops[i].env_ksl_mult = (env_ksl_level_final == -1) ? 1.0 : (pow((get_freq((chn->fm.ops[i].base_note << 8) + chn->fm.ops[i].finetune + chn->fm.ops[i].detune * 8 + chn->fm.ops[i].coarse_detune * 128) + 1.0) / (get_freq(chn->fm.ops[i].freq_for_ksl) + 1.0), (env_ksl_level_final == 0 ? 0 : (env_ksl_level_final / 127.0))));
+			chn->fm.ops[i].env_ksl_mult = 1.0 / chn->fm.ops[i].env_ksl_mult;
+		}
+		
+		#define MODULATOR_MAX 1024
+		if (chn->fm.ops[i].feedback > 0)
+		{
+			acc = ((Uint64)chn->fm.ops[i].osc.accumulator + chn->fm.ops[i].prev * 2048 / fbtab1[chn->fm.ops[i].feedback]) & (ACC_LENGTH - 1);
+			noise_acc = ((Uint64)chn->fm.ops[i].osc.noise_accumulator + chn->fm.ops[i].prev * 2048 / fbtab1[chn->fm.ops[i].feedback]) & (ACC_LENGTH - 1);
+			
+			if ((chn->fm.ops[i].flags & CYD_FM_OP_ENABLE_WAVE) && chn->fm.ops[i].wave_entry) 
+			{
+				//wave_acc = ((Uint64)chn->fm.ops[i].osc.wave.acc + chn->fm.ops[i].prev * 2048 / fbtab1[chn->fm.ops[i].feedback]) & (ACC_LENGTH - 1); //this worked
+				wave_acc = ((Uint64)chn->fm.ops[i].osc.wave.acc + (chn->fm.ops[i].prev + (32768)) * 8 * (chn->fm.ops[i].wave_entry->loop_end - chn->fm.ops[i].wave_entry->loop_begin) / fbtab1[chn->fm.ops[i].feedback]) & (ACC_LENGTH - 1);
+			}
+		}
+		
+		else
+		{
+			acc = chn->fm.ops[i].osc.accumulator;
+			noise_acc = chn->fm.ops[i].osc.noise_accumulator;
+			
+			if ((chn->fm.ops[i].flags & CYD_FM_OP_ENABLE_WAVE) && chn->fm.ops[i].wave_entry) 
+			{
+				wave_acc = chn->fm.ops[i].osc.wave.acc;
+			}
+		}
+		
+		if (chn->fm.ops[i].osc.frequency != 0)
+		{
+			Uint32 accumulator = acc;
+			ovr += cyd_osc(chn->fm.ops[i].flags & ~(CYD_CHN_ENABLE_LFSR), accumulator, chn->fm.ops[i].pw, chn->fm.ops[i].osc.random, 0, chn->fm.ops[i].mixmode, cyd) - WAVE_AMP / 2; //ovr += cyd_osc(chn->flags, accumulator % ACC_LENGTH, chn->pw, chn->subosc[s].random, chn->subosc[s].lfsr_acc) - WAVE_AMP / 2;
+		}
+		
+		Uint32 prev_noise_acc;
+		
+		Uint32 prev_acc = acc;
+		chn->fm.ops[i].osc.accumulator += (Uint32)chn->fm.ops[i].osc.frequency;
+		
+		if(chn->fm.ops[i].flags & CYD_FM_OP_ENABLE_FIXED_NOISE_PITCH)
+		{
+			prev_noise_acc = chn->fm.ops[i].osc.noise_accumulator;
+			chn->fm.ops[i].osc.noise_accumulator += (Uint32)chn->fm.ops[i].osc.noise_frequency;
+		
+			chn->fm.ops[i].osc.noise_accumulator &= ACC_LENGTH - 1;
+		}
+			
+		chn->fm.ops[i].osc.accumulator &= ACC_LENGTH - 1;
+		
+		if(chn->fm.ops[i].flags & CYD_FM_OP_ENABLE_FIXED_NOISE_PITCH)
+		{
+			chn->fm.ops[i].osc.noise_accumulator &= ACC_LENGTH - 1;
+		}
+		
+		if(chn->fm.ops[i].flags & CYD_FM_OP_ENABLE_FIXED_NOISE_PITCH)
+		{
+			if ((prev_noise_acc & (ACC_LENGTH / 32)) != (chn->fm.ops[i].osc.noise_accumulator & (ACC_LENGTH / 32)))
+			{
+				if (chn->fm.ops[i].flags & CYD_FM_OP_ENABLE_METAL)
+				{
+					shift_lfsr(&chn->fm.ops[i].osc.random, 0xe, 8);
+					chn->fm.ops[i].osc.random &= (1 << (0xe + 1)) - 1;
+				}
+				
+				else
+				{
+					shift_lfsr(&chn->fm.ops[i].osc.random, 22, 17);
+					chn->fm.ops[i].osc.random &= (1 << (22 + 1)) - 1;
+				}
+			}
+		}
+		
+		else
+		{
+			if ((prev_acc & (ACC_LENGTH / 32)) != (chn->fm.ops[i].osc.accumulator & (ACC_LENGTH / 32)))
+			{
+				if (chn->fm.ops[i].flags & CYD_FM_OP_ENABLE_METAL)
+				{
+					shift_lfsr(&chn->fm.ops[i].osc.random, 0xe, 8);
+					chn->fm.ops[i].osc.random &= (1 << (0xe + 1)) - 1;
+				}
+				
+				else
+				{
+					shift_lfsr(&chn->fm.ops[i].osc.random, 22, 17);
+					chn->fm.ops[i].osc.random &= (1 << (22 + 1)) - 1;
+				}
+			}
+		}
+		
+		if ((chn->fm.ops[i].flags & CYD_FM_OP_ENABLE_WAVE) && chn->fm.ops[i].wave_entry->data != NULL && !(chn->fm.ops[i].flags & CYD_FM_OP_WAVE_OVERRIDE_ENV))
+		{
+			if (chn->fm.ops[i].osc.wave.playing && chn->fm.ops[i].osc.wave.frequency != 0)
+			{
+				cyd_wave_cycle(&chn->fm.ops[i].osc.wave, chn->fm.ops[i].wave_entry); //this works
+				
+				ovr += cyd_wave_get_sample(&chn->fm.ops[i].osc.wave, chn->fm.ops[i].wave_entry, wave_acc % ((chn->fm.ops[i].wave_entry->loop_end - chn->fm.ops[i].wave_entry->loop_begin) * WAVETABLE_RESOLUTION)); //this works
+				//chn->fm.ops[i].osc.wave.acc &= ACC_LENGTH - 1;
+				
+				//CydWaveAcc accumulator = chn->fm.ops[i].osc.wave.acc;
+				//ovr += cyd_wave_get_sample(&chn->fm.ops[i].osc.wave, chn->fm.ops[i].wave_entry, wave_acc);
+				
+			}
+		}
+		
+		chn->fm.ops[i].flags = cyd_cycle_adsr(cyd, chn->fm.ops[i].flags, 0, &chn->fm.ops[i].adsr, chn->fm.ops[i].env_ksl_mult);
+	
+		if (chn->fm.ops[i].flags & CYD_FM_OP_ENABLE_WAVE) 
+		{
+			cyd_wave_cycle(&chn->fm.ops[i].osc.wave, chn->fm.ops[i].wave_entry);
+		}
+		
+		o[i] = (Sint32)cyd_env_output(cyd, chn->fm.ops[i].flags & ~(CYD_CHN_ENABLE_AY8930_BUZZ_MODE | CYD_CHN_ENABLE_YM_ENV), &chn->fm.ops[i].adsr, ovr) * (chn->fm.ops[i].curr_tremolo + 512) / 512 * ((chn->fm.ops[i].flags & CYD_FM_OP_ENABLE_VOLUME_KEY_SCALING) ? chn->fm.ops[i].vol_ksl_mult : 1);
+		
+		if (chn->fm.ops[i].flags & CYD_FM_OP_ENABLE_RING_MODULATION)
+		{
+			o[i] = cyd_env_output(cyd, chn->fm.ops[i].flags & ~(CYD_CHN_ENABLE_AY8930_BUZZ_MODE | CYD_CHN_ENABLE_YM_ENV), &chn->fm.ops[i].adsr, ovr * (s[chn->fm.ops[i].ring_mod] + (WAVE_AMP / 2)) / WAVE_AMP) * (chn->fm.ops[i].curr_tremolo + 512) / 512 * ((chn->fm.ops[i].flags & CYD_FM_OP_ENABLE_VOLUME_KEY_SCALING) ? chn->fm.ops[i].vol_ksl_mult : 1);
+		}
+		
+		if(chn->fm.ops[i].flags & CYD_FM_OP_ENABLE_EXPONENTIAL_VOLUME)
+		{
+			o[i] = (Sint32)((double)o[i] * (double)cyd->lookup_table_exponential[chn->fm.ops[i].adsr.volume * 32] / (double)cyd->lookup_table_exponential[4096]);
+		}
+		
+		if (chn->fm.ops[i].flags & CYD_FM_OP_ENABLE_FILTER) 
+		{
+			for(int j = 0; j < two_pow(2, chn->fm.ops[i].flt_slope); ++j)
+			{
+				cydflt_cycle(&chn->fm.ops[i].flts[j], o[i]);
+			
+				switch (chn->fm.ops[i].flttype)
+				{
+					case FLT_BP: o[i] = cydflt_output_bp(&chn->fm.ops[i].flts[j]); break;
+					default: case FLT_LP: o[i] = cydflt_output_lp(&chn->fm.ops[i].flts[j]); break;
+					case FLT_HP: o[i] = cydflt_output_hp(&chn->fm.ops[i].flts[j]); break; //was only up to there
+					
+					case FLT_LH: o[i] = (cydflt_output_lp(&chn->fm.ops[i].flts[j]) + cydflt_output_hp(&chn->fm.ops[i].flts[j])) / 2; break;
+					case FLT_HB: o[i] = (cydflt_output_hp(&chn->fm.ops[i].flts[j]) + cydflt_output_bp(&chn->fm.ops[i].flts[j])) / 2; break;
+					case FLT_LB: o[i] = (cydflt_output_lp(&chn->fm.ops[i].flts[j]) + cydflt_output_bp(&chn->fm.ops[i].flts[j])) / 2; break;
+					case FLT_ALL: o[i] = (cydflt_output_lp(&chn->fm.ops[i].flts[j]) + cydflt_output_bp(&chn->fm.ops[i].flts[j]) + cydflt_output_hp(&chn->fm.ops[i].flts[j])) / 3; break;
+				}
+			}
+		}
+		
+		chn->fm.ops[i].prev = o[i];
+	}
+	
+	switch(chn->fm.alg)
+	{
+		case 1:
+		default:
+		{
+			out = o[0];
+			
+			chn->fm.ops[2].osc.accumulator += (Sint64)o[3] * (Sint64)128 * (Sint64)48000 / (Sint64)cyd->sample_rate * (Sint64)chn->fm.ops[3].osc.frequency / (Sint64)chn->fm.ops[3].scale_freq;
+			chn->fm.ops[2].osc.noise_accumulator += (Sint64)o[3] * (Sint64)128 * (Sint64)48000 / (Sint64)cyd->sample_rate * (Sint64)chn->fm.ops[3].osc.frequency / (Sint64)chn->fm.ops[3].scale_freq;
+			chn->fm.ops[2].osc.wave.acc += (Sint64)o[3] * (Sint64)32 * (Sint64)48000 / (Sint64)cyd->sample_rate * (Sint64)chn->fm.ops[3].osc.frequency / (Sint64)chn->fm.ops[3].scale_freq;
+			
+			chn->fm.ops[1].osc.accumulator += (Sint64)o[2] * (Sint64)128 * (Sint64)48000 / (Sint64)cyd->sample_rate * (Sint64)chn->fm.ops[2].osc.frequency / (Sint64)chn->fm.ops[2].scale_freq;
+			chn->fm.ops[1].osc.noise_accumulator += (Sint64)o[2] * (Sint64)128 * (Sint64)48000 / (Sint64)cyd->sample_rate * (Sint64)chn->fm.ops[2].osc.frequency / (Sint64)chn->fm.ops[2].scale_freq;
+			chn->fm.ops[1].osc.wave.acc += (Sint64)o[2] * (Sint64)32 * (Sint64)48000 / (Sint64)cyd->sample_rate * (Sint64)chn->fm.ops[2].osc.frequency / (Sint64)chn->fm.ops[2].scale_freq;
+			
+			chn->fm.ops[0].osc.accumulator += (Sint64)o[1] * (Sint64)128 * (Sint64)48000 / (Sint64)cyd->sample_rate * (Sint64)chn->fm.ops[1].osc.frequency / (Sint64)chn->fm.ops[1].scale_freq;
+			chn->fm.ops[0].osc.noise_accumulator += (Sint64)o[1] * (Sint64)128 * (Sint64)48000 / (Sint64)cyd->sample_rate * (Sint64)chn->fm.ops[1].osc.frequency / (Sint64)chn->fm.ops[1].scale_freq;
+			chn->fm.ops[0].osc.wave.acc += (Sint64)o[1] * (Sint64)32 * (Sint64)48000 / (Sint64)cyd->sample_rate * (Sint64)chn->fm.ops[1].osc.frequency / (Sint64)chn->fm.ops[1].scale_freq;
+			
+			/*chn->fm.ops[0].osc.accumulator += (Sint64)((double)o[1] * (double)64 * (double)48000 / (double)cyd->sample_rate * (double)chn->fm.ops[1].osc.frequency / (double)chn->fm.ops[1].scale_freq);
+			chn->fm.ops[0].osc.noise_accumulator += (Sint64)((double)o[1] * (double)64 * (double)48000 / (double)cyd->sample_rate * (double)chn->fm.ops[1].osc.frequency / (double)chn->fm.ops[1].scale_freq);
+			chn->fm.ops[0].osc.wave.acc += (Sint64)((double)o[1] * (double)16 * (double)48000 / (double)cyd->sample_rate * (double)chn->fm.ops[1].osc.frequency / (double)chn->fm.ops[1].scale_freq);*/
+			
+			break;
+		}
+		
+		case 2:
+		{
+			out = o[0];
+			
+			chn->fm.ops[1].osc.accumulator += (Sint64)o[2] * (Sint64)128 * (Sint64)48000 / (Sint64)cyd->sample_rate * (Sint64)chn->fm.ops[2].osc.frequency / (Sint64)chn->fm.ops[2].scale_freq + (Sint64)o[3] * (Sint64)128 * (Sint64)48000 / (Sint64)cyd->sample_rate * (Sint64)chn->fm.ops[3].osc.frequency / (Sint64)chn->fm.ops[3].scale_freq;
+			chn->fm.ops[1].osc.noise_accumulator += (Sint64)o[2] * (Sint64)128 * (Sint64)48000 / (Sint64)cyd->sample_rate * (Sint64)chn->fm.ops[2].osc.frequency / (Sint64)chn->fm.ops[2].scale_freq + (Sint64)o[3] * (Sint64)128 * (Sint64)48000 / (Sint64)cyd->sample_rate * (Sint64)chn->fm.ops[3].osc.frequency / (Sint64)chn->fm.ops[3].scale_freq;
+			chn->fm.ops[1].osc.wave.acc += (Sint64)o[2] * (Sint64)32 * (Sint64)48000 / (Sint64)cyd->sample_rate * (Sint64)chn->fm.ops[2].osc.frequency / (Sint64)chn->fm.ops[2].scale_freq + (Sint64)o[3] * (Sint64)32 * (Sint64)48000 / (Sint64)cyd->sample_rate * (Sint64)chn->fm.ops[3].osc.frequency / (Sint64)chn->fm.ops[3].scale_freq;
+			
+			chn->fm.ops[0].osc.accumulator += (Sint64)o[1] * (Sint64)128 * (Sint64)48000 / (Sint64)cyd->sample_rate * (Sint64)chn->fm.ops[1].osc.frequency / (Sint64)chn->fm.ops[1].scale_freq;
+			chn->fm.ops[0].osc.noise_accumulator += (Sint64)o[1] * (Sint64)128 * (Sint64)48000 / (Sint64)cyd->sample_rate * (Sint64)chn->fm.ops[1].osc.frequency / (Sint64)chn->fm.ops[1].scale_freq;
+			chn->fm.ops[0].osc.wave.acc += (Sint64)o[1] * (Sint64)32 * (Sint64)48000 / (Sint64)cyd->sample_rate * (Sint64)chn->fm.ops[1].osc.frequency / (Sint64)chn->fm.ops[1].scale_freq;
+			
+			break;
+		}
+		
+		case 3:
+		{
+			out = o[0];
+			
+			chn->fm.ops[2].osc.accumulator += (Sint64)o[3] * (Sint64)128 * (Sint64)48000 / (Sint64)cyd->sample_rate * (Sint64)chn->fm.ops[3].osc.frequency / (Sint64)chn->fm.ops[3].scale_freq;
+			chn->fm.ops[2].osc.noise_accumulator += (Sint64)o[3] * (Sint64)128 * (Sint64)48000 / (Sint64)cyd->sample_rate * (Sint64)chn->fm.ops[3].osc.frequency / (Sint64)chn->fm.ops[3].scale_freq;
+			chn->fm.ops[2].osc.wave.acc += (Sint64)o[3] * (Sint64)32 * (Sint64)48000 / (Sint64)cyd->sample_rate * (Sint64)chn->fm.ops[3].osc.frequency / (Sint64)chn->fm.ops[3].scale_freq;
+			
+			chn->fm.ops[0].osc.accumulator += (Sint64)o[1] * (Sint64)128 * (Sint64)48000 / (Sint64)cyd->sample_rate * (Sint64)chn->fm.ops[1].osc.frequency / (Sint64)chn->fm.ops[1].scale_freq + (Sint64)o[3] * (Sint64)128 * (Sint64)48000 / (Sint64)cyd->sample_rate * (Sint64)chn->fm.ops[3].osc.frequency / (Sint64)chn->fm.ops[3].scale_freq;
+			chn->fm.ops[0].osc.noise_accumulator += (Sint64)o[1] * (Sint64)128 * (Sint64)48000 / (Sint64)cyd->sample_rate * (Sint64)chn->fm.ops[1].osc.frequency / (Sint64)chn->fm.ops[1].scale_freq + (Sint64)o[3] * (Sint64)128 * (Sint64)48000 / (Sint64)cyd->sample_rate * (Sint64)chn->fm.ops[3].osc.frequency / (Sint64)chn->fm.ops[3].scale_freq;
+			chn->fm.ops[0].osc.wave.acc += (Sint64)o[1] * (Sint64)32 * (Sint64)48000 / (Sint64)cyd->sample_rate * (Sint64)chn->fm.ops[1].osc.frequency / (Sint64)chn->fm.ops[1].scale_freq + (Sint64)o[3] * (Sint64)32 * (Sint64)48000 / (Sint64)cyd->sample_rate * (Sint64)chn->fm.ops[3].osc.frequency / (Sint64)chn->fm.ops[3].scale_freq;
+			
+			break;
+		}
+		
+		case 4:
+		{
+			out = o[0] + o[1];
+			
+			chn->fm.ops[2].osc.accumulator += (Sint64)o[3] * (Sint64)128 * (Sint64)48000 / (Sint64)cyd->sample_rate * (Sint64)chn->fm.ops[3].osc.frequency / (Sint64)chn->fm.ops[3].scale_freq;
+			chn->fm.ops[2].osc.noise_accumulator += (Sint64)o[3] * (Sint64)128 * (Sint64)48000 / (Sint64)cyd->sample_rate * (Sint64)chn->fm.ops[3].osc.frequency / (Sint64)chn->fm.ops[3].scale_freq;
+			chn->fm.ops[2].osc.wave.acc += (Sint64)o[3] * (Sint64)32 * (Sint64)48000 / (Sint64)cyd->sample_rate * (Sint64)chn->fm.ops[3].osc.frequency / (Sint64)chn->fm.ops[3].scale_freq;
+			
+			chn->fm.ops[1].osc.accumulator += (Sint64)o[2] * (Sint64)128 * (Sint64)48000 / (Sint64)cyd->sample_rate * (Sint64)chn->fm.ops[2].osc.frequency / (Sint64)chn->fm.ops[2].scale_freq;
+			chn->fm.ops[1].osc.noise_accumulator += (Sint64)o[2] * (Sint64)128 * (Sint64)48000 / (Sint64)cyd->sample_rate * (Sint64)chn->fm.ops[2].osc.frequency / (Sint64)chn->fm.ops[2].scale_freq;
+			chn->fm.ops[1].osc.wave.acc += (Sint64)o[2] * (Sint64)32 * (Sint64)48000 / (Sint64)cyd->sample_rate * (Sint64)chn->fm.ops[2].osc.frequency / (Sint64)chn->fm.ops[2].scale_freq;
+			
+			break;
+		}
+		
+		case 5:
+		{
+			out = o[0] + o[1];
+			
+			chn->fm.ops[2].osc.accumulator += (Sint64)o[3] * (Sint64)128 * (Sint64)48000 / (Sint64)cyd->sample_rate * (Sint64)chn->fm.ops[3].osc.frequency / (Sint64)chn->fm.ops[3].scale_freq;
+			chn->fm.ops[2].osc.noise_accumulator += (Sint64)o[3] * (Sint64)128 * (Sint64)48000 / (Sint64)cyd->sample_rate * (Sint64)chn->fm.ops[3].osc.frequency / (Sint64)chn->fm.ops[3].scale_freq;
+			chn->fm.ops[2].osc.wave.acc += (Sint64)o[3] * (Sint64)32 * (Sint64)48000 / (Sint64)cyd->sample_rate * (Sint64)chn->fm.ops[3].osc.frequency / (Sint64)chn->fm.ops[3].scale_freq;
+			
+			chn->fm.ops[1].osc.accumulator += (Sint64)o[2] * (Sint64)128 * (Sint64)48000 / (Sint64)cyd->sample_rate * (Sint64)chn->fm.ops[2].osc.frequency / (Sint64)chn->fm.ops[2].scale_freq;
+			chn->fm.ops[1].osc.noise_accumulator += (Sint64)o[2] * (Sint64)128 * (Sint64)48000 / (Sint64)cyd->sample_rate * (Sint64)chn->fm.ops[2].osc.frequency / (Sint64)chn->fm.ops[2].scale_freq;
+			chn->fm.ops[1].osc.wave.acc += (Sint64)o[2] * (Sint64)32 * (Sint64)48000 / (Sint64)cyd->sample_rate * (Sint64)chn->fm.ops[2].osc.frequency / (Sint64)chn->fm.ops[2].scale_freq;
+			
+			chn->fm.ops[0].osc.accumulator += (Sint64)o[2] * (Sint64)128 * (Sint64)48000 / (Sint64)cyd->sample_rate * (Sint64)chn->fm.ops[2].osc.frequency / (Sint64)chn->fm.ops[2].scale_freq;
+			chn->fm.ops[0].osc.noise_accumulator += (Sint64)o[2] * (Sint64)128 * (Sint64)48000 / (Sint64)cyd->sample_rate * (Sint64)chn->fm.ops[2].osc.frequency / (Sint64)chn->fm.ops[2].scale_freq;
+			chn->fm.ops[0].osc.wave.acc += (Sint64)o[2] * (Sint64)32 * (Sint64)48000 / (Sint64)cyd->sample_rate * (Sint64)chn->fm.ops[2].osc.frequency / (Sint64)chn->fm.ops[2].scale_freq;
+			
+			break;
+		}
+		
+		case 6:
+		{
+			out = o[0] + o[2];
+			
+			chn->fm.ops[2].osc.accumulator += (Sint64)o[3] * (Sint64)128 * (Sint64)48000 / (Sint64)cyd->sample_rate * (Sint64)chn->fm.ops[3].osc.frequency / (Sint64)chn->fm.ops[3].scale_freq;
+			chn->fm.ops[2].osc.noise_accumulator += (Sint64)o[3] * (Sint64)128 * (Sint64)48000 / (Sint64)cyd->sample_rate * (Sint64)chn->fm.ops[3].osc.frequency / (Sint64)chn->fm.ops[3].scale_freq;
+			chn->fm.ops[2].osc.wave.acc += (Sint64)o[3] * (Sint64)32 * (Sint64)48000 / (Sint64)cyd->sample_rate * (Sint64)chn->fm.ops[3].osc.frequency / (Sint64)chn->fm.ops[3].scale_freq;
+			
+			chn->fm.ops[0].osc.accumulator += (Sint64)o[1] * (Sint64)128 * (Sint64)48000 / (Sint64)cyd->sample_rate * (Sint64)chn->fm.ops[1].osc.frequency / (Sint64)chn->fm.ops[1].scale_freq;
+			chn->fm.ops[0].osc.noise_accumulator += (Sint64)o[1] * (Sint64)128 * (Sint64)48000 / (Sint64)cyd->sample_rate * (Sint64)chn->fm.ops[1].osc.frequency / (Sint64)chn->fm.ops[1].scale_freq;
+			chn->fm.ops[0].osc.wave.acc += (Sint64)o[1] * (Sint64)32 * (Sint64)48000 / (Sint64)cyd->sample_rate * (Sint64)chn->fm.ops[1].osc.frequency / (Sint64)chn->fm.ops[1].scale_freq;
+			
+			break;
+		}
+		
+		case 7:
+		{
+			out = o[0] + o[1];
+			
+			chn->fm.ops[1].osc.accumulator += (Sint64)o[2] * (Sint64)128 * (Sint64)48000 / (Sint64)cyd->sample_rate * (Sint64)chn->fm.ops[2].osc.frequency / (Sint64)chn->fm.ops[2].scale_freq + (Sint64)o[3] * (Sint64)128 * (Sint64)48000 / (Sint64)cyd->sample_rate * (Sint64)chn->fm.ops[3].osc.frequency / (Sint64)chn->fm.ops[3].scale_freq;
+			chn->fm.ops[1].osc.noise_accumulator += (Sint64)o[2] * (Sint64)128 * (Sint64)48000 / (Sint64)cyd->sample_rate * (Sint64)chn->fm.ops[2].osc.frequency / (Sint64)chn->fm.ops[2].scale_freq + (Sint64)o[3] * (Sint64)128 * (Sint64)48000 / (Sint64)cyd->sample_rate * (Sint64)chn->fm.ops[3].osc.frequency / (Sint64)chn->fm.ops[3].scale_freq;
+			chn->fm.ops[1].osc.wave.acc += (Sint64)o[2] * (Sint64)32 * (Sint64)48000 / (Sint64)cyd->sample_rate * (Sint64)chn->fm.ops[2].osc.frequency / (Sint64)chn->fm.ops[2].scale_freq + (Sint64)o[3] * (Sint64)32 * (Sint64)48000 / (Sint64)cyd->sample_rate * (Sint64)chn->fm.ops[3].osc.frequency / (Sint64)chn->fm.ops[3].scale_freq;
+			
+			break;
+		}
+		
+		case 8:
+		{
+			out = o[0];
+			
+			chn->fm.ops[0].osc.accumulator += (Sint64)o[2] * (Sint64)128 * (Sint64)48000 / (Sint64)cyd->sample_rate * (Sint64)chn->fm.ops[2].osc.frequency / (Sint64)chn->fm.ops[2].scale_freq + (Sint64)o[3] * (Sint64)128 * (Sint64)48000 / (Sint64)cyd->sample_rate * (Sint64)chn->fm.ops[3].osc.frequency / (Sint64)chn->fm.ops[3].scale_freq + (Sint64)o[1] * (Sint64)128 * (Sint64)48000 / (Sint64)cyd->sample_rate * (Sint64)chn->fm.ops[1].osc.frequency / (Sint64)chn->fm.ops[1].scale_freq;
+			chn->fm.ops[0].osc.noise_accumulator += (Sint64)o[2] * (Sint64)128 * (Sint64)48000 / (Sint64)cyd->sample_rate * (Sint64)chn->fm.ops[2].osc.frequency / (Sint64)chn->fm.ops[2].scale_freq + (Sint64)o[3] * (Sint64)128 * (Sint64)48000 / (Sint64)cyd->sample_rate * (Sint64)chn->fm.ops[3].osc.frequency / (Sint64)chn->fm.ops[3].scale_freq + (Sint64)o[1] * (Sint64)128 * (Sint64)48000 / (Sint64)cyd->sample_rate * (Sint64)chn->fm.ops[1].osc.frequency / (Sint64)chn->fm.ops[1].scale_freq;
+			chn->fm.ops[0].osc.wave.acc += (Sint64)o[2] * (Sint64)32 * (Sint64)48000 / (Sint64)cyd->sample_rate * (Sint64)chn->fm.ops[2].osc.frequency / (Sint64)chn->fm.ops[2].scale_freq + (Sint64)o[3] * (Sint64)32 * (Sint64)48000 / (Sint64)cyd->sample_rate * (Sint64)chn->fm.ops[3].osc.frequency / (Sint64)chn->fm.ops[3].scale_freq + (Sint64)o[1] * (Sint64)32 * (Sint64)48000 / (Sint64)cyd->sample_rate * (Sint64)chn->fm.ops[1].osc.frequency / (Sint64)chn->fm.ops[1].scale_freq;
+			
+			break;
+		}
+		
+		case 9:
+		{
+			out = o[0] + o[1] + o[2];
+			
+			chn->fm.ops[2].osc.accumulator += (Sint64)o[3] * (Sint64)128 * (Sint64)48000 / (Sint64)cyd->sample_rate * (Sint64)chn->fm.ops[3].osc.frequency / (Sint64)chn->fm.ops[3].scale_freq;
+			chn->fm.ops[2].osc.noise_accumulator += (Sint64)o[3] * (Sint64)128 * (Sint64)48000 / (Sint64)cyd->sample_rate * (Sint64)chn->fm.ops[3].osc.frequency / (Sint64)chn->fm.ops[3].scale_freq;
+			chn->fm.ops[2].osc.wave.acc += (Sint64)o[3] * (Sint64)32 * (Sint64)48000 / (Sint64)cyd->sample_rate * (Sint64)chn->fm.ops[3].osc.frequency / (Sint64)chn->fm.ops[3].scale_freq;
+			
+			break;
+		}
+		
+		case 10:
+		{
+			out = o[0] + o[1] + o[2];
+			
+			chn->fm.ops[2].osc.accumulator += (Sint64)o[3] * (Sint64)128 * (Sint64)48000 / (Sint64)cyd->sample_rate * (Sint64)chn->fm.ops[3].osc.frequency / (Sint64)chn->fm.ops[3].scale_freq;
+			chn->fm.ops[2].osc.noise_accumulator += (Sint64)o[3] * (Sint64)128 * (Sint64)48000 / (Sint64)cyd->sample_rate * (Sint64)chn->fm.ops[3].osc.frequency / (Sint64)chn->fm.ops[3].scale_freq;
+			chn->fm.ops[2].osc.wave.acc += (Sint64)o[3] * (Sint64)32 * (Sint64)48000 / (Sint64)cyd->sample_rate * (Sint64)chn->fm.ops[3].osc.frequency / (Sint64)chn->fm.ops[3].scale_freq;
+			
+			chn->fm.ops[1].osc.accumulator += (Sint64)o[3] * (Sint64)128 * (Sint64)48000 / (Sint64)cyd->sample_rate * (Sint64)chn->fm.ops[3].osc.frequency / (Sint64)chn->fm.ops[3].scale_freq;
+			chn->fm.ops[1].osc.noise_accumulator += (Sint64)o[3] * (Sint64)128 * (Sint64)48000 / (Sint64)cyd->sample_rate * (Sint64)chn->fm.ops[3].osc.frequency / (Sint64)chn->fm.ops[3].scale_freq;
+			chn->fm.ops[1].osc.wave.acc += (Sint64)o[3] * (Sint64)32 * (Sint64)48000 / (Sint64)cyd->sample_rate * (Sint64)chn->fm.ops[3].osc.frequency / (Sint64)chn->fm.ops[3].scale_freq;
+			
+			break;
+		}
+		
+		case 11:
+		{
+			out = o[0] + o[1] + o[2];
+			
+			chn->fm.ops[2].osc.accumulator += (Sint64)o[3] * (Sint64)128 * (Sint64)48000 / (Sint64)cyd->sample_rate * (Sint64)chn->fm.ops[3].osc.frequency / (Sint64)chn->fm.ops[3].scale_freq;
+			chn->fm.ops[2].osc.noise_accumulator += (Sint64)o[3] * (Sint64)128 * (Sint64)48000 / (Sint64)cyd->sample_rate * (Sint64)chn->fm.ops[3].osc.frequency / (Sint64)chn->fm.ops[3].scale_freq;
+			chn->fm.ops[2].osc.wave.acc += (Sint64)o[3] * (Sint64)32 * (Sint64)48000 / (Sint64)cyd->sample_rate * (Sint64)chn->fm.ops[3].osc.frequency / (Sint64)chn->fm.ops[3].scale_freq;
+			
+			chn->fm.ops[1].osc.accumulator += (Sint64)o[3] * (Sint64)128 * (Sint64)48000 / (Sint64)cyd->sample_rate * (Sint64)chn->fm.ops[3].osc.frequency / (Sint64)chn->fm.ops[3].scale_freq;
+			chn->fm.ops[1].osc.noise_accumulator += (Sint64)o[3] * (Sint64)128 * (Sint64)48000 / (Sint64)cyd->sample_rate * (Sint64)chn->fm.ops[3].osc.frequency / (Sint64)chn->fm.ops[3].scale_freq;
+			chn->fm.ops[1].osc.wave.acc += (Sint64)o[3] * (Sint64)32 * (Sint64)48000 / (Sint64)cyd->sample_rate * (Sint64)chn->fm.ops[3].osc.frequency / (Sint64)chn->fm.ops[3].scale_freq;
+			
+			chn->fm.ops[0].osc.accumulator += (Sint64)o[3] * (Sint64)128 * (Sint64)48000 / (Sint64)cyd->sample_rate * (Sint64)chn->fm.ops[3].osc.frequency / (Sint64)chn->fm.ops[3].scale_freq;
+			chn->fm.ops[0].osc.noise_accumulator += (Sint64)o[3] * (Sint64)128 * (Sint64)48000 / (Sint64)cyd->sample_rate * (Sint64)chn->fm.ops[3].osc.frequency / (Sint64)chn->fm.ops[3].scale_freq;
+			chn->fm.ops[0].osc.wave.acc += (Sint64)o[3] * (Sint64)32 * (Sint64)48000 / (Sint64)cyd->sample_rate * (Sint64)chn->fm.ops[3].osc.frequency / (Sint64)chn->fm.ops[3].scale_freq;
+			
+			break;
+		}
+		
+		case 12:
+		{
+			out = o[0];
+			
+			chn->fm.ops[2].osc.accumulator += (Sint64)o[3] * (Sint64)128 * (Sint64)48000 / (Sint64)cyd->sample_rate * (Sint64)chn->fm.ops[3].osc.frequency / (Sint64)chn->fm.ops[3].scale_freq;
+			chn->fm.ops[2].osc.noise_accumulator += (Sint64)o[3] * (Sint64)128 * (Sint64)48000 / (Sint64)cyd->sample_rate * (Sint64)chn->fm.ops[3].osc.frequency / (Sint64)chn->fm.ops[3].scale_freq;
+			chn->fm.ops[2].osc.wave.acc += (Sint64)o[3] * (Sint64)32 * (Sint64)48000 / (Sint64)cyd->sample_rate * (Sint64)chn->fm.ops[3].osc.frequency / (Sint64)chn->fm.ops[3].scale_freq;
+			
+			chn->fm.ops[1].osc.accumulator += (Sint64)o[3] * (Sint64)128 * (Sint64)48000 / (Sint64)cyd->sample_rate * (Sint64)chn->fm.ops[3].osc.frequency / (Sint64)chn->fm.ops[3].scale_freq;
+			chn->fm.ops[1].osc.noise_accumulator += (Sint64)o[3] * (Sint64)128 * (Sint64)48000 / (Sint64)cyd->sample_rate * (Sint64)chn->fm.ops[3].osc.frequency / (Sint64)chn->fm.ops[3].scale_freq;
+			chn->fm.ops[1].osc.wave.acc += (Sint64)o[3] * (Sint64)32 * (Sint64)48000 / (Sint64)cyd->sample_rate * (Sint64)chn->fm.ops[3].osc.frequency / (Sint64)chn->fm.ops[3].scale_freq;
+			
+			chn->fm.ops[0].osc.accumulator += (Sint64)o[1] * (Sint64)128 * (Sint64)48000 / (Sint64)cyd->sample_rate * (Sint64)chn->fm.ops[1].osc.frequency / (Sint64)chn->fm.ops[1].scale_freq + (Sint64)o[2] * (Sint64)128 * (Sint64)48000 / (Sint64)cyd->sample_rate * (Sint64)chn->fm.ops[2].osc.frequency / (Sint64)chn->fm.ops[2].scale_freq;
+			chn->fm.ops[0].osc.noise_accumulator += (Sint64)o[1] * (Sint64)128 * (Sint64)48000 / (Sint64)cyd->sample_rate * (Sint64)chn->fm.ops[1].osc.frequency / (Sint64)chn->fm.ops[1].scale_freq + (Sint64)o[2] * (Sint64)128 * (Sint64)48000 / (Sint64)cyd->sample_rate * (Sint64)chn->fm.ops[2].osc.frequency / (Sint64)chn->fm.ops[2].scale_freq;
+			chn->fm.ops[0].osc.wave.acc += (Sint64)o[1] * (Sint64)32 * (Sint64)48000 / (Sint64)cyd->sample_rate * (Sint64)chn->fm.ops[1].osc.frequency / (Sint64)chn->fm.ops[1].scale_freq + (Sint64)o[2] * (Sint64)32 * (Sint64)48000 / (Sint64)cyd->sample_rate * (Sint64)chn->fm.ops[2].osc.frequency / (Sint64)chn->fm.ops[2].scale_freq;
+			
+			break;
+		}
+		
+		case 13:
+		{
+			out = o[0] + o[1] + o[2] + o[3];
+			
+			break;
+		}
+	}
+	
+	return out;
+}
 
 static Sint32 cyd_output_channel(CydEngine *cyd, CydChannel *chn)
 {
@@ -925,11 +1307,6 @@ static Sint32 cyd_output(CydEngine *cyd)
 				}
 			}
 		}
-		
-		/*if((cyd->channel[i].fm.flags & CYD_FM_ENABLE_ADDITIVE) && (cyd->channel[i].flags & CYD_CHN_ENABLE_FM))
-		{
-			accumulator = cyd->channel[i].subosc[sub].accumulator;
-		}*/
 #endif
 	}
 	
@@ -940,18 +1317,20 @@ static Sint32 cyd_output(CydEngine *cyd)
 		chn->vol_ksl_mult = 1.0;
 		chn->env_ksl_mult = 1.0;
 		
+		if(chn->fm.flags & CYD_FM_ENABLE_4OP)
+		{
+			for(int i = 0; i < CYD_FM_NUM_OPS; ++i)
+			{
+				chn->fm.ops[i].vol_ksl_mult = 1.0;
+				chn->fm.ops[i].env_ksl_mult = 1.0;
+			}
+		}
+		
 		if((chn->flags & CYD_CHN_ENABLE_VOLUME_KEY_SCALING) || (chn->flags & CYD_CHN_ENABLE_ENVELOPE_KEY_SCALING))
 		{
 			Sint16 vol_ksl_level_final = (chn->flags & CYD_CHN_ENABLE_VOLUME_KEY_SCALING) ? chn->vol_ksl_level : -1;
 			
 			chn->vol_ksl_mult = (vol_ksl_level_final == -1) ? 1.0 : (pow((get_freq((chn->base_note << 8) + chn->finetune) + 1.0) / (get_freq(chn->freq_for_ksl) + 1.0), (vol_ksl_level_final == 0 ? 0 : (vol_ksl_level_final / 127.0))));
-			
-			//if(chn->counter % 200 == 0)
-			//{
-			//debug("ksl mult %f", chn->vol_ksl_mult);
-			//}
-			
-			//chn->counter ++;
 			
 			Sint16 env_ksl_level_final = (chn->flags & CYD_CHN_ENABLE_ENVELOPE_KEY_SCALING) ? chn->env_ksl_level : -1;
 			
@@ -959,12 +1338,10 @@ static Sint32 cyd_output(CydEngine *cyd)
 			chn->env_ksl_mult = 1.0 / chn->env_ksl_mult;
 		}
 		
-		//chn->fm.fm_env_ksl_mult = chn->fm_env_ksl_mult;
-		
 		Sint32 o = 0;
 		
 #ifndef CYD_DISABLE_FM
-		if ((chn->flags & CYD_CHN_ENABLE_GATE) || ((cyd->channel[i].flags & CYD_CHN_ENABLE_FM) && cyd->channel[i].fm.adsr.envelope > 0))// || (cyd->channel[i].fm.flags & CYD_FM_ENABLE_GATE)) //now no flag for fm gate
+		if ((chn->flags & CYD_CHN_ENABLE_GATE) || ((cyd->channel[i].flags & CYD_CHN_ENABLE_FM) && cyd->channel[i].fm.adsr.envelope > 0) || ((cyd->channel[i].fm.flags & CYD_FM_ENABLE_4OP) && (cyd->channel[i].fm.ops[0].adsr.envelope > 0 || cyd->channel[i].fm.ops[1].adsr.envelope > 0 || cyd->channel[i].fm.ops[2].adsr.envelope > 0 || cyd->channel[i].fm.ops[3].adsr.envelope > 0)))// || (cyd->channel[i].fm.flags & CYD_FM_ENABLE_GATE)) //now no flag for fm gate
 #else
 		if (chn->flags & CYD_CHN_ENABLE_GATE)
 #endif
@@ -990,7 +1367,6 @@ static Sint32 cyd_output(CydEngine *cyd)
 				}
 			}
 #endif
-			
 			o = (Sint32)cyd_env_output(cyd, chn->flags, &chn->adsr, s[i]) * (cyd->channel[i].curr_tremolo + 512) / 512 * ((chn->flags & CYD_CHN_ENABLE_VOLUME_KEY_SCALING) ? chn->vol_ksl_mult : 1);
 			
 			if (chn->flags & CYD_CHN_ENABLE_RING_MODULATION)
@@ -1014,12 +1390,11 @@ static Sint32 cyd_output(CydEngine *cyd)
 						o += ((cyd->channel[i].fm.current_modulation) * 32 - 65536 * 32);
 					}
 				}
-				
-				//else
-				//{
-					//o += (cyd->channel[i].fm.current_modulation) * 256 - 32768 * 257;
-					//debug("yay %d", cyd->channel[i].fm.current_modulation - 32768);
-				//}
+			}
+			
+			if(cyd->channel[i].fm.flags & CYD_FM_ENABLE_4OP)
+			{
+				o += cyd_output_fm_ops(cyd, chn, i, s) * (int)cyd->channel[i].fm.fm_4op_vol / MAX_VOLUME;
 			}
 #endif
 
@@ -1043,27 +1418,10 @@ static Sint32 cyd_output(CydEngine *cyd)
 						}				
 #endif	
 						o += cyd_wave_get_sample(&cyd->channel[i].subosc[s].wave, chn->wave_entry, accumulator) * (Sint32)(chn->adsr.volume) / MAX_VOLUME;
-						
-						/*if ((cyd->channel[i].fm.flags & CYD_FM_ENABLE_ADDITIVE) && (cyd->channel[i].flags & CYD_CHN_ENABLE_FM))
-						{
-							o += (cyd->channel[i].fm.current_modulation) * 64 - 65536 * 64;
-						}*/
 					}
 				}
 			}
-			
-			/*if((cyd->channel[i].fm.flags & CYD_FM_ENABLE_ADDITIVE) && (cyd->channel[i].flags & CYD_CHN_ENABLE_FM))
-			{
-				for (int s = 0; s < CYD_SUB_OSCS; ++s)
-				{
-					accumulator = cyd->channel[i].subosc[s].accumulator;
-				}
-			}*/
 #endif		
-			/*if ((cyd->channel[i].fm.flags & CYD_FM_ENABLE_ADDITIVE) && (cyd->channel[i].flags & CYD_CHN_ENABLE_FM))
-			{
-				o += (cyd->channel[i].fm.current_modulation) * 64 - 65536 * 64;
-			}*/
 			
 #ifndef CYD_DISABLE_FILTER
 			if (chn->flags & CYD_CHN_ENABLE_FILTER) 
@@ -1459,8 +1817,6 @@ void cyd_enable_gate(CydEngine *cyd, CydChannel *chn, Uint8 enable)
 			{
 				chn->adsr.env_speed = (int)((double)envspd(cyd, chn->adsr.a) * chn->env_ksl_mult);
 			}
-			
-			
 			//chn->adsr.env_speed = (int)((double)envspd(cyd, chn->adsr.a) * chn->env_ksl_mult);
 			
 			chn->flags = cyd_cycle_adsr(cyd, chn->flags, chn->ym_env_shape, &chn->adsr, chn->env_ksl_mult);
@@ -1473,6 +1829,24 @@ void cyd_enable_gate(CydEngine *cyd, CydChannel *chn, Uint8 enable)
 			cyd_cycle_adsr(cyd, 0, 0, &chn->fm.adsr, chn->fm.fm_env_ksl_mult);
 #endif
 #endif
+		}
+		
+		if(chn->fm.flags & CYD_FM_ENABLE_4OP)
+		{
+			for(int i = 0; i < CYD_FM_NUM_OPS; ++i)
+			{
+				chn->fm.ops[i].adsr.envelope_state = ATTACK;
+				chn->fm.ops[i].adsr.envelope = 0x0;
+				
+				chn->fm.ops[i].adsr.env_speed = envspd(cyd, chn->fm.ops[i].adsr.a);
+						
+				if(chn->fm.ops[i].env_ksl_mult != 0.0 && chn->fm.ops[i].env_ksl_mult != 1.0)
+				{
+					chn->fm.ops[i].adsr.env_speed = (int)((double)envspd(cyd, chn->fm.ops[i].adsr.a) * chn->fm.ops[i].env_ksl_mult);
+				}
+				
+				cyd_cycle_adsr(cyd, 0, 0, &chn->fm.ops[i].adsr, chn->fm.ops[i].env_ksl_mult);
+			}
 		}
 		
 		if (chn->flags & CYD_CHN_ENABLE_KEY_SYNC)
@@ -1491,6 +1865,18 @@ void cyd_enable_gate(CydEngine *cyd, CydChannel *chn, Uint8 enable)
 #ifndef CYD_DISABLE_FM
 			chn->fm.accumulator = 0;
 			chn->fm.wave.acc = 0;
+			
+			if(chn->fm.flags & CYD_FM_ENABLE_4OP)
+			{
+				for(int i = 0; i < CYD_FM_NUM_OPS; ++i)
+				{
+					chn->fm.ops[i].osc.accumulator = 0;
+					chn->fm.ops[i].osc.noise_accumulator = 0;
+					chn->fm.ops[i].osc.wave.acc = 0;
+					
+					chn->fm.ops[i].flags |= CYD_FM_OP_ENABLE_GATE;
+				}
+			}
 #endif
 		}
 		
@@ -1517,6 +1903,21 @@ void cyd_enable_gate(CydEngine *cyd, CydChannel *chn, Uint8 enable)
 		chn->fm.adsr.envelope_state = RELEASE;
 		//chn->fm.adsr.env_speed = envspd(cyd, chn->fm.adsr.r);
 		chn->fm.adsr.env_speed = (int)((double)envspd(cyd, chn->fm.adsr.r) * (chn->fm.fm_env_ksl_mult == 0.0 ? 1 : chn->fm.fm_env_ksl_mult));
+		
+		if(chn->fm.flags & CYD_FM_ENABLE_4OP)
+		{
+			for(int i = 0; i < CYD_FM_NUM_OPS; ++i)
+			{
+				chn->fm.ops[i].flags &= ~CYD_FM_OP_WAVE_OVERRIDE_ENV;
+				chn->fm.ops[i].adsr.envelope_state = RELEASE;
+				chn->fm.ops[i].adsr.env_speed = envspd(cyd, chn->fm.ops[i].adsr.r);
+				
+				if(chn->fm.ops[i].env_ksl_mult != 0.0 && chn->fm.ops[i].env_ksl_mult != 1.0)
+				{
+					chn->fm.ops[i].adsr.env_speed = (int)((double)envspd(cyd, chn->fm.ops[i].adsr.r) * chn->fm.ops[i].env_ksl_mult);
+				}
+			}
+		}
 #endif		
 	}
 }

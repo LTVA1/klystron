@@ -38,7 +38,9 @@ enum
 	
 	CYD_WAVE_INTERPOLATION_BIT_1 = 32,
 	CYD_WAVE_INTERPOLATION_BIT_2 = 64,
-	CYD_WAVE_INTERPOLATION_BIT_3 = 128
+	CYD_WAVE_INTERPOLATION_BIT_3 = 128,
+	
+	CYD_WAVE_HAS_LOOP_POINT = 256, //if we have a loop point and need to save/load it
 };
 
 typedef enum

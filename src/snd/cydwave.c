@@ -170,7 +170,8 @@ static Sint32 cyd_wave_get_sample_cosine(const CydWavetableEntry *entry, CydWave
 #endif // CYD_DISABLE_WAVETABLE
 
 
-enum {
+enum 
+{
 	CYD_WAVE_INTERPOLATION_LINEAR = 0,
 	CYD_WAVE_INTERPOLATION_COSINE = 1,
 };
