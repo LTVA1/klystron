@@ -3619,9 +3619,9 @@ void mus_get_default_instrument(MusInstrument *inst)
 	
 	for(int i = 0; i < CYD_FM_NUM_OPS; ++i)
 	{
-		inst->ops[i].flags = MUS_INST_DRUM|MUS_INST_SET_PW|MUS_INST_SET_CUTOFF|MUS_INST_SAVE_LFO_SETTINGS;
+		inst->ops[i].flags = MUS_FM_OP_DRUM|MUS_FM_OP_SET_PW|MUS_FM_OP_SET_CUTOFF|MUS_FM_OP_SAVE_LFO_SETTINGS;
 		inst->ops[i].pw = 0x600;
-		inst->ops[i].cydflags = CYD_CHN_ENABLE_TRIANGLE|CYD_CHN_ENABLE_KEY_SYNC;
+		inst->ops[i].cydflags = CYD_FM_OP_ENABLE_TRIANGLE|CYD_FM_OP_ENABLE_KEY_SYNC;
 		
 		inst->ops[i].adsr.a = 1 * ENVELOPE_SCALE;
 		inst->ops[i].adsr.d = 12 * ENVELOPE_SCALE;
