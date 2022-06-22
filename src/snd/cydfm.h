@@ -39,12 +39,12 @@ typedef struct //wasn't there
 	
 	Sint16 tremolo; //wasn't there
 	Sint16 prev_tremolo;
-	Uint8 tremolo_interpolation_counter;
+	Uint16 tremolo_interpolation_counter;
 	Sint16 curr_tremolo;
 	
 	CydFilter flts[CYD_NUMBER_OF_FILTER_MODULES];
 	
-	Uint32 prev;
+	Uint32 prev, prev2;
 	
 	Uint64 scale_freq;
 	
@@ -57,7 +57,7 @@ typedef struct //wasn't there
     
     Uint8 mixmode; 
 	
-	Uint8 env_offset, program_offset;
+	Uint8 program_offset;
 	
     Uint8 feedback;
     Uint16 cutoff;
@@ -70,8 +70,8 @@ typedef struct //wasn't there
 	
 	Uint8 ssg_eg_type; //0-7
 	
-	Sint8 detune; //-3..3, 16 * finetune
-	Uint8 coarse_detune; //OPM DT2, 0..3, 48 * finetune
+	Sint8 detune; //-3..3, 8 * finetune
+	Uint8 coarse_detune; //OPM DT2, 0..3, 2.25 * 256 * finetune
 } CydFmOp;
 
 typedef struct

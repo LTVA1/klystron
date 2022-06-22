@@ -47,6 +47,9 @@ OTHER DEALINGS IN THE SOFTWARE.
 
 #define MUS_MAX_COMMANDS 8
 
+#define DETUNE 8
+#define COARSE_DETUNE 256 * 2
+
 typedef unsigned long char32_t;
 
 typedef struct
@@ -201,7 +204,6 @@ enum
 
 typedef struct
 {
-	MusInstrument *instrument;
 	Uint32 note;
 	
 	Uint8 noise_note;
@@ -246,12 +248,12 @@ typedef struct
 
 typedef struct
 {
-	Uint8 note[CYD_FM_NUM_OPS];
-	Uint8 instrument[CYD_FM_NUM_OPS];
-	Uint8 ctrl[CYD_FM_NUM_OPS];
-	Uint8 volume[CYD_FM_NUM_OPS];
+	Uint8 note[CYD_FM_NUM_OPS + 1];
+	Uint8 instrument[CYD_FM_NUM_OPS + 1];
+	Uint8 ctrl[CYD_FM_NUM_OPS + 1];
+	Uint8 volume[CYD_FM_NUM_OPS + 1];
 	
-	Uint16 command[CYD_FM_NUM_OPS][MUS_MAX_COMMANDS];
+	Uint16 command[CYD_FM_NUM_OPS + 1][MUS_MAX_COMMANDS];
 } Mus4opStep;
 
 typedef struct
@@ -379,6 +381,13 @@ enum
 	MUS_CHN_PLAYING = 1,
 	MUS_CHN_PROGRAM_RUNNING = 2,
 	MUS_CHN_DISABLED = 4
+};
+
+enum
+{
+	MUS_FM_OP_PLAYING = MUS_CHN_PLAYING,
+	MUS_FM_OP_PROGRAM_RUNNING = MUS_CHN_PROGRAM_RUNNING,
+	MUS_FM_OP_DISABLED = MUS_CHN_DISABLED
 };
 
 enum

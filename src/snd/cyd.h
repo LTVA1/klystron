@@ -310,6 +310,11 @@ void cyd_set_frequency(CydEngine *cyd, CydChannel *chn, int subosc, Uint32 frequ
 void cyd_set_wavetable_frequency(CydEngine *cyd, CydChannel *chn, int subosc, Uint32 frequency);
 void cyd_reset_wavetable(CydEngine *cyd);
 void cyd_set_wavetable_offset(CydChannel *chn, Uint16 offset /* 0..0x1000 = 0-100% */);
+void cyd_set_wavetable_end_offset(CydChannel *chn, Uint16 offset /* 0..0x1000 = 0-100% */);
+
+void cyd_set_fm_op_wavetable_offset(CydChannel *chn, Uint16 offset /* 0..0x1000 = 0-100% */, Uint8 i);
+void cyd_set_fm_op_wavetable_end_offset(CydChannel *chn, Uint16 offset /* 0..0x1000 = 0-100% */, Uint8 i);
+
 void cyd_set_env_frequency(CydEngine *cyd, CydChannel *chn, Uint32 frequency);
 void cyd_set_env_shape(CydChannel *chn, Uint8 shape);
 void cyd_enable_gate(CydEngine *cyd, CydChannel *chn, Uint8 enable);
