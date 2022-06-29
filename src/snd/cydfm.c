@@ -19,6 +19,11 @@ static Sint32 harmonicSys64[16] = { 0.0625 * MUL, 0.125 * MUL, 0.5 * MUL, 1.0 * 
 void cydfm_init(CydFm *fm)
 {
 	memset(fm, 0, sizeof(*fm));
+	
+	for(int i = 0; i < CYD_FM_NUM_OPS; ++i)
+	{
+		fm->ops[i].prev = fm->ops[i].prev2 = 0;
+	}
 }
 
 

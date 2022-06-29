@@ -11,6 +11,8 @@
 
 #include "cydoscstate.h" //wasn't there
 
+const static Uint32 coarse_detune_table[] = { 0, 256 * 6 + 10, 256 * 8 - 20, 256 * 10 + 14 }; //0, 6, 8 and 10 (roughly) semitones up respectively
+
 typedef struct //wasn't there
 {
 	Sint32 input, output;
@@ -44,9 +46,8 @@ typedef struct //wasn't there
 	
 	CydFilter flts[CYD_NUMBER_OF_FILTER_MODULES];
 	
+	//Sint32 prev, prev2;
 	Uint32 prev, prev2;
-	
-	Uint64 scale_freq;
 	
 	Uint32 env_output;
 	Uint8 attack_start;
@@ -59,7 +60,7 @@ typedef struct //wasn't there
 	
 	Uint8 program_offset;
 	
-    Uint8 feedback;
+    Uint8 feedback; //0-F
     Uint16 cutoff;
     Uint8 resonance; //was 0-3, now 0-15
     Uint8 flttype;
@@ -70,8 +71,13 @@ typedef struct //wasn't there
 	
 	Uint8 ssg_eg_type; //0-7
 	
-	Sint8 detune; //-3..3, 8 * finetune
-	Uint8 coarse_detune; //OPM DT2, 0..3, 2.25 * 256 * finetune
+	Sint8 detune; //-7..7, 4 * finetune
+	Uint8 coarse_detune; //OPM DT2, 0..3
+	
+	Sint32 trigger_delay;
+	
+	Sint32 mod, noise_mod, wave_mod;
+	//Uint32 mod, noise_mod, wave_mod;
 } CydFmOp;
 
 typedef struct

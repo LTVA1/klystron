@@ -47,8 +47,7 @@ OTHER DEALINGS IN THE SOFTWARE.
 
 #define MUS_MAX_COMMANDS 8
 
-#define DETUNE 8
-#define COARSE_DETUNE 256 * 2
+#define DETUNE 4
 
 typedef unsigned long char32_t;
 
@@ -102,7 +101,6 @@ typedef struct //wasn't there
     Uint8 resonance; //was 0-3, now 0-15
 	Uint8 slope;
     Uint8 flttype;
-	
 	Uint8 trigger_delay; //how many ticks to wait after general trigger to trigger specific operator, can be very creative
 
 } MusFmOp;
@@ -214,6 +212,9 @@ typedef struct
 	volatile Uint32 flags;
 	Uint32 current_tick;
 	Uint8 program_counter, program_tick, program_loop, prog_period;
+	Sint16 trigger_delay; //how many ticks to wait after general trigger to trigger specific operator, can be very creative
+	
+	Uint16 triggered_note; //note at which the op was triggered
 	
 } MusFmOpChannel;
 
@@ -437,8 +438,8 @@ enum
 	MUS_FX_PORTA_UP = 0x0100,
 	MUS_FX_PORTA_DN = 0x0200,
 	
-	MUS_FX_FM_PORTA_UP = 0x4800, //wasn't there
-	MUS_FX_FM_PORTA_DN = 0x4900, //wasn't there
+	MUS_FX_FM_PORTA_UP = 0x4800, //wasn't there //not implemented
+	MUS_FX_FM_PORTA_DN = 0x4900, //wasn't there //not implemented
 	
 	MUS_FX_PORTA_UP_LOG = 0x0500,
 	MUS_FX_PORTA_DN_LOG = 0x0600,
@@ -446,7 +447,7 @@ enum
 	MUS_FX_VIBRATO = 0x0400,
 	MUS_FX_TREMOLO = 0x2400, //wasn't there
 	MUS_FX_PWM = 0x2500, //wasn't there
-	MUS_FX_SWEEP = 0x2600, //wasn't there //26xy filter sweep, by default unlooped saw LFO with speed x and depth y
+	MUS_FX_SWEEP = 0x2600, //wasn't there //26xy filter sweep, by default unlooped saw LFO with speed x and depth y //not implemented
 	MUS_FX_FM_VIBRATO = 0x2700, //wasn't there
 	MUS_FX_FM_TREMOLO = 0x2800, //wasn't there
 	MUS_FX_FADE_VOLUME = 0x0a00,
@@ -498,8 +499,71 @@ enum
 	MUS_FX_BUZZ_SHAPE = 0x3f00,
 	MUS_FX_BUZZ_SET = 0x3900,
 	MUS_FX_BUZZ_SET_SEMI = 0x3a00,
+	
+	MUS_FX_SET_ATTACK_RATE = 0x1400,
+	MUS_FX_SET_DECAY_RATE = 0x1500,
+	MUS_FX_SET_SUSTAIN_LEVEL = 0x2000,
+	MUS_FX_SET_RELEASE_RATE = 0x1600,
+	
 	MUS_FX_FM_SET_MODULATION = 0x3300,
 	MUS_FX_FM_SET_FEEDBACK = 0x3400,
+	
+	MUS_FX_FM_SET_4OP_ALGORITHM = 0x3e00,
+	MUS_FX_FM_SET_4OP_MASTER_VOLUME = 0x1300,
+	
+	MUS_FX_FM_TRIGGER_OP1_RELEASE = 0xA000,
+	MUS_FX_FM_TRIGGER_OP2_RELEASE = 0xB000,
+	MUS_FX_FM_TRIGGER_OP3_RELEASE = 0xC000,
+	MUS_FX_FM_TRIGGER_OP4_RELEASE = 0xD000,
+	
+	MUS_FX_FM_SET_OP1_ATTACK_RATE = 0xA500,
+	MUS_FX_FM_SET_OP2_ATTACK_RATE = 0xB500,
+	MUS_FX_FM_SET_OP3_ATTACK_RATE = 0xC500,
+	MUS_FX_FM_SET_OP4_ATTACK_RATE = 0xD500,
+	
+	MUS_FX_FM_SET_OP1_DECAY_RATE = 0xA600,
+	MUS_FX_FM_SET_OP2_DECAY_RATE = 0xB600,
+	MUS_FX_FM_SET_OP3_DECAY_RATE = 0xC600,
+	MUS_FX_FM_SET_OP4_DECAY_RATE = 0xD600,
+	
+	MUS_FX_FM_SET_OP1_SUSTAIN_LEVEL = 0xA700,
+	MUS_FX_FM_SET_OP2_SUSTAIN_LEVEL = 0xB700,
+	MUS_FX_FM_SET_OP3_SUSTAIN_LEVEL = 0xC700,
+	MUS_FX_FM_SET_OP4_SUSTAIN_LEVEL = 0xD700,
+	
+	MUS_FX_FM_SET_OP1_RELEASE_RATE = 0xA100,
+	MUS_FX_FM_SET_OP2_RELEASE_RATE = 0xB100,
+	MUS_FX_FM_SET_OP3_RELEASE_RATE = 0xC100,
+	MUS_FX_FM_SET_OP4_RELEASE_RATE = 0xD100,
+	
+	MUS_FX_FM_SET_OP1_MULT = 0xA200,
+	MUS_FX_FM_SET_OP2_MULT = 0xB200,
+	MUS_FX_FM_SET_OP3_MULT = 0xC200,
+	MUS_FX_FM_SET_OP4_MULT = 0xD200,
+	
+	MUS_FX_FM_SET_OP1_VOL = 0xA300,
+	MUS_FX_FM_SET_OP2_VOL = 0xB300,
+	MUS_FX_FM_SET_OP3_VOL = 0xC300,
+	MUS_FX_FM_SET_OP4_VOL = 0xD300,
+	
+	MUS_FX_FM_SET_OP1_DETUNE = 0xA400,
+	MUS_FX_FM_SET_OP2_DETUNE = 0xB400,
+	MUS_FX_FM_SET_OP3_DETUNE = 0xC400,
+	MUS_FX_FM_SET_OP4_DETUNE = 0xD400,
+	
+	MUS_FX_FM_SET_OP1_COARSE_DETUNE = 0xA410,
+	MUS_FX_FM_SET_OP2_COARSE_DETUNE = 0xB410,
+	MUS_FX_FM_SET_OP3_COARSE_DETUNE = 0xC410,
+	MUS_FX_FM_SET_OP4_COARSE_DETUNE = 0xD410,
+	
+	MUS_FX_FM_SET_OP1_FEEDBACK = 0xA420,
+	MUS_FX_FM_SET_OP2_FEEDBACK = 0xB420,
+	MUS_FX_FM_SET_OP3_FEEDBACK = 0xC420,
+	MUS_FX_FM_SET_OP4_FEEDBACK = 0xD420,
+	
+	MUS_FX_FM_4OP_SET_DETUNE = 0x3410,
+	MUS_FX_FM_4OP_SET_COARSE_DETUNE = 0x3420,
+	
 	MUS_FX_FM_SET_HARMONIC = 0x3500,
 	MUS_FX_FM_SET_WAVEFORM = 0x3600,
 	MUS_FX_OSC_MIX = 0x0ee0, //wasn't there
@@ -517,7 +581,7 @@ enum
 	MUS_FX_WAVETABLE_OFFSET_DOWN = 0x4500, //wasn't there
 	MUS_FX_CUTOFF_FINE_SET = 0x6000,
 	MUS_FX_PW_FINE_SET = 0x8000, //wasn't there
-	MUS_FX_MORPH = 0x9000, //wasn't there //9xxy, morph to wave xx with speed of y
+	MUS_FX_MORPH = 0x9000, //wasn't there //9xxy, morph to wave xx with speed of y //not implemented
 	MUS_FX_WAVETABLE_END_POINT = 0xE000, //wasn't there if sample is looped, it would set ending point. Exxx
 	MUS_FX_WAVETABLE_END_POINT_UP = 0x4600, //wasn't there
 	MUS_FX_WAVETABLE_END_POINT_DOWN = 0x4700, //wasn't there
