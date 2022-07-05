@@ -2588,7 +2588,7 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 										Uint8 prev_vol_tr1 = track_status->ops_status[i].volume;
 										Uint8 prev_vol_cyd1 = cydchn->fm.ops[i].adsr.volume;
 										
-										mus_trigger_fm_op_internal(cydchn->fm, chn->instrument, cydchn, chn, track_status, mus, i, chn->ops[i].last_note, chan, 0);
+										mus_trigger_fm_op_internal(&cydchn->fm, chn->instrument, cydchn, chn, track_status, mus, i, chn->ops[i].last_note, chan, 0);
 										
 										track_status->ops_status[i].volume = prev_vol_tr1;
 										cydchn->fm.ops[i].adsr.volume = prev_vol_cyd1;
@@ -3971,17 +3971,11 @@ static void mus_exec_track_command(MusEngine *mus, int chan, int first_tick)
 	switch (vol & 0xf0)
 	{
 		case MUS_NOTE_VOLUME_PAN_LEFT:
-			if(mus->channel[chan].instrument != NULL)
-			{
 				do_command(mus, chan, mus->song_counter, MUS_FX_PAN_LEFT | ((Uint16)(vol & 0xf) * 2), 0, (mus->channel[chan].instrument->fm_flags & CYD_FM_FOUROP_USE_MAIN_INST_PROG) ? 0xFF : 0);
-			}
 			break;
 
 		case MUS_NOTE_VOLUME_PAN_RIGHT:
-			if(mus->channel[chan].instrument != NULL)
-			{
 				do_command(mus, chan, mus->song_counter, MUS_FX_PAN_RIGHT | ((Uint16)(vol & 0xf) * 2), 0, (mus->channel[chan].instrument->fm_flags & CYD_FM_FOUROP_USE_MAIN_INST_PROG) ? 0xFF : 0);
-			}
 			break;
 
 		case MUS_NOTE_VOLUME_SET_PAN:
@@ -3989,36 +3983,24 @@ static void mus_exec_track_command(MusEngine *mus, int chan, int first_tick)
 			Uint16 val = vol & 0xf;
 			Uint16 panning = (val <= 8 ? val * CYD_PAN_CENTER / 8 : (val - 8) * (CYD_PAN_RIGHT - CYD_PAN_CENTER) / 8 + CYD_PAN_CENTER);
 			
-			if(mus->channel[chan].instrument != NULL)
-			{
-				do_command(mus, chan, mus->song_counter, MUS_FX_SET_PANNING | panning, 0, (mus->channel[chan].instrument->fm_flags & CYD_FM_FOUROP_USE_MAIN_INST_PROG) ? 0xFF : 0);
-			}
+			do_command(mus, chan, mus->song_counter, MUS_FX_SET_PANNING | panning, 0, (mus->channel[chan].instrument->fm_flags & CYD_FM_FOUROP_USE_MAIN_INST_PROG) ? 0xFF : 0);
 			
 			debug("Panned to %x", panning);
 		}
 		break;
 
 		case MUS_NOTE_VOLUME_FADE_UP:
-			if(mus->channel[chan].instrument != NULL)
-			{
-				do_command(mus, chan, mus->song_counter, MUS_FX_FADE_VOLUME | ((Uint16)(vol & 0xf) << 4), 0, (mus->channel[chan].instrument->fm_flags & CYD_FM_FOUROP_USE_MAIN_INST_PROG) ? 0xFF : 0);
-			}
+			do_command(mus, chan, mus->song_counter, MUS_FX_FADE_VOLUME | ((Uint16)(vol & 0xf) << 4), 0, (mus->channel[chan].instrument->fm_flags & CYD_FM_FOUROP_USE_MAIN_INST_PROG) ? 0xFF : 0);
 		break;
 
 		case MUS_NOTE_VOLUME_FADE_DN:
-			if(mus->channel[chan].instrument != NULL)
-			{
-				do_command(mus, chan, mus->song_counter, MUS_FX_FADE_VOLUME | ((Uint16)(vol & 0xf)), 0, (mus->channel[chan].instrument->fm_flags & CYD_FM_FOUROP_USE_MAIN_INST_PROG) ? 0xFF : 0);
-			}
+			do_command(mus, chan, mus->song_counter, MUS_FX_FADE_VOLUME | ((Uint16)(vol & 0xf)), 0, (mus->channel[chan].instrument->fm_flags & CYD_FM_FOUROP_USE_MAIN_INST_PROG) ? 0xFF : 0);
 			break;
 
 		default:
 			if (vol <= MAX_VOLUME)
 			{
-				if(mus->channel[chan].instrument != NULL)
-				{
-					do_command(mus, chan, first_tick ? 0 : mus->song_counter, MUS_FX_SET_VOLUME | (Uint16)(vol), 0, (mus->channel[chan].instrument->fm_flags & CYD_FM_FOUROP_USE_MAIN_INST_PROG) ? 0xFF : 0);
-				}
+				do_command(mus, chan, first_tick ? 0 : mus->song_counter, MUS_FX_SET_VOLUME | (Uint16)(vol), 0, (mus->channel[chan].instrument->fm_flags & CYD_FM_FOUROP_USE_MAIN_INST_PROG) ? 0xFF : 0);
 			}
 			break;
 	}
@@ -4040,7 +4022,7 @@ static void mus_exec_track_command(MusEngine *mus, int chan, int first_tick)
 
 			default:
 			{
-				if(mus->channel[chan].instrument != NULL)
+				if(mus->channel[chan].instrument != NULL || ((inst & 0xfff0) != MUS_FX_EXT_RETRIGGER && (inst & 0xff00) != MUS_FX_RESTART_PROGRAM))
 				{
 					do_command(mus, chan, mus->song_counter, inst, 0, (mus->channel[chan].instrument->fm_flags & CYD_FM_FOUROP_USE_MAIN_INST_PROG) ? 0xFF : 0);
 				}
@@ -4145,7 +4127,7 @@ static void mus_exec_prog_tick(MusEngine *mus, int chan, int advance)
 
 			default:
 			
-			if(mus->channel[chan].instrument != NULL)
+			if(mus->channel[chan].instrument != NULL || ((inst & 0xfff0) != MUS_FX_EXT_RETRIGGER && (inst & 0xff00) != MUS_FX_RESTART_PROGRAM))
 			{
 				do_command(mus, chan, chn->program_counter, inst, 1, (mus->channel[chan].instrument->fm_flags & CYD_FM_FOUROP_USE_MAIN_INST_PROG) ? 0xFF : 0);
 			}
@@ -4286,7 +4268,7 @@ static void mus_exec_4op_prog_tick(MusEngine *mus, int chan, int advance, int i 
 			break;
 
 			default:
-			if(mus->channel[chan].instrument != NULL)
+			if(mus->channel[chan].instrument != NULL || ((inst & 0xfff0) != MUS_FX_EXT_RETRIGGER && (inst & 0xff00) != MUS_FX_RESTART_PROGRAM))
 			{
 				do_command(mus, chan, chn->ops[i].program_counter, inst, 1, i + 1);
 			}
