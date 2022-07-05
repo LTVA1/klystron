@@ -408,7 +408,9 @@ Sint16 * bitunpack(const Uint8 *packed_data, const Uint32 packed_size, Uint32 un
 					if (ctr == 0) goto read_error;
 					
 					for (; i < unpacked_size && ctr; ++i, --ctr)
+					{
 						buffer[i] |= bit;
+					}
 					
 					if (ctr) goto read_error;
 					
