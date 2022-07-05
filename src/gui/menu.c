@@ -79,16 +79,21 @@ void close_menu()
 	{
 		if (menu_close_hook) menu_close_hook();
 	}
+	
 	else
 	{
 		if (menu_close_hook) menu_close_hook();
 		if (current_menu_action->action == MENU_CHECK || current_menu_action->action == MENU_CHECK_NOSET)
 		{
-			if (current_menu_action->action == MENU_CHECK) *(Uint64*)(current_menu_action->p1) ^= CASTPTR(Uint64, current_menu_action->p2);
+			if (current_menu_action->action == MENU_CHECK)
+			{	
+				*(Uint64*)(current_menu_action->p1) ^= CASTPTR(Uint64, current_menu_action->p2);
+			}
 			
 			if (current_menu_action->p3)
 				((void *(*)(void*,void*,void*))(current_menu_action->p3))(0,0,0);
 		}
+		
 		else
 		{
 			current_menu_action->action(current_menu_action->p1, current_menu_action->p2, current_menu_action->p3);
@@ -120,6 +125,7 @@ static const char * get_shortcut_key(const Menu *item)
 		{
 			return get_shortcut_string(&shortcuts[i]);
 		}
+		
 		else if (item->submenu)
 		{
 			return "½";
@@ -185,6 +191,7 @@ static void draw_submenu(GfxDomain *menu_dest, const SDL_Event *event, const Men
 			
 			r.h = font->h + 1;
 		}
+		
 		else
 		{
 			if (pass == DRAW) bevel(menu_dest, &area, menu_gfx, BEV_MENUBAR);
@@ -214,15 +221,19 @@ static void draw_submenu(GfxDomain *menu_dest, const SDL_Event *event, const Men
 				
 				if (event->type == SDL_MOUSEMOTION && pass == ZONE)
 				{
-					if ((event->button.x >= r.x) && (event->button.y >= r.y) 
-						&& (event->button.x < r.x + r.w) && (event->button.y < r.y + r.h))
+					if ((event->button.x >= r.x) && (event->button.y >= r.y) && (event->button.x < r.x + r.w) && (event->button.y < r.y + r.h))
 					{
+						
+						/*if (pass == ZONE)
+				{
+					if (((event->button.x >= r.x) && (event->button.y >= r.y) && (event->button.x < r.x + r.w) && (event->button.y < r.y + r.h)) || ((event->motion.x >= r.x) && (event->motion.y >= r.y) && (event->motion.x < r.x + r.w) && (event->motion.y < r.y + r.h)))*/
 						if (item->submenu)
 						{
 							current_menu = item->submenu;
 							current_menu_action = NULL;
 							bg = 1;
 						}
+						
 						else if (item->action)
 						{
 							current_menu_action = item;
@@ -230,6 +241,7 @@ static void draw_submenu(GfxDomain *menu_dest, const SDL_Event *event, const Men
 							bg = 1;
 						}
 					}
+					
 					else if (current_menu_action && item == current_menu_action)
 					{
 						current_menu_action = NULL;
@@ -268,10 +280,15 @@ static void draw_submenu(GfxDomain *menu_dest, const SDL_Event *event, const Men
 					
 					char tick_char[2] = { 0 };
 					
-					if ((item->action == MENU_CHECK || item->action == MENU_CHECK_NOSET) && (*(Uint64*)item->p1 & CASTPTR(Uint64,item->p2)))
+					if ((item->action == MENU_CHECK || item->action == MENU_CHECK_NOSET) && (*(Uint32*)item->p1 & CASTPTR(Uint32,item->p2)))
+					{
 						*tick_char = '§';
+					}
+					
 					else if (item->flags & MENU_BULLET)
+					{
 						*tick_char = '^';
+					}
 					
 					if (tick_char[0] != 0)
 					{
@@ -297,6 +314,7 @@ static void draw_submenu(GfxDomain *menu_dest, const SDL_Event *event, const Men
 				}
 				else update_rect(&area, &r);
 			}
+			
 			else
 			{
 				separator(menu_dest, &area, &r, menu_gfx, BEV_SEPARATOR);

@@ -1628,7 +1628,7 @@ static Sint32 cyd_output(CydEngine *cyd)
 		
 #ifndef STANDALONE_COMPILE
 		
-		if(mused.flags & SHOW_OSCILLOSCOPES_PATTERN_EDITOR) //oscilloscopes in patterns
+		if(mused.flags2 & SHOW_OSCILLOSCOPES_PATTERN_EDITOR) //oscilloscopes in patterns
 		{
 			mused.channels_output_buffers[i][mused.channels_output_buffer_counters[i]] = o;
 			mused.channels_output_buffer_counters[i]++;

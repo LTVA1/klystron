@@ -233,6 +233,7 @@ void check_mouse_wheel_event(const SDL_Event *event, const SDL_Rect *rect, Slide
 		case SDL_MOUSEWHEEL:
 		{
 			int p = (slider->visible_last - slider->visible_first) / 2;
+			
 			if (event->wheel.y > 0)
 			{
 				*slider->position -= p;
