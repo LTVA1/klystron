@@ -32,7 +32,7 @@ OTHER DEALINGS IN THE SOFTWARE.
 #define PRE_GAIN_DIVISOR 4
 #define OUTPUT_BITS 16
 #define MAX_OVERSAMPLE 2
-#define ACC_BITS (25 + MAX_OVERSAMPLE) //#define ACC_BITS (23 + MAX_OVERSAMPLE)
+#define ACC_BITS (25 + MAX_OVERSAMPLE) /* #define ACC_BITS (23 + MAX_OVERSAMPLE) */
 #define ENVELOPE_SCALE 2
 
 #ifdef LOWRESWAVETABLE
@@ -41,19 +41,19 @@ OTHER DEALINGS IN THE SOFTWARE.
 #define WAVETABLE_RESOLUTION 65536
 #endif
 
-#define ACC_LENGTH (1 << (ACC_BITS - 1)) // Osc counter length
-#define YM_LENGTH (ACC_LENGTH) // YM envelope counter length
+#define ACC_LENGTH (1 << (ACC_BITS - 1)) /* Osc counter length */
+#define YM_LENGTH (ACC_LENGTH) /* YM envelope counter length */
 #define MAX_VOLUME 128
-#define CYD_WAVE_MAX_ENTRIES 255 //was 128
+#define CYD_WAVE_MAX_ENTRIES 255 /* was 128 */
 
 #define CYD_BASE_FREQ 22050
-#define CYD_MAX_CHANNELS 64 //was 32
-#define CYD_MAX_FX_CHANNELS 64 //was 8
+#define CYD_MAX_CHANNELS 128 /* was 32 */
+#define CYD_MAX_FX_CHANNELS 64 /* was 8 */
 #define CYD_SUB_OSCS 3
 
-#define CYD_PAN_CENTER 128 //was 64
+#define CYD_PAN_CENTER 128 /* was 64 */
 #define CYD_PAN_LEFT 0
-#define CYD_PAN_RIGHT 255 //was 128
+#define CYD_PAN_RIGHT 255 /* was 128 */
 #define CYD_STEREO_GAIN 2048
 
 #define CYD_CUTOFF_MAX 4096
@@ -61,7 +61,7 @@ OTHER DEALINGS IN THE SOFTWARE.
 #define CYD_CHORUS_OVERSAMPLE 1
 
 #define WAVE_AMP (1 << OUTPUT_BITS)
-#define BUFFER_GRANULARITY 150 // mutex is locked and audio generated in 150 sample blocks
+#define BUFFER_GRANULARITY 150 /* mutex is locked and audio generated in 150 sample blocks */
 
 #define CYD_NUMBER_OF_FILTER_MODULES 32
 

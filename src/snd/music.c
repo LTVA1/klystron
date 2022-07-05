@@ -490,6 +490,86 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 	
 	switch (inst & 0xfff0)
 	{
+		case MUS_FX_FM_WAVETABLE_OFFSET_UP_FINE:
+		{
+			if(ops_index == 0 || ops_index == 0xFF)
+			{
+				if (cydchn->fm.wave_entry)
+				{
+					//if(cydchn->fm.wave_entry->flags & CYD_WAVE_LOOP)
+					if ((cydchn->fm.wave_entry->flags & CYD_WAVE_LOOP) && (cydchn->fm.wave.start_offset + (cydchn->fm.wave.start_offset + (inst & 0xf) > 0xffff ? 0xffff : (inst & 0xf)) < cydchn->fm.wave.end_offset))
+					{
+						cydchn->fm.wave.start_offset += (cydchn->fm.wave.start_offset + (inst & 0xf) > 0xffff ? 0xffff : (inst & 0xf));
+						
+						cydchn->fm.wave.start_point_track_status = (Uint64)cydchn->fm.wave.start_offset * WAVETABLE_RESOLUTION * cydchn->fm.wave_entry->samples / 0x10000;
+						
+						cydchn->fm.wave.use_start_track_status_offset = true;
+					}
+				}
+			}
+		}
+		break;
+		
+		case MUS_FX_FM_WAVETABLE_OFFSET_DOWN_FINE:
+		{
+			if(ops_index == 0 || ops_index == 0xFF)
+			{
+				if (cydchn->fm.wave_entry)
+				{
+					//if(cydchn->fm.wave_entry->flags & CYD_WAVE_LOOP)
+					if ((cydchn->fm.wave_entry->flags & CYD_WAVE_LOOP) && (cydchn->fm.wave.start_offset - ((Sint32)cydchn->fm.wave.start_offset - (inst & 0xf) < 0 ? 0 : (inst & 0xf)) < cydchn->fm.wave.end_offset))
+					{
+						cydchn->fm.wave.start_offset -= ((Sint32)cydchn->fm.wave.start_offset - (inst & 0xf) < 0 ? 0 : (inst & 0xf));
+						
+						cydchn->fm.wave.start_point_track_status = (Uint64)cydchn->fm.wave.start_offset * WAVETABLE_RESOLUTION * cydchn->fm.wave_entry->samples / 0x10000;
+						
+						cydchn->fm.wave.use_start_track_status_offset = true;
+					}
+				}
+			}
+		}
+		break;
+		
+		case MUS_FX_FM_WAVETABLE_END_POINT_UP_FINE:
+		{
+			if(ops_index == 0 || ops_index == 0xFF)
+			{
+				if (cydchn->fm.wave_entry)
+				{
+					//if(cydchn->fm.wave_entry->flags & CYD_WAVE_LOOP)
+					if ((cydchn->fm.wave_entry->flags & CYD_WAVE_LOOP) && (cydchn->fm.wave.end_offset - ((Sint32)cydchn->fm.wave.end_offset - (inst & 0xf) < 0 ? 0 : (inst & 0xf)) > cydchn->fm.wave.start_offset))
+					{
+						cydchn->fm.wave.end_offset -= ((Sint32)cydchn->fm.wave.end_offset - (inst & 0xf) < 0 ? 0 : (inst & 0xf));
+						
+						cydchn->fm.wave.end_point_track_status = (Uint64)cydchn->fm.wave.end_offset * WAVETABLE_RESOLUTION * cydchn->fm.wave_entry->samples / 0x10000;
+						
+						cydchn->fm.wave.use_end_track_status_offset = true;
+					}
+				}
+			}
+		}
+		break;
+		
+		case MUS_FX_FM_WAVETABLE_END_POINT_DOWN_FINE:
+		{
+			if(ops_index == 0 || ops_index == 0xFF)
+			{
+				if (cydchn->fm.wave_entry)
+				{
+					//if(cydchn->fm.wave_entry->flags & CYD_WAVE_LOOP)
+					if ((cydchn->fm.wave_entry->flags & CYD_WAVE_LOOP) && (cydchn->fm.wave.end_offset + (cydchn->fm.wave.end_offset + (inst & 0xf) > 0xffff ? 0xffff : (inst & 0xf)) > cydchn->fm.wave.start_offset))
+					{
+						cydchn->fm.wave.end_offset += (cydchn->fm.wave.end_offset + (inst & 0xf) > 0xffff ? 0xffff : (inst & 0xf));
+						
+						cydchn->fm.wave.end_point_track_status = (Uint64)cydchn->fm.wave.end_offset * WAVETABLE_RESOLUTION * cydchn->fm.wave_entry->samples / 0x10000;
+						
+						cydchn->fm.wave.use_end_track_status_offset = true;
+					}
+				}
+			}
+		}
+		break;
+		
 		case MUS_FX_FM_SET_OP1_DETUNE:
 		case MUS_FX_FM_SET_OP2_DETUNE:
 		case MUS_FX_FM_SET_OP3_DETUNE:
@@ -1290,21 +1370,6 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 		
 		case MUS_FX_WAVETABLE_END_POINT_DOWN: //wasn't there
 		{
-			if (cydchn->wave_entry)
-			{
-				if ((cydchn->wave_entry->flags & CYD_WAVE_LOOP) && (cydchn->subosc[0].wave.end_offset + (cydchn->subosc[0].wave.end_offset + (inst & 0xff) * 16 > 0xffff ? 0xffff : (inst & 0xff) * 16) > cydchn->subosc[0].wave.start_offset))
-				{
-					for (int s = 0; s < CYD_SUB_OSCS; ++s)
-					{
-						cydchn->subosc[s].wave.end_offset += (cydchn->subosc[s].wave.end_offset + (inst & 0xff) * 16 > 0xffff ? 0xffff : (inst & 0xff) * 16);
-						
-						cydchn->subosc[s].wave.end_point_track_status = (Uint64)cydchn->subosc[s].wave.end_offset * WAVETABLE_RESOLUTION * cydchn->wave_entry->samples / 0x10000;
-						
-						cydchn->subosc[s].wave.use_end_track_status_offset = true;
-					}	
-				}
-			}
-			
 			switch(ops_index)
 			{
 				case 0:
@@ -2095,6 +2160,256 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 
 			switch (inst & 0xfff0)
 			{
+				case MUS_FX_WAVETABLE_OFFSET_UP_FINE:
+				{
+					switch(ops_index)
+					{
+						case 0:
+						case 0xFF:
+						{
+							if (cydchn->wave_entry)
+							{
+								if ((cydchn->wave_entry->flags & CYD_WAVE_LOOP) && (cydchn->subosc[0].wave.start_offset + (cydchn->subosc[0].wave.start_offset + (inst & 0xf) > 0xffff ? 0xffff : (inst & 0xf)) < cydchn->subosc[0].wave.end_offset))
+								{
+									for (int s = 0; s < CYD_SUB_OSCS; ++s)
+									{
+										cydchn->subosc[s].wave.start_offset += (cydchn->subosc[s].wave.start_offset + (inst & 0xf) > 0xffff ? 0xffff : (inst & 0xf));
+										
+										cydchn->subosc[s].wave.start_point_track_status = (Uint64)cydchn->subosc[s].wave.start_offset * WAVETABLE_RESOLUTION * cydchn->wave_entry->samples / 0x10000;
+										
+										cydchn->subosc[s].wave.use_start_track_status_offset = true;
+									}	
+								}
+							}
+							
+							if(ops_index == 0xFF)
+							{
+								for(int i = 0; i < CYD_FM_NUM_OPS; ++i)
+								{
+									if (cydchn->fm.ops[i].wave_entry)
+									{
+										if ((cydchn->fm.ops[i].wave_entry->flags & CYD_WAVE_LOOP) && (cydchn->fm.ops[i].osc.wave.start_offset + (cydchn->fm.ops[i].osc.wave.start_offset + (inst & 0xf) > 0xffff ? 0xffff : (inst & 0xf)) < cydchn->fm.ops[i].osc.wave.end_offset))
+										{
+											cydchn->fm.ops[i].osc.wave.start_offset += (cydchn->fm.ops[i].osc.wave.start_offset + (inst & 0xf) > 0xffff ? 0xffff : (inst & 0xf));
+											
+											cydchn->fm.ops[i].osc.wave.start_point_track_status = (Uint64)cydchn->fm.ops[i].osc.wave.start_offset * WAVETABLE_RESOLUTION * cydchn->fm.ops[i].wave_entry->samples / 0x10000;
+											
+											cydchn->fm.ops[i].osc.wave.use_start_track_status_offset = true;
+										}
+									}
+								}
+							}
+							
+							break;
+						}
+						
+						default:
+						{
+							if (cydchn->fm.ops[ops_index - 1].wave_entry)
+							{
+								if ((cydchn->fm.ops[ops_index - 1].wave_entry->flags & CYD_WAVE_LOOP) && (cydchn->fm.ops[ops_index - 1].osc.wave.start_offset + (cydchn->fm.ops[ops_index - 1].osc.wave.start_offset + (inst & 0xf) > 0xffff ? 0xffff : (inst & 0xf)) < cydchn->fm.ops[ops_index - 1].osc.wave.end_offset))
+								{
+									cydchn->fm.ops[ops_index - 1].osc.wave.start_offset += (cydchn->fm.ops[ops_index - 1].osc.wave.start_offset + (inst & 0xf) > 0xffff ? 0xffff : (inst & 0xf));
+									
+									cydchn->fm.ops[ops_index - 1].osc.wave.start_point_track_status = (Uint64)cydchn->fm.ops[ops_index - 1].osc.wave.start_offset * WAVETABLE_RESOLUTION * cydchn->fm.ops[ops_index - 1].wave_entry->samples / 0x10000;
+									
+									cydchn->fm.ops[ops_index - 1].osc.wave.use_start_track_status_offset = true;
+								}
+							}
+						}
+					}
+				}
+				break;
+				
+				case MUS_FX_WAVETABLE_OFFSET_DOWN_FINE:
+				{
+					switch(ops_index)
+					{
+						case 0:
+						case 0xFF:
+						{
+							if (cydchn->wave_entry)
+							{
+								if ((cydchn->wave_entry->flags & CYD_WAVE_LOOP) && (cydchn->subosc[0].wave.start_offset - ((Sint32)cydchn->subosc[0].wave.start_offset - (inst & 0xf) < 0 ? 0 : (inst & 0xf)) < cydchn->subosc[0].wave.end_offset))
+								{
+									for (int s = 0; s < CYD_SUB_OSCS; ++s)
+									{
+										cydchn->subosc[s].wave.start_offset -= ((Sint32)cydchn->subosc[s].wave.start_offset - (inst & 0xf) < 0 ? 0 : (inst & 0xf));
+										
+										cydchn->subosc[s].wave.start_point_track_status = (Uint64)cydchn->subosc[s].wave.start_offset * WAVETABLE_RESOLUTION * cydchn->wave_entry->samples / 0x10000;
+										
+										cydchn->subosc[s].wave.use_start_track_status_offset = true;
+									}	
+								}
+							}
+							
+							if(ops_index == 0xFF)
+							{
+								for(int i = 0; i < CYD_FM_NUM_OPS; ++i)
+								{
+									if (cydchn->fm.ops[i].wave_entry)
+									{
+										if ((cydchn->fm.ops[i].wave_entry->flags & CYD_WAVE_LOOP) && (cydchn->fm.ops[i].osc.wave.start_offset - ((Sint32)cydchn->fm.ops[i].osc.wave.start_offset - (inst & 0xf) < 0 ? 0 : (inst & 0xf)) < cydchn->fm.ops[i].osc.wave.end_offset))
+										{
+											cydchn->fm.ops[i].osc.wave.start_offset -= ((Sint32)cydchn->fm.ops[i].osc.wave.start_offset - (inst & 0xf) < 0 ? 0 : (inst & 0xf));
+											
+											cydchn->fm.ops[i].osc.wave.start_point_track_status = (Uint64)cydchn->fm.ops[i].osc.wave.start_offset * WAVETABLE_RESOLUTION * cydchn->fm.ops[i].wave_entry->samples / 0x10000;
+											
+											cydchn->fm.ops[i].osc.wave.use_start_track_status_offset = true;
+										}
+									}
+								}
+							}
+							
+							break;
+						}
+						
+						default:
+						{
+							if (cydchn->fm.ops[ops_index - 1].wave_entry)
+							{
+								if ((cydchn->fm.ops[ops_index - 1].wave_entry->flags & CYD_WAVE_LOOP) && (cydchn->fm.ops[ops_index - 1].osc.wave.start_offset - ((Sint32)cydchn->fm.ops[ops_index - 1].osc.wave.start_offset - (inst & 0xf) < 0 ? 0 : (inst & 0xf)) < cydchn->fm.ops[ops_index - 1].osc.wave.end_offset))
+								{
+									cydchn->fm.ops[ops_index - 1].osc.wave.start_offset -= ((Sint32)cydchn->fm.ops[ops_index - 1].osc.wave.start_offset - (inst & 0xf) < 0 ? 0 : (inst & 0xf));
+									
+									cydchn->fm.ops[ops_index - 1].osc.wave.start_point_track_status = (Uint64)cydchn->fm.ops[ops_index - 1].osc.wave.start_offset * WAVETABLE_RESOLUTION * cydchn->fm.ops[ops_index - 1].wave_entry->samples / 0x10000;
+									
+									cydchn->fm.ops[ops_index - 1].osc.wave.use_start_track_status_offset = true;
+								}
+							}
+							
+							break;
+						}
+					}
+				}
+				break;
+				
+				case MUS_FX_WAVETABLE_END_POINT_UP_FINE:
+				{
+					switch(ops_index)
+					{
+						case 0:
+						case 0xFF:
+						{
+							if (cydchn->wave_entry)
+							{
+								if ((cydchn->wave_entry->flags & CYD_WAVE_LOOP) && (cydchn->subosc[0].wave.end_offset - ((Sint32)cydchn->subosc[0].wave.end_offset - (inst & 0xf) < 0 ? 0 : (inst & 0xf)) > cydchn->subosc[0].wave.start_offset))
+								{
+									for (int s = 0; s < CYD_SUB_OSCS; ++s)
+									{
+										cydchn->subosc[s].wave.end_offset -= ((Sint32)cydchn->subosc[s].wave.end_offset - (inst & 0xf) < 0 ? 0 : (inst & 0xf));
+										
+										cydchn->subosc[s].wave.end_point_track_status = (Uint64)cydchn->subosc[s].wave.end_offset * WAVETABLE_RESOLUTION * cydchn->wave_entry->samples / 0x10000;
+										
+										cydchn->subosc[s].wave.use_end_track_status_offset = true;
+									}	
+								}
+							}
+							
+							if(ops_index == 0xFF)
+							{
+								for(int i = 0; i < CYD_FM_NUM_OPS; ++i)
+								{
+									if (cydchn->fm.ops[i].wave_entry)
+									{
+										if ((cydchn->fm.ops[i].wave_entry->flags & CYD_WAVE_LOOP) && (cydchn->fm.ops[i].osc.wave.end_offset - ((Sint32)cydchn->fm.ops[i].osc.wave.end_offset - (inst & 0xf) < 0 ? 0 : (inst & 0xf)) > cydchn->fm.ops[i].osc.wave.start_offset))
+										{
+											cydchn->fm.ops[i].osc.wave.end_offset -= ((Sint32)cydchn->fm.ops[i].osc.wave.end_offset - (inst & 0xf) < 0 ? 0 : (inst & 0xf));
+											
+											cydchn->fm.ops[i].osc.wave.end_point_track_status = (Uint64)cydchn->fm.ops[i].osc.wave.end_offset * WAVETABLE_RESOLUTION * cydchn->fm.ops[i].wave_entry->samples / 0x10000;
+											
+											cydchn->fm.ops[i].osc.wave.use_end_track_status_offset = true;
+										}
+									}
+								}
+							}
+							
+							break;
+						}
+						
+						default:
+						{
+							if (cydchn->fm.ops[ops_index - 1].wave_entry)
+							{
+								if ((cydchn->fm.ops[ops_index - 1].wave_entry->flags & CYD_WAVE_LOOP) && (cydchn->fm.ops[ops_index - 1].osc.wave.end_offset - ((Sint32)cydchn->fm.ops[ops_index - 1].osc.wave.end_offset - (inst & 0xf) < 0 ? 0 : (inst & 0xf)) > cydchn->fm.ops[ops_index - 1].osc.wave.start_offset))
+								{
+									cydchn->fm.ops[ops_index - 1].osc.wave.end_offset -= ((Sint32)cydchn->fm.ops[ops_index - 1].osc.wave.end_offset - (inst & 0xf) < 0 ? 0 : (inst & 0xf));
+									
+									cydchn->fm.ops[ops_index - 1].osc.wave.end_point_track_status = (Uint64)cydchn->fm.ops[ops_index - 1].osc.wave.end_offset * WAVETABLE_RESOLUTION * cydchn->fm.ops[ops_index - 1].wave_entry->samples / 0x10000;
+									
+									cydchn->fm.ops[ops_index - 1].osc.wave.use_end_track_status_offset = true;
+								}
+							}
+							
+							break;
+						}
+					}
+				}
+				break;
+				
+				case MUS_FX_WAVETABLE_END_POINT_DOWN_FINE:
+				{
+					switch(ops_index)
+					{
+						case 0:
+						case 0xFF:
+						{
+							if (cydchn->wave_entry)
+							{
+								if ((cydchn->wave_entry->flags & CYD_WAVE_LOOP) && (cydchn->subosc[0].wave.end_offset + (cydchn->subosc[0].wave.end_offset + (inst & 0xf) > 0xffff ? 0xffff : (inst & 0xf)) > cydchn->subosc[0].wave.start_offset))
+								{
+									for (int s = 0; s < CYD_SUB_OSCS; ++s)
+									{
+										cydchn->subosc[s].wave.end_offset += (cydchn->subosc[s].wave.end_offset + (inst & 0xf) > 0xffff ? 0xffff : (inst & 0xf));
+										
+										cydchn->subosc[s].wave.end_point_track_status = (Uint64)cydchn->subosc[s].wave.end_offset * WAVETABLE_RESOLUTION * cydchn->wave_entry->samples / 0x10000;
+										
+										cydchn->subosc[s].wave.use_end_track_status_offset = true;
+									}	
+								}
+							}
+							
+							if(ops_index == 0xFF)
+							{
+								for(int i = 0; i < CYD_FM_NUM_OPS; ++i)
+								{
+									if (cydchn->fm.ops[i].wave_entry)
+									{
+										if ((cydchn->fm.ops[i].wave_entry->flags & CYD_WAVE_LOOP) && (cydchn->fm.ops[i].osc.wave.end_offset + (cydchn->subosc[0].wave.end_offset + (inst & 0xf) > 0xffff ? 0xffff : (inst & 0xf)) > cydchn->fm.ops[i].osc.wave.start_offset))
+										{
+											cydchn->fm.ops[i].osc.wave.end_offset += (cydchn->fm.ops[i].osc.wave.end_offset + (inst & 0xf) > 0xffff ? 0xffff : (inst & 0xf));
+											
+											cydchn->fm.ops[i].osc.wave.end_point_track_status = (Uint64)cydchn->fm.ops[i].osc.wave.end_offset * WAVETABLE_RESOLUTION * cydchn->fm.ops[i].wave_entry->samples / 0x10000;
+											
+											cydchn->fm.ops[i].osc.wave.use_end_track_status_offset = true;
+										}
+									}
+								}
+							}
+							
+							break;
+						}
+						
+						default:
+						{
+							if (cydchn->fm.ops[ops_index - 1].wave_entry)
+							{
+								if ((cydchn->fm.ops[ops_index - 1].wave_entry->flags & CYD_WAVE_LOOP) && (cydchn->fm.ops[ops_index - 1].osc.wave.end_offset + (cydchn->subosc[0].wave.end_offset + (inst & 0xf) > 0xffff ? 0xffff : (inst & 0xf)) > cydchn->fm.ops[ops_index - 1].osc.wave.start_offset))
+								{
+									cydchn->fm.ops[ops_index - 1].osc.wave.end_offset += (cydchn->fm.ops[ops_index - 1].osc.wave.end_offset + (inst & 0xf) > 0xffff ? 0xffff : (inst & 0xf));
+									
+									cydchn->fm.ops[ops_index - 1].osc.wave.end_point_track_status = (Uint64)cydchn->fm.ops[ops_index - 1].osc.wave.end_offset * WAVETABLE_RESOLUTION * cydchn->fm.ops[ops_index - 1].wave_entry->samples / 0x10000;
+									
+									cydchn->fm.ops[ops_index - 1].osc.wave.use_end_track_status_offset = true;
+								}
+							}
+							
+							break;
+						}
+					}
+				}
+				break;
+				
 				case MUS_FX_FILTER_SLOPE: //wasn't there
 				{
 					switch(ops_index)
@@ -2256,25 +2571,7 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 								Uint8 prev_vol_tr = track_status->volume;
 								Uint8 prev_vol_cyd = cydchn->adsr.volume;
 								
-								Uint16 temp_notes[CYD_FM_NUM_OPS] = { 0 };
-								Uint16 temp_last_notes[CYD_FM_NUM_OPS] = { 0 };
-								Uint16 temp_target_notes[CYD_FM_NUM_OPS] = { 0 };
-								
-								for(int i = 0; i < CYD_FM_NUM_OPS; ++i)
-								{
-									//temp_notes[i] = chn->ops[i].note;
-									//temp_last_notes[i] = chn->ops[i].last_note;
-									//temp_target_notes[i] = chn->ops[i].target_note;
-								}
-								
 								mus_trigger_instrument_internal(mus, chan, chn->instrument, chn->last_note, -1);
-								
-								for(int i = 0; i < CYD_FM_NUM_OPS; ++i)
-								{
-									//chn->ops[i].note = temp_notes[i];
-									//chn->ops[i].last_note = temp_last_notes[i];
-									//chn->ops[i].target_note = temp_target_notes[i];
-								}
 								
 								track_status->volume = prev_vol_tr;
 								cydchn->adsr.volume = prev_vol_cyd;
@@ -2291,19 +2588,7 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 										Uint8 prev_vol_tr1 = track_status->ops_status[i].volume;
 										Uint8 prev_vol_cyd1 = cydchn->fm.ops[i].adsr.volume;
 										
-										//debug("last note before trigger %d op %d", chn->ops[i].last_note, i);
-										
-										//Uint16 temp_note = chn->ops[i].note;
-										//Uint16 temp_last_note = chn->ops[i].last_note;
-										//Uint16 temp_target_note = chn->ops[i].target_note;
-										
 										mus_trigger_fm_op_internal(cydchn->fm, chn->instrument, cydchn, chn, track_status, mus, i, chn->ops[i].last_note, chan, 0);
-										
-										//chn->ops[i].last_note = temp_last_note;
-										//chn->ops[i].target_note = temp_target_note;
-										//chn->ops[i].note = temp_note;
-										
-										//debug("last note after trigger %d op %d", chn->ops[i].last_note, i);
 										
 										track_status->ops_status[i].volume = prev_vol_tr1;
 										cydchn->fm.ops[i].adsr.volume = prev_vol_cyd1;
@@ -2336,15 +2621,7 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 								Uint8 prev_vol_tr1 = track_status->ops_status[ops_index - 1].volume;
 								Uint8 prev_vol_cyd1 = cydchn->fm.ops[ops_index - 1].adsr.volume;
 								
-								//Uint16 temp_note = chn->ops[ops_index - 1].note;
-								//Uint16 temp_last_note = chn->ops[ops_index - 1].last_note;
-								//Uint16 temp_target_note = chn->ops[ops_index - 1].target_note;
-								
 								mus_trigger_fm_op_internal(&cydchn->fm, chn->instrument, cydchn, chn, track_status, mus, ops_index - 1, chn->ops[ops_index - 1].last_note, chan, 0);
-								
-								//chn->ops[ops_index - 1].last_note = temp_last_note;
-								//chn->ops[ops_index - 1].target_note = temp_target_note; 
-								//chn->ops[ops_index - 1].note = temp_note;
 								
 								track_status->ops_status[ops_index - 1].volume = prev_vol_tr1;
 								cydchn->fm.ops[ops_index - 1].adsr.volume = prev_vol_cyd1;
@@ -4076,6 +4353,21 @@ static Sint8 mus_shape(Uint16 position, Uint8 shape)
 		case MUS_SHAPE_RAMP_DN:
 			return 127 - (position & (VIB_TAB_SIZE - 1)) * 2;
 			break;
+			
+		case MUS_SHAPE_TRI_UP:
+			//return 127 - (position & (VIB_TAB_SIZE - 1)) * 2;
+			
+			return ((position & (VIB_TAB_SIZE - 1)) & (VIB_TAB_SIZE / 2)) ? ((position & (VIB_TAB_SIZE - 1)) * 4) - 128 : 127 - (position & (VIB_TAB_SIZE - 1)) * 4;
+			
+			//return ((position & (VIB_TAB_SIZE - 1)) & (VIB_TAB_SIZE / 2)) ? -128 : 127;
+			break;
+			
+		case MUS_SHAPE_TRI_DOWN:
+			//return 127 - (position & (VIB_TAB_SIZE - 1)) * 2;
+			
+			return ((position & (VIB_TAB_SIZE - 1)) & (VIB_TAB_SIZE / 2)) ? 127 - (position & (VIB_TAB_SIZE - 1)) * 4 : ((position & (VIB_TAB_SIZE - 1)) * 4) - 128;
+			
+			break;
 
 		default:
 		case MUS_SHAPE_RANDOM:
@@ -4094,7 +4386,7 @@ static void do_pwm(MusEngine* mus, int chan)
 	MusTrackStatus *track_status = &mus->song_track[chan];
 
 	track_status->pwm_position += track_status->pwm_speed;
-	mus->cyd->channel[chan].pw = track_status->pw + mus_shape(track_status->pwm_position >> 1, ins->pwm_shape) * track_status->pwm_depth / 32;
+	mus->cyd->channel[chan].pw = track_status->pw + mus_shape(track_status->pwm_position >> 1, ins->pwm_shape) * track_status->pwm_depth / 16; //mus->cyd->channel[chan].pw = track_status->pw + mus_shape(track_status->pwm_position >> 1, ins->pwm_shape) * track_status->pwm_depth / 32;
 }
 
 static void do_4op_pwm(MusEngine* mus, int chan, int i /*op number*/)
@@ -4104,7 +4396,7 @@ static void do_4op_pwm(MusEngine* mus, int chan, int i /*op number*/)
 	MusTrackStatus *track_status = &mus->song_track[chan];
 
 	track_status->ops_status[i].pwm_position += track_status->ops_status[i].pwm_speed;
-	mus->cyd->channel[chan].fm.ops[i].pw = track_status->ops_status[i].pw + mus_shape(track_status->ops_status[i].pwm_position >> 1, ins->ops[i].pwm_shape) * track_status->ops_status[i].pwm_depth / 32;
+	mus->cyd->channel[chan].fm.ops[i].pw = track_status->ops_status[i].pw + mus_shape(track_status->ops_status[i].pwm_position >> 1, ins->ops[i].pwm_shape) * track_status->ops_status[i].pwm_depth / 16; //mus->cyd->channel[chan].fm.ops[i].pw = track_status->ops_status[i].pw + mus_shape(track_status->ops_status[i].pwm_position >> 1, ins->ops[i].pwm_shape) * track_status->ops_status[i].pwm_depth / 32;
 }
 
 #endif
@@ -5264,7 +5556,6 @@ int mus_advance_tick(void* udata)
 				{
 					if (track_status->pattern)
 					{
-
 						if (1 || track_status->pattern_step == 0)
 						{
 							Uint8 note = track_status->pattern->step[track_status->pattern_step].note < 0xf0 ?
@@ -5894,7 +6185,7 @@ int mus_load_instrument_RW(Uint8 version, RWops *ctx, MusInstrument *inst, CydWa
 	
 	if(version < 32) //to account for extended command range
 	{
-		for(int i = 0; i < progsteps; i++)
+		/*for(int i = 0; i < progsteps; i++)
 		{
 			if((inst->program[i] & 0xff00) == MUS_FX_JUMP)
 			{
@@ -5915,11 +6206,11 @@ int mus_load_instrument_RW(Uint8 version, RWops *ctx, MusInstrument *inst, CydWa
 				}
 				//chn->instrument->program_unite_bits[(tick - 1) / 8] |= (1 << ((tick - 1) % 8)); //wasn't there	
 			}
-		}
+		}*/
 		
 		for(int i = 0; i < progsteps; i++)
 		{
-			if((inst->program[i] & 0xff00) != 0xfc00 && (inst->program[i] & 0xff00) != MUS_FX_JUMP)
+			if((inst->program[i] & 0xff00) != 0xfc00 && (inst->program[i] & 0xff00) != MUS_FX_LABEL && (inst->program[i] & 0xff00) != MUS_FX_LOOP)
 			{
 				if(inst->program[i] & 0x8000)
 				{
@@ -5947,8 +6238,6 @@ int mus_load_instrument_RW(Uint8 version, RWops *ctx, MusInstrument *inst, CydWa
 				inst->program[i] = 0x7c00 + (inst->program[i] & 0xff);
 			}
 		}
-		
-		
 	}
 	
 	if(version < 33)
@@ -5977,6 +6266,11 @@ int mus_load_instrument_RW(Uint8 version, RWops *ctx, MusInstrument *inst, CydWa
 		_VER_READ(&inst->vibrato_depth, 0);
 		_VER_READ(&inst->pwm_speed, 0);
 		_VER_READ(&inst->pwm_depth, 0);
+		
+		if(version < 34 && inst->pwm_depth > 1)
+		{
+			inst->pwm_depth /= 2;
+		}
 		
 		VER_READ(version, 30, 0xff, &inst->pwm_delay, 0); //wasn't there
 		
@@ -6327,6 +6621,21 @@ int mus_load_instrument_RW(Uint8 version, RWops *ctx, MusInstrument *inst, CydWa
 
 	FIX_ENDIAN(inst->fm_flags);
 	
+	if(inst->fm_flags & CYD_FM_ENABLE_4OP)
+	{
+		for(int i = 0; i < CYD_FM_NUM_OPS; ++i)
+		{
+			FIX_ENDIAN(inst->ops[i].flags);
+			FIX_ENDIAN(inst->ops[i].cydflags);
+			FIX_ENDIAN(inst->ops[i].pw);
+			FIX_ENDIAN(inst->ops[i].cutoff);
+			
+			for (int j = 0; j < progsteps; ++j)
+			{
+				FIX_ENDIAN(inst->ops[i].program[j]);
+			}
+		}
+	}
 	
 	if(version < 31)
 	{
@@ -6455,6 +6764,7 @@ void mus_get_default_instrument(MusInstrument *inst)
 	}
 	
 	inst->ops[2].volume = inst->ops[3].volume = 0;
+	inst->ops[1].volume = 0x38;
 }
 
 

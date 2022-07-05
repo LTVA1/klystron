@@ -47,7 +47,7 @@ OTHER DEALINGS IN THE SOFTWARE.
 
 #define MUS_MAX_COMMANDS 8
 
-#define DETUNE 4
+#define DETUNE 2
 
 typedef unsigned long char32_t;
 
@@ -576,23 +576,38 @@ enum
 	MUS_FX_SET_RINGSRC = 0x7b00,
 	MUS_FX_SET_WAVETABLE_ITEM = 0x3b00,
 	MUS_FX_SET_DOWNSAMPLE = 0x1e00,
+	
 	MUS_FX_WAVETABLE_OFFSET = 0x5000, //if sample is looped, it would set starting point
 	MUS_FX_WAVETABLE_OFFSET_UP = 0x4400, //wasn't there
 	MUS_FX_WAVETABLE_OFFSET_DOWN = 0x4500, //wasn't there
+	
+	MUS_FX_WAVETABLE_OFFSET_UP_FINE = 0x0e60, //wasn't there
+	MUS_FX_WAVETABLE_OFFSET_DOWN_FINE = 0x0e70, //wasn't there
+	
 	MUS_FX_CUTOFF_FINE_SET = 0x6000,
 	MUS_FX_PW_FINE_SET = 0x8000, //wasn't there
 	MUS_FX_MORPH = 0x9000, //wasn't there //9xxy, morph to wave xx with speed of y //not implemented
+	
 	MUS_FX_WAVETABLE_END_POINT = 0xE000, //wasn't there if sample is looped, it would set ending point. Exxx
 	MUS_FX_WAVETABLE_END_POINT_UP = 0x4600, //wasn't there
 	MUS_FX_WAVETABLE_END_POINT_DOWN = 0x4700, //wasn't there
+	
+	MUS_FX_WAVETABLE_END_POINT_UP_FINE = 0x0e80, //wasn't there
+	MUS_FX_WAVETABLE_END_POINT_DOWN_FINE = 0x0ef0, //wasn't there
 	
 	MUS_FX_FM_WAVETABLE_OFFSET = 0x4b00, //wasn't there
 	MUS_FX_FM_WAVETABLE_OFFSET_UP = 0x4e00, //wasn't there
 	MUS_FX_FM_WAVETABLE_OFFSET_DOWN = 0x4f00, //wasn't there
 	
+	MUS_FX_FM_WAVETABLE_OFFSET_UP_FINE = 0x3430, //wasn't there
+	MUS_FX_FM_WAVETABLE_OFFSET_DOWN_FINE = 0x3440, //wasn't there
+	
 	MUS_FX_FM_WAVETABLE_END_POINT = 0x7000, //wasn't there
 	MUS_FX_FM_WAVETABLE_END_POINT_UP = 0x7100, //wasn't there
 	MUS_FX_FM_WAVETABLE_END_POINT_DOWN = 0x7200, //wasn't there
+	
+	MUS_FX_FM_WAVETABLE_END_POINT_UP_FINE = 0x3450, //wasn't there
+	MUS_FX_FM_WAVETABLE_END_POINT_DOWN_FINE = 0x3460, //wasn't there
 	
 	MUS_FX_END = 0xffff,
 	MUS_FX_JUMP = 0xff00,
@@ -649,6 +664,10 @@ enum
 	MUS_SHAPE_RAMP_DN,
 	MUS_SHAPE_RANDOM,
 	MUS_SHAPE_SQUARE,
+	
+	MUS_SHAPE_TRI_UP,
+	MUS_SHAPE_TRI_DOWN,
+	
 	MUS_NUM_SHAPES
 };
 

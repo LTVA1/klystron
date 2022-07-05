@@ -733,21 +733,21 @@ GfxDomain * gfx_create_domain(const char *title, Uint32 window_flags, int window
 	d->flags = 0;
 	d->window_min_w = d->screen_w;
 	d->window_min_h = d->screen_h;
-
+	
 #ifdef USESDL_GPU
 	d->screen = GPU_Init(window_w, window_h, GPU_DEFAULT_INIT_FLAGS);
 #else
 	d->window = SDL_CreateWindow(title, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, window_w, window_h, window_flags);
 	d->renderer = SDL_CreateRenderer(d->window, -1, SDL_RENDERER_PRESENTVSYNC|SDL_RENDERER_ACCELERATED|SDL_RENDERER_TARGETTEXTURE);
-
 	SDL_RendererInfo info;
 	SDL_GetRendererInfo(d->renderer, &info);
-
+	
 	if (!(info.flags & SDL_RENDERER_TARGETTEXTURE))
 	{
 		warning("Renderer doesn't support rendering to texture");
 		d->render_to_texture = false;
 	}
+	
 	else
 	{
 		d->render_to_texture = true;
@@ -775,7 +775,7 @@ GfxDomain * gfx_create_domain(const char *title, Uint32 window_flags, int window
 #endif
 
 	gfx_domain_set_framerate(d);
-
+	
 	return d;
 }
 

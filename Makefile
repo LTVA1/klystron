@@ -66,13 +66,13 @@ LDFLAGS =
 .PHONY: tools all build
 
 build: Makefile
-	#$(Q)echo '#ifndef KLYSTRON_VERSION_H' > ./src/version.h
-	#$(Q)echo '#define KLYSTRON_VERSION_H' >> ./src/version.h
-	#$(Q)echo '#define KLYSTRON_REVISION "' | tr -d '\n' >> ./src/version.h
-	#$(Q)date +"%Y%m%d" | tr -d '\n' >> ./src/version.h
-	#$(Q)echo '"' >> ./src/version.h
-	#$(Q)echo '#define KLYSTRON_VERSION_STRING "klystron " KLYSTRON_REVISION' >> ./src/version.h
-	#$(Q)echo '#endif' >> ./src/version.h
+	$(Q)echo '#ifndef KLYSTRON_VERSION_H' > ./src/version.h
+	$(Q)echo '#define KLYSTRON_VERSION_H' >> ./src/version.h
+	$(Q)echo '#define KLYSTRON_REVISION "' | tr -d '\n' >> ./src/version.h
+	$(Q)date +"%Y%m%d" | tr -d '\n' >> ./src/version.h
+	$(Q)echo '"' >> ./src/version.h
+	$(Q)echo '#define KLYSTRON_VERSION_STRING "klystron " KLYSTRON_REVISION' >> ./src/version.h
+	$(Q)echo '#endif' >> ./src/version.h
 	make all CFG=$(CFG)
 
 all: bin.$(CFG)/lib${TARGET}_snd.a bin.$(CFG)/lib${TARGET}_gfx.a bin.$(CFG)/lib${TARGET}_util.a bin.$(CFG)/lib${TARGET}_gui.a tools

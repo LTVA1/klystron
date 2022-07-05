@@ -30,7 +30,11 @@ OTHER DEALINGS IN THE SOFTWARE.
 #include "dialog.h"
 #include "view.h"
 
+#ifndef STANDALONE_COMPILE
+
 #include "../../../src/mused.h"
+
+#endif
 
 int quant(int v, int g)
 {
@@ -73,8 +77,10 @@ static void drag_begin(void *event, void *_param, void *area)
 
 void slider(GfxDomain *dest_surface, const SDL_Rect *_area, const SDL_Event *event, void *_param)
 {
+#ifndef STANDALONE_COMPILE
 	if(((_param == &mused.four_op_slider_param) && mused.show_four_op_menu) || _param != &mused.four_op_slider_param)
 	{
+#endif
 		SliderParam *param = _param;
 		
 		int button_size = (param->orientation == SLIDER_HORIZONTAL) ? _area->h : _area->w;
@@ -197,7 +203,9 @@ void slider(GfxDomain *dest_surface, const SDL_Rect *_area, const SDL_Event *eve
 			
 			button_event(dest_surface, event, &area, param->gfx, BEV_BUTTON, BEV_BUTTON_ACTIVE, param->orientation == SLIDER_HORIZONTAL ? DECAL_RIGHTARROW : DECAL_DOWNARROW, modify_position, MAKEPTR(param->granularity), param, 0);
 		}
+#ifndef STANDALONE_COMPILE
 	}
+#endif
 }
 
 
