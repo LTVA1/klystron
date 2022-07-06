@@ -126,10 +126,22 @@ int msgbox(GfxDomain *domain, GfxSurface *gfx, const Font *font, const char *msg
 						break;
 						
 						case SDLK_SPACE:
-						case SDLK_RETURN:
 						
 							
 						
+						break;
+						
+						case SDLK_KP_ENTER:
+						case SDLK_RETURN:
+							if((buttons & MB_NO) && (buttons & MB_YES))
+							{
+								return selected == 0 ? MB_YES : MB_NO;
+							}
+							
+							else
+							{
+								return MB_OK;
+							}
 						break;
 						
 						case SDLK_LEFT:

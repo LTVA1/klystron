@@ -80,6 +80,7 @@ int confirm_ync(GfxDomain *domain, GfxSurface *gfx, const Font *font, const char
 	{
 		return 1;
 	}
+	
 	if (r == MB_NO)
 	{
 		return -1;

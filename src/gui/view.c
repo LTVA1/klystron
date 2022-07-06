@@ -74,6 +74,7 @@ void draw_view(GfxDomain *dest, const View* views, const SDL_Event *_event)
 {
 	SDL_Event event;
 	memcpy(&event, _event, sizeof(event));
+	
 	for (int i = 0; views[i].handler; ++i)
 	{
 		const View *view = &views[i];
@@ -85,10 +86,12 @@ void draw_view(GfxDomain *dest, const View* views, const SDL_Event *_event)
 		area.h = *(Sint16*)&view->position.h > 0 ? *(Sint16*)&view->position.h : dest->screen_h + *(Sint16*)&view->position.h - view->position.y;
 
 		int iter = 0;
+		
 		do
 		{
 			event_hit = 0;
 			view->handler(dest, &area, &event, view->param);
+			
 			if (event_hit) 
 			{
 				event.type = SDL_USEREVENT + 1;

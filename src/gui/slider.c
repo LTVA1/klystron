@@ -225,10 +225,9 @@ void slider_set_params(SliderParam *param, int first, int last, int first_visibl
 	param->gfx = gfx;
 }
 
-
 void check_mouse_wheel_event(const SDL_Event *event, const SDL_Rect *rect, SliderParam *slider)
 {
-	switch (event->type) 
+	switch (event->type)
 	{
 		case SDL_MOUSEWHEEL:
 		{
