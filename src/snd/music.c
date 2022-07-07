@@ -7240,7 +7240,9 @@ int mus_load_song_RW(RWops *ctx, MusSong *song, CydWavetableEntry *wavetable_ent
 		FIX_ENDIAN(song->flags);
 
 		for (int i = 0; i < (int)song->num_channels; ++i)
+		{
 			FIX_ENDIAN(song->num_sequences[i]);
+		}
 
 		Uint8 title_len = 16 + 1; // old length
 		
@@ -7582,6 +7584,24 @@ int mus_load_song_RW(RWops *ctx, MusSong *song, CydWavetableEntry *wavetable_ent
 
 				free(packed);
 			}
+			
+			for(int j = 1; j < MUS_MAX_COMMANDS; ++j)
+			{
+				int counter = 0; //how many commands are in current column
+				
+				for(int s = 0; s < song->pattern[i].num_steps; ++s) //expand pattern to the rightmost column where at least one command is
+				{
+					if(song->pattern[i].step[s].command[j] != 0)
+					{
+						counter++;
+					}
+				}
+				
+				if(counter != 0)
+				{
+					song->pattern[i].command_columns = j;
+				}
+			}
 		}
 		
 		if(version < 28)
@@ -7631,6 +7651,7 @@ int mus_load_song_RW(RWops *ctx, MusSong *song, CydWavetableEntry *wavetable_ent
 						my_RWread(ctx, song->wavetable_names[i], len, sizeof(char));
 					}
 				}
+				
 				else
 				{
 					for (int i = 0; i < max_wt; ++i)

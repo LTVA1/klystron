@@ -47,6 +47,7 @@ void bevelex(GfxDomain *screen, const SDL_Rect *area, GfxSurface *gfx, int offse
 				}
 			}
 		}
+		
 		else
 		{
 			SDL_Rect src = { BORDER + offset * BEV_SIZE, BORDER, BEV_SIZE - 2 * BORDER, BEV_SIZE - 2 * BORDER };
@@ -88,6 +89,7 @@ void bevelex(GfxDomain *screen, const SDL_Rect *area, GfxSurface *gfx, int offse
 			}
 		}
 	}
+	
 	else
 	{
 		{
