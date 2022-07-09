@@ -21,7 +21,7 @@ typedef struct //wasn't there
     
     Uint32 flags;
 	
-    CydAdsr adsr;
+    CydFmOpAdsr adsr;
 	
 	Uint32 frequency;
 	

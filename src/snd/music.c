@@ -620,6 +620,20 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 		}
 		break;
 		
+		case MUS_FX_FM_SET_OP1_SSG_EG_TYPE:
+		case MUS_FX_FM_SET_OP2_SSG_EG_TYPE:
+		case MUS_FX_FM_SET_OP3_SSG_EG_TYPE:
+		case MUS_FX_FM_SET_OP4_SSG_EG_TYPE:
+		{
+			if(ops_index == 0xFF || ops_index == 0)
+			{
+				Uint8 op = (((inst & 0xF000) - (MUS_FX_FM_SET_OP1_SSG_EG_TYPE & 0xF000)) >> 12);
+				
+				cydchn->fm.ops[op].ssg_eg_type = (inst & 7);
+			}
+		}
+		break;
+		
 		case MUS_FX_SET_EXPONENTIALS:
 		{
 			switch(ops_index)
@@ -685,6 +699,15 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 				cydchn->fm.ops[ops_index - 1].coarse_detune = (inst & 3);
 				
 				mus->channel[chan].ops[ops_index - 1].note = mus->channel[chan].ops[ops_index - 1].note - coarse_detune_table[temp_detune] + coarse_detune_table[cydchn->fm.ops[ops_index - 1].coarse_detune];
+			}
+		}
+		break;
+		
+		case MUS_FX_FM_4OP_SET_SSG_EG_TYPE:
+		{
+			if(ops_index != 0 && ops_index != 0xFF)
+			{
+				cydchn->fm.ops[ops_index - 1].ssg_eg_type = (inst & 7);
 			}
 		}
 		break;
@@ -2603,7 +2626,8 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 											cydchn->fm.ops[i].adsr.env_speed = (int)((double)envspd(cyd, cydchn->fm.ops[i].adsr.a) * cydchn->fm.ops[i].env_ksl_mult);
 										}
 										
-										cyd_cycle_adsr(cyd, 0, 0, &cydchn->fm.ops[i].adsr, cydchn->fm.ops[i].env_ksl_mult);
+										//cyd_cycle_adsr(cyd, 0, 0, &cydchn->fm.ops[i].adsr, cydchn->fm.ops[i].env_ksl_mult);
+										cyd_cycle_fm_op_adsr(cyd, 0, 0, &cydchn->fm.ops[i].adsr, cydchn->fm.ops[i].env_ksl_mult, cydchn->fm.ops[i].ssg_eg_type | (((cydchn->fm.ops[i].flags & CYD_FM_OP_ENABLE_SSG_EG) ? 1 : 0) << 3));
 										
 										cydchn->fm.ops[i].osc.accumulator = 0;
 										cydchn->fm.ops[i].osc.noise_accumulator = 0;
@@ -2636,7 +2660,8 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 									cydchn->fm.ops[ops_index - 1].adsr.env_speed = (int)((double)envspd(cyd, cydchn->fm.ops[ops_index - 1].adsr.a) * cydchn->fm.ops[ops_index - 1].env_ksl_mult);
 								}
 								
-								cyd_cycle_adsr(cyd, 0, 0, &cydchn->fm.ops[ops_index - 1].adsr, cydchn->fm.ops[ops_index - 1].env_ksl_mult);
+								//cyd_cycle_adsr(cyd, 0, 0, &cydchn->fm.ops[ops_index - 1].adsr, cydchn->fm.ops[ops_index - 1].env_ksl_mult);
+								cyd_cycle_fm_op_adsr(cyd, 0, 0, &cydchn->fm.ops[ops_index - 1].adsr, cydchn->fm.ops[ops_index - 1].env_ksl_mult, cydchn->fm.ops[ops_index - 1].ssg_eg_type | (((cydchn->fm.ops[ops_index - 1].flags & CYD_FM_OP_ENABLE_SSG_EG) ? 1 : 0) << 3));
 								
 								cydchn->fm.ops[ops_index - 1].osc.accumulator = 0;
 								cydchn->fm.ops[ops_index - 1].osc.noise_accumulator = 0;
@@ -3941,7 +3966,12 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 					{
 						chn->program_counter = 0;
 						chn->program_tick = 0;
-						chn->program_loop = 1;
+						
+						for(int i = 0; i < MUS_MAX_NESTEDNESS; ++i)
+						{
+							chn->program_loop[i] = 1;
+							chn->program_loop_addresses[i][0] = chn->program_loop_addresses[i][1] = 0;
+						}
 						
 						if(chn->instrument->fm_flags & CYD_FM_FOUROP_USE_MAIN_INST_PROG)
 						{
@@ -3949,7 +3979,13 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 							{
 								chn->ops[i].program_counter = 0;
 								chn->ops[i].program_tick = 0;
-								chn->ops[i].program_loop = 1;
+								//chn->ops[i].program_loop = 1;
+								
+								for(int j = 0; j < MUS_MAX_NESTEDNESS; ++j)
+								{
+									chn->ops[i].program_loop[j] = 1;
+									chn->ops[i].program_loop_addresses[j][0] = chn->ops[i].program_loop_addresses[j][1] = 0;
+								}
 							}
 						}
 					}
@@ -4038,11 +4074,50 @@ static void mus_exec_prog_tick(MusEngine *mus, int chan, int advance)
 	MusChannel *chn = &mus->channel[chan];
 	int tick = chn->program_tick;
 	int visited[MUS_PROG_LEN] = { 0 };
+	
+	bool increase_nestedness = true;
 
 	do_it_again:;
-
+	
+	if(tick == 0 && chn->program_counter == 0) //we analyze the whole program and save addresses of beginning and end of outermost and all inner loops; also we clear all
+	{
+		chn->nestedness = 0;
+		
+		for(int i = 0; i < MUS_MAX_NESTEDNESS; ++i)
+		{
+			chn->program_loop_addresses[i][0] = chn->program_loop_addresses[i][1] = 0;
+			chn->program_loop[i] = 1;
+		}
+		
+		int i = 1;
+		int temp_address = 0;
+		
+		while(i < MUS_MAX_NESTEDNESS && temp_address < MUS_PROG_LEN)
+		{
+			if(chn->instrument->program[temp_address] == MUS_FX_LABEL)
+			{
+				chn->program_loop_addresses[i][0] = temp_address;
+				i++;
+			}
+			
+			if(chn->instrument->program[temp_address] == MUS_FX_LOOP)
+			{
+				goto loops;
+			}
+			
+			else
+			{
+				temp_address++;
+			}
+		}
+		
+		loops:;
+	}
+	
 	const Uint16 inst = chn->instrument->program[tick];
 	bool unite_bit = (chn->instrument->program_unite_bits[tick / 8] & (1 << (tick & 7))) > 0 ? true : false;
+	
+	debug("chn nestedness %d", chn->nestedness);
 
 	switch (inst)
 	{
@@ -4062,21 +4137,6 @@ static void mus_exec_prog_tick(MusEngine *mus, int chan, int advance)
 		{
 			case MUS_FX_JUMP:
 			{
-				/* This should handle infinite jumping between two jump instructions (program hang) */
-				
-				/*if(((inst & 0x00ff) != tick - 1) && (tick < 2))
-				{
-					chn->instrument->program_unite_bits[(tick - 1) / 8] |= (1 << ((tick - 1) & 7)); //wasn't there
-				}
-				
-				else if((inst & 0x00ff) != tick - 1)
-				{
-					if(!(chn->instrument->program_unite_bits[(tick - 2) / 8] & (1 << ((tick - 2) & 7))))
-					{
-						chn->instrument->program_unite_bits[(tick - 1) / 8] |= (1 << ((tick - 1) & 7));
-					}
-				}*/
-
 				if (!visited[tick])
 				{
 					visited[tick] = 1;
@@ -4088,39 +4148,91 @@ static void mus_exec_prog_tick(MusEngine *mus, int chan, int advance)
 
 			case MUS_FX_LABEL:
 			{
-				chn->instrument->program_unite_bits[tick / 8] |= (1 << (tick & 7)); //wasn't there
+				//chn->instrument->program_unite_bits[tick / 8] |= (1 << (tick & 7)); //wasn't there
+				
+				if(chn->nestedness < MUS_MAX_NESTEDNESS && chn->program_counter == 0 && increase_nestedness) chn->nestedness++;
+				
+				increase_nestedness = true;
+				
+				int i = chn->nestedness;
+				int temp_address = tick;
+				
+				while(i < MUS_MAX_NESTEDNESS && temp_address < MUS_PROG_LEN)
+				{
+					if(chn->instrument->program[temp_address] == MUS_FX_LABEL)
+					{
+						chn->program_loop_addresses[i][0] = temp_address;
+						debug("chn->program_loop_addresses[i][0] %d", temp_address);
+						i++;
+					}
+					
+					if(chn->instrument->program[temp_address] == MUS_FX_LOOP)
+					{
+						goto loops3;
+					}
+					
+					else
+					{
+						temp_address++;
+					}
+				}
+				
+				loops3:;
 			}
 			break;
 
 			case MUS_FX_LOOP:
 			{
-				//chn->instrument->program_unite_bits[tick / 8] |= (1 << (tick & 7)); //wasn't there
-				
-				if (chn->program_loop == (inst & 0xff))
+				if (chn->program_loop[chn->nestedness] == (inst & 0xff))
 				{
-					if (advance) chn->program_loop = 1;
+					if (advance)
+					{
+						chn->program_loop[chn->nestedness] = 1;
+						
+						if(chn->nestedness > 0) chn->nestedness--;
+						
+						//chn->program_tick++;
+						tick++;
+						
+						int i = chn->nestedness + 1;
+						int temp_address = tick;
+						
+						while(i < MUS_MAX_NESTEDNESS && temp_address < MUS_PROG_LEN)
+						{
+							if(chn->instrument->program[temp_address] == MUS_FX_LABEL)
+							{
+								chn->program_loop_addresses[i][0] = temp_address;
+								debug("chn->program_loop_addresses[i][0] %d", temp_address);
+								i++;
+							}
+							
+							if(chn->instrument->program[temp_address] == MUS_FX_LOOP)
+							{
+								goto loops2;
+							}
+							
+							else
+							{
+								temp_address++;
+							}
+						}
+						
+						loops2:;
+						
+						goto do_it_again;
+					}
 				}
 				
 				else
 				{
-					if (advance) ++chn->program_loop;
-
-					int l = 0;
-
-					while ((chn->instrument->program[tick] & 0xff00) != MUS_FX_LABEL && tick > 0)
+					if (advance)
 					{
-						--tick;
-						//if (!(chn->instrument->program_unite_bits[tick / 8] & (1 << (tick & 7)))) ++l;
-						if (!(chn->instrument->program_unite_bits[tick / 8] & (1 << (tick & 7))) || (chn->instrument->program[tick] & 0xff00) != MUS_FX_JUMP || (chn->instrument->program[tick] & 0xff00) != MUS_FX_LABEL || (chn->instrument->program[tick] & 0xff00) != MUS_FX_LOOP)
-						{
-							++l;
-						}
-						//old command if (!(chn->instrument->program[tick] & 0x8000)) ++l;
+						if(chn->program_loop[chn->nestedness] < 255) ++chn->program_loop[chn->nestedness];
+						
+						chn->program_tick = tick = chn->program_loop_addresses[chn->nestedness][0];
+						increase_nestedness = false;
+						goto do_it_again;
 					}
-
-					--tick;
-
-					dont_reloop = l <= 1;
 				}
 			}
 			break;
@@ -4145,24 +4257,6 @@ static void mus_exec_prog_tick(MusEngine *mus, int chan, int advance)
 			tick = 0;
 		}
 	}
-
-	// skip to next on msb
-
-	/*if(tick > 0)
-	{
-		if ((chn->instrument->program_unite_bits[(tick - 1) / 8] & (1 << ((tick - 1) & 7))) && inst != MUS_FX_NOP && !dont_reloop) //old command if ((inst & 0x8000) && inst != MUS_FX_NOP && !dont_reloop)
-		{
-			goto do_it_again;
-		}
-	}
-	
-	else
-	{
-		if ((chn->instrument->program_unite_bits[(tick - 1) / 8] & (1 << ((tick - 1) & 7))) && inst != MUS_FX_NOP && !dont_reloop) //old command if ((inst & 0x8000) && inst != MUS_FX_NOP && !dont_reloop)
-		{
-			goto do_it_again;
-		}
-	}*/
 	
 	if ((unite_bit || (inst & 0xff00) == MUS_FX_JUMP) && inst != MUS_FX_NOP && !dont_reloop) //old command if ((inst & 0x8000) && inst != MUS_FX_NOP && !dont_reloop)
 	{
@@ -4180,8 +4274,45 @@ static void mus_exec_4op_prog_tick(MusEngine *mus, int chan, int advance, int i 
 	MusChannel *chn = &mus->channel[chan];
 	int tick = chn->ops[i].program_tick;
 	int visited4op[MUS_PROG_LEN] = { 0 };
+	
+	bool increase_nestedness = true;
 
 	do_it_again4op:;
+	
+	if(tick == 0 && chn->ops[i].program_counter == 0) //we analyze the whole program and save addresses of beginning and end of outermost and all inner loops; also we clear all
+	{
+		chn->ops[i].nestedness = 0;
+		
+		for(int j = 0; j < MUS_MAX_NESTEDNESS; ++j)
+		{
+			chn->ops[i].program_loop_addresses[j][0] = chn->ops[i].program_loop_addresses[j][1] = 0;
+			chn->ops[i].program_loop[j] = 1;
+		}
+		
+		int j = 1;
+		int temp_address = 0;
+		
+		while(j < MUS_MAX_NESTEDNESS && temp_address < MUS_PROG_LEN)
+		{
+			if(chn->instrument->ops[i].program[temp_address] == MUS_FX_LABEL)
+			{
+				chn->ops[i].program_loop_addresses[j][0] = temp_address;
+				j++;
+			}
+			
+			if(chn->instrument->ops[i].program[temp_address] == MUS_FX_LOOP)
+			{
+				goto loops;
+			}
+			
+			else
+			{
+				temp_address++;
+			}
+		}
+		
+		loops:;
+	}
 	
 	const Uint16 inst = chn->instrument->ops[i].program[tick];
 	bool unite_bit = (chn->instrument->ops[i].program_unite_bits[tick / 8] & (1 << (tick & 7))) > 0 ? true : false;
@@ -4204,21 +4335,6 @@ static void mus_exec_4op_prog_tick(MusEngine *mus, int chan, int advance, int i 
 		{
 			case MUS_FX_JUMP:
 			{
-				/* This should handle infinite jumping between two jump instructions (program hang) */
-				
-				/*if(((inst & 0x00ff) != tick - 1) && (tick < 2))
-				{
-					chn->instrument->ops[i].program_unite_bits[(tick - 1) / 8] |= (1 << ((tick - 1) & 7));
-				}
-				
-				else if((inst & 0x00ff) != tick - 1)
-				{
-					if(!(chn->instrument->ops[i].program_unite_bits[(tick - 2) / 8] & (1 << ((tick - 2) & 7))))
-					{
-						chn->instrument->ops[i].program_unite_bits[(tick - 1) / 8] |= (1 << ((tick - 1) & 7));
-					}
-				}*/
-
 				if (!visited4op[tick])
 				{
 					visited4op[tick] = 1;
@@ -4230,39 +4346,89 @@ static void mus_exec_4op_prog_tick(MusEngine *mus, int chan, int advance, int i 
 
 			case MUS_FX_LABEL:
 			{
-				chn->instrument->ops[i].program_unite_bits[tick / 8] |= (1 << (tick & 7)); //wasn't there
+				//chn->instrument->program_unite_bits[tick / 8] |= (1 << (tick & 7)); //wasn't there
+				
+				if(chn->ops[i].nestedness < MUS_MAX_NESTEDNESS && chn->ops[i].program_counter == 0 && increase_nestedness) chn->ops[i].nestedness++;
+				
+				increase_nestedness = true;
+				
+				int j = chn->ops[i].nestedness;
+				int temp_address = tick;
+				
+				while(j < MUS_MAX_NESTEDNESS && temp_address < MUS_PROG_LEN)
+				{
+					if(chn->instrument->ops[i].program[temp_address] == MUS_FX_LABEL)
+					{
+						chn->ops[i].program_loop_addresses[j][0] = temp_address;
+						j++;
+					}
+					
+					if(chn->instrument->ops[i].program[temp_address] == MUS_FX_LOOP)
+					{
+						goto loops3;
+					}
+					
+					else
+					{
+						temp_address++;
+					}
+				}
+				
+				loops3:;
 			}
 			break;
 
 			case MUS_FX_LOOP:
 			{
-				//chn->instrument->ops[i].program_unite_bits[tick / 8] |= (1 << (tick & 7)); //wasn't there
-				
-				if (chn->ops[i].program_loop == (inst & 0xff))
+				if (chn->ops[i].program_loop[chn->ops[i].nestedness] == (inst & 0xff))
 				{
-					if (advance) chn->ops[i].program_loop = 1;
+					if (advance)
+					{
+						chn->ops[i].program_loop[chn->ops[i].nestedness] = 1;
+						
+						if(chn->ops[i].nestedness > 0) chn->ops[i].nestedness--;
+						
+						//chn->program_tick++;
+						tick++;
+						
+						int j = chn->ops[i].nestedness + 1;
+						int temp_address = tick;
+						
+						while(j < MUS_MAX_NESTEDNESS && temp_address < MUS_PROG_LEN)
+						{
+							if(chn->instrument->ops[i].program[temp_address] == MUS_FX_LABEL)
+							{
+								chn->ops[i].program_loop_addresses[j][0] = temp_address;
+								j++;
+							}
+							
+							if(chn->instrument->ops[i].program[temp_address] == MUS_FX_LOOP)
+							{
+								goto loops2;
+							}
+							
+							else
+							{
+								temp_address++;
+							}
+						}
+						
+						loops2:;
+						
+						goto do_it_again4op;
+					}
 				}
 				
 				else
 				{
-					if (advance) ++chn->ops[i].program_loop;
-
-					int l = 0;
-
-					while ((chn->instrument->ops[i].program[tick] & 0xff00) != MUS_FX_LABEL && tick > 0)
+					if (advance)
 					{
-						--tick;
-						//if (!(chn->instrument->ops[i].program_unite_bits[tick / 8] & (1 << (tick & 7)))) ++l;
+						if(chn->ops[i].program_loop[chn->ops[i].nestedness] < 255) ++chn->ops[i].program_loop[chn->ops[i].nestedness];
 						
-						if (!(chn->instrument->ops[i].program_unite_bits[tick / 8] & (1 << (tick & 7))) || (chn->instrument->ops[i].program[tick] & 0xff00) != MUS_FX_JUMP || (chn->instrument->ops[i].program[tick] & 0xff00) != MUS_FX_LABEL || (chn->instrument->ops[i].program[tick] & 0xff00) != MUS_FX_LOOP)
-						{
-							++l;
-						}
+						chn->ops[i].program_tick = tick = chn->ops[i].program_loop_addresses[chn->ops[i].nestedness][0];
+						increase_nestedness = false;
+						goto do_it_again4op;
 					}
-
-					--tick;
-
-					dont_reloop = l <= 1;
 				}
 			}
 			break;
@@ -4272,7 +4438,6 @@ static void mus_exec_4op_prog_tick(MusEngine *mus, int chan, int advance, int i 
 			{
 				do_command(mus, chan, chn->ops[i].program_counter, inst, 1, i + 1);
 			}
-
 			break;
 		}
 	}
@@ -4286,24 +4451,6 @@ static void mus_exec_4op_prog_tick(MusEngine *mus, int chan, int advance, int i 
 			tick = 0;
 		}
 	}
-
-	// skip to next on msb
-
-	/*if(tick > 0)
-	{
-		if ((chn->instrument->ops[i].program_unite_bits[(tick - 1) / 8] & (1 << ((tick - 1) & 7))) && inst != MUS_FX_NOP && !dont_reloop)
-		{
-			goto do_it_again4op;
-		}
-	}
-	
-	else
-	{
-		if ((chn->instrument->ops[i].program_unite_bits[(tick) / 8] & (1 << (tick & 7))) && inst != MUS_FX_NOP && !dont_reloop)
-		{
-			goto do_it_again4op;
-		}
-	}*/
 	
 	if ((unite_bit || (inst & 0xff00) == MUS_FX_JUMP) && inst != MUS_FX_NOP && !dont_reloop) //old command if ((inst & 0x8000) && inst != MUS_FX_NOP && !dont_reloop)
 	{
@@ -4557,7 +4704,13 @@ void mus_trigger_fm_op_internal(CydFm* fm, MusInstrument* ins, CydChannel* cydch
 	{
 		chn->ops[i].program_counter = 0;
 		chn->ops[i].program_tick = 0;
-		chn->ops[i].program_loop = 1;
+		//chn->ops[i].program_loop = 1;
+		
+		for(int j = 0; j < MUS_MAX_NESTEDNESS; ++j)
+		{
+			chn->ops[i].program_loop[j] = 1;
+			chn->ops[i].program_loop_addresses[j][0] = chn->ops[i].program_loop_addresses[j][1] = 0;
+		}
 	}
 	
 	if (ins->ops[i].prog_period > 0)
@@ -4695,7 +4848,12 @@ int mus_trigger_instrument_internal(MusEngine* mus, int chan, MusInstrument *ins
 	{
 		chn->program_counter = 0;
 		chn->program_tick = 0;
-		chn->program_loop = 1;
+		
+		for(int i = 0; i < MUS_MAX_NESTEDNESS; ++i)
+		{
+			chn->program_loop[i] = 1;
+			chn->program_loop_addresses[i][0] = chn->program_loop_addresses[i][1] = 0;
+		}
 	}
 	
 	cydchn->flags = ins->cydflags;
@@ -5085,7 +5243,8 @@ static void mus_advance_channel(MusEngine* mus, int chan)
 					mus->cyd->channel[chan].fm.ops[i].adsr.env_speed = (int)((double)envspd(mus->cyd, mus->cyd->channel[chan].fm.ops[i].adsr.a) * mus->cyd->channel[chan].fm.ops[i].env_ksl_mult);
 				}
 				
-				cyd_cycle_adsr(mus->cyd, 0, 0, &mus->cyd->channel[chan].fm.ops[i].adsr, mus->cyd->channel[chan].fm.ops[i].env_ksl_mult);
+				//cyd_cycle_adsr(mus->cyd, 0, 0, &mus->cyd->channel[chan].fm.ops[i].adsr, mus->cyd->channel[chan].fm.ops[i].env_ksl_mult);
+				cyd_cycle_fm_op_adsr(mus->cyd, 0, 0, &mus->cyd->channel[chan].fm.ops[i].adsr, mus->cyd->channel[chan].fm.ops[i].env_ksl_mult,  mus->cyd->channel[chan].fm.ops[i].ssg_eg_type | ((( mus->cyd->channel[chan].fm.ops[i].flags & CYD_FM_OP_ENABLE_SSG_EG) ? 1 : 0) << 3));
 				
 				mus->cyd->channel[chan].fm.ops[i].osc.accumulator = 0;
 				mus->cyd->channel[chan].fm.ops[i].osc.noise_accumulator = 0;

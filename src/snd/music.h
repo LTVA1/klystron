@@ -37,6 +37,8 @@ OTHER DEALINGS IN THE SOFTWARE.
 #include "music_defs.h"
 
 #define MUS_PROG_LEN 255
+#define MUS_MAX_NESTEDNESS 5
+
 #define MUS_MAX_CHANNELS CYD_MAX_CHANNELS
 
 #define MUS_VERSION 34
@@ -211,7 +213,12 @@ typedef struct
 	Uint32 target_note, last_note, fixed_note;
 	volatile Uint32 flags;
 	Uint32 current_tick;
-	Uint8 program_counter, program_tick, program_loop, prog_period;
+	//Uint8 program_counter, program_tick, program_loop, prog_period;
+	Uint8 program_counter, program_tick, prog_period;
+	Uint8 program_loop[MUS_MAX_NESTEDNESS];
+	Uint8 program_loop_addresses[MUS_MAX_NESTEDNESS][2]; //[][0] loop begin address [][1] loop end address
+	Uint8 nestedness;
+	
 	Sint16 trigger_delay; //how many ticks to wait after general trigger to trigger specific operator, can be very creative
 	
 	Uint16 triggered_note; //note at which the op was triggered
@@ -231,7 +238,12 @@ typedef struct
 	Uint32 target_note, last_note, fixed_note;
 	volatile Uint32 flags;
 	Uint32 current_tick;
-	Uint8 program_counter, program_tick, program_loop, prog_period;
+	//Uint8 program_counter, program_tick, program_loop, prog_period;
+	Uint8 program_counter, program_tick, prog_period;
+	Uint8 program_loop[MUS_MAX_NESTEDNESS];
+	Uint8 program_loop_addresses[MUS_MAX_NESTEDNESS][2]; //[][0] loop begin address [][1] loop end address
+	Uint8 nestedness;
+	
 	Sint16 buzz_offset;
 	
 	MusFmOpChannel ops[CYD_FM_NUM_OPS];
@@ -561,8 +573,15 @@ enum
 	MUS_FX_FM_SET_OP3_FEEDBACK = 0xC420,
 	MUS_FX_FM_SET_OP4_FEEDBACK = 0xD420,
 	
+	MUS_FX_FM_SET_OP1_SSG_EG_TYPE = 0xA430,
+	MUS_FX_FM_SET_OP2_SSG_EG_TYPE = 0xB430,
+	MUS_FX_FM_SET_OP3_SSG_EG_TYPE = 0xC430,
+	MUS_FX_FM_SET_OP4_SSG_EG_TYPE = 0xD430,
+	
 	MUS_FX_FM_4OP_SET_DETUNE = 0x3410,
 	MUS_FX_FM_4OP_SET_COARSE_DETUNE = 0x3420,
+
+	MUS_FX_FM_4OP_SET_SSG_EG_TYPE = 0x3470,
 	
 	MUS_FX_FM_SET_HARMONIC = 0x3500,
 	MUS_FX_FM_SET_WAVEFORM = 0x3600,

@@ -348,7 +348,10 @@ void cyd_output_buffer_stereo(int chan, void *_stream, int len, void *udata);
 #endif
 
 Sint32 cyd_env_output(const CydEngine *cyd, Uint32 channel_flags, const CydAdsr *adsr, Sint32 input);
+Sint32 cyd_fm_op_env_output(const CydEngine *cyd, Uint32 channel_flags, const CydFmOpAdsr *adsr, Sint32 input);
+
 Uint32 cyd_cycle_adsr(const CydEngine *eng, Uint32 flags, Uint32 ym_env_shape, CydAdsr *adsr, double env_ksl_mult);
+Uint32 cyd_cycle_fm_op_adsr(const CydEngine *eng, Uint32 flags, Uint32 ym_env_shape, CydFmOpAdsr *adsr, double env_ksl_mult, Uint8 ssg_eg);
 
 #endif
 
