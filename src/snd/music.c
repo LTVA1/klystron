@@ -4079,14 +4079,17 @@ static void mus_exec_prog_tick(MusEngine *mus, int chan, int advance)
 
 	do_it_again:;
 	
-	if(tick == 0 && chn->program_counter == 0) //we analyze the whole program and save addresses of beginning and end of outermost and all inner loops; also we clear all
+	if(tick == 0 && advance) //we analyze the whole program and save addresses of beginning and end of outermost and all inner loops; also we clear all addresses and loop counters
 	{
 		chn->nestedness = 0;
 		
-		for(int i = 0; i < MUS_MAX_NESTEDNESS; ++i)
+		if(chn->instrument->program[tick] != MUS_FX_LABEL)
 		{
-			chn->program_loop_addresses[i][0] = chn->program_loop_addresses[i][1] = 0;
-			chn->program_loop[i] = 1;
+			for(int i = 0; i < MUS_MAX_NESTEDNESS; ++i)
+			{
+				chn->program_loop_addresses[i][0] = chn->program_loop_addresses[i][1] = 0;
+				chn->program_loop[i] = 1;
+			}
 		}
 		
 		int i = 1;
@@ -4117,7 +4120,7 @@ static void mus_exec_prog_tick(MusEngine *mus, int chan, int advance)
 	const Uint16 inst = chn->instrument->program[tick];
 	bool unite_bit = (chn->instrument->program_unite_bits[tick / 8] & (1 << (tick & 7))) > 0 ? true : false;
 	
-	debug("chn nestedness %d", chn->nestedness);
+	//debug("chn nestedness %d", chn->nestedness);
 
 	switch (inst)
 	{
@@ -4148,32 +4151,33 @@ static void mus_exec_prog_tick(MusEngine *mus, int chan, int advance)
 
 			case MUS_FX_LABEL:
 			{
-				//chn->instrument->program_unite_bits[tick / 8] |= (1 << (tick & 7)); //wasn't there
-				
-				if(chn->nestedness < MUS_MAX_NESTEDNESS && chn->program_counter == 0 && increase_nestedness) chn->nestedness++;
+				if(chn->nestedness < MUS_MAX_NESTEDNESS && advance && increase_nestedness) chn->nestedness++;
 				
 				increase_nestedness = true;
 				
 				int i = chn->nestedness;
 				int temp_address = tick;
 				
-				while(i < MUS_MAX_NESTEDNESS && temp_address < MUS_PROG_LEN)
+				if (advance)
 				{
-					if(chn->instrument->program[temp_address] == MUS_FX_LABEL)
+					while(i < MUS_MAX_NESTEDNESS && temp_address < MUS_PROG_LEN)
 					{
-						chn->program_loop_addresses[i][0] = temp_address;
-						debug("chn->program_loop_addresses[i][0] %d", temp_address);
-						i++;
-					}
-					
-					if(chn->instrument->program[temp_address] == MUS_FX_LOOP)
-					{
-						goto loops3;
-					}
-					
-					else
-					{
-						temp_address++;
+						if(chn->instrument->program[temp_address] == MUS_FX_LABEL)
+						{
+							chn->program_loop_addresses[i][0] = temp_address;
+							//debug("chn->program_loop_addresses[i][0] %d", temp_address);
+							i++;
+						}
+						
+						if(chn->instrument->program[temp_address] == MUS_FX_LOOP)
+						{
+							goto loops3;
+						}
+						
+						else
+						{
+							temp_address++;
+						}
 					}
 				}
 				
@@ -4202,7 +4206,7 @@ static void mus_exec_prog_tick(MusEngine *mus, int chan, int advance)
 							if(chn->instrument->program[temp_address] == MUS_FX_LABEL)
 							{
 								chn->program_loop_addresses[i][0] = temp_address;
-								debug("chn->program_loop_addresses[i][0] %d", temp_address);
+								//debug("chn->program_loop_addresses[i][0] %d", temp_address);
 								i++;
 							}
 							
@@ -4279,14 +4283,17 @@ static void mus_exec_4op_prog_tick(MusEngine *mus, int chan, int advance, int i 
 
 	do_it_again4op:;
 	
-	if(tick == 0 && chn->ops[i].program_counter == 0) //we analyze the whole program and save addresses of beginning and end of outermost and all inner loops; also we clear all
+	if(tick == 0 && advance) //we analyze the whole program and save addresses of beginning and end of outermost and all inner loops; also we clear all
 	{
 		chn->ops[i].nestedness = 0;
 		
-		for(int j = 0; j < MUS_MAX_NESTEDNESS; ++j)
+		if(chn->instrument->ops[i].program[tick] != MUS_FX_LABEL)
 		{
-			chn->ops[i].program_loop_addresses[j][0] = chn->ops[i].program_loop_addresses[j][1] = 0;
-			chn->ops[i].program_loop[j] = 1;
+			for(int j = 0; j < MUS_MAX_NESTEDNESS; ++j)
+			{
+				chn->ops[i].program_loop_addresses[j][0] = chn->ops[i].program_loop_addresses[j][1] = 0;
+				chn->ops[i].program_loop[j] = 1;
+			}
 		}
 		
 		int j = 1;
@@ -4348,29 +4355,32 @@ static void mus_exec_4op_prog_tick(MusEngine *mus, int chan, int advance, int i 
 			{
 				//chn->instrument->program_unite_bits[tick / 8] |= (1 << (tick & 7)); //wasn't there
 				
-				if(chn->ops[i].nestedness < MUS_MAX_NESTEDNESS && chn->ops[i].program_counter == 0 && increase_nestedness) chn->ops[i].nestedness++;
+				if(chn->ops[i].nestedness < MUS_MAX_NESTEDNESS && advance && increase_nestedness) chn->ops[i].nestedness++;
 				
 				increase_nestedness = true;
 				
 				int j = chn->ops[i].nestedness;
 				int temp_address = tick;
 				
-				while(j < MUS_MAX_NESTEDNESS && temp_address < MUS_PROG_LEN)
+				if(advance)
 				{
-					if(chn->instrument->ops[i].program[temp_address] == MUS_FX_LABEL)
+					while(j < MUS_MAX_NESTEDNESS && temp_address < MUS_PROG_LEN)
 					{
-						chn->ops[i].program_loop_addresses[j][0] = temp_address;
-						j++;
-					}
-					
-					if(chn->instrument->ops[i].program[temp_address] == MUS_FX_LOOP)
-					{
-						goto loops3;
-					}
-					
-					else
-					{
-						temp_address++;
+						if(chn->instrument->ops[i].program[temp_address] == MUS_FX_LABEL)
+						{
+							chn->ops[i].program_loop_addresses[j][0] = temp_address;
+							j++;
+						}
+						
+						if(chn->instrument->ops[i].program[temp_address] == MUS_FX_LOOP)
+						{
+							goto loops3;
+						}
+						
+						else
+						{
+							temp_address++;
+						}
 					}
 				}
 				
