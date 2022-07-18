@@ -469,6 +469,8 @@ void cyd_reset(CydEngine *cyd)
 #define SSG_EG_INV 4
 #define SSG_EG_ENABLED 8
 
+#define SSG_EG_SPEED_MULT 6
+
 Uint32 cyd_cycle_fm_op_adsr(const CydEngine *eng, Uint32 flags, Uint32 ym_env_shape, CydFmOpAdsr *adsr, double env_ksl_mult, Uint8 ssg_eg) //SSG-EG variable bits go like this: 0 0 0 0 EN INV ALT HLD
 { //EN means that SSG-EG is enabled; INV means start executing envelope the other way around (start from sustain level, the inversed decay then inversed attack); ALT means that every cycle you
 //change direction of envelope execution (normal is atk -> dec -> sus, inverted is sus -> dec -> atk), also means that if there was only one cycle and the bit is 1 you hold the adsr volume not on
@@ -483,6 +485,44 @@ Uint32 cyd_cycle_fm_op_adsr(const CydEngine *eng, Uint32 flags, Uint32 ym_env_sh
 		{
 			if(ssg_eg & SSG_EG_ENABLED)
 			{
+				if((ssg_eg & SSG_EG_ENABLED) && (ssg_eg & SSG_EG_INV))
+				{
+					if(adsr->passes & 1)
+					{
+						adsr->envelope = (Uint32)adsr->s << 19;
+						adsr->envelope_state = DECAY;
+						
+						if(env_ksl_mult == 0.0 || env_ksl_mult == 1.0)
+						{
+							adsr->env_speed = envspd(eng, adsr->d) * SSG_EG_SPEED_MULT;
+						}
+						
+						else
+						{
+							adsr->env_speed = (int)((double)envspd(eng, adsr->d) * env_ksl_mult) * SSG_EG_SPEED_MULT;
+						}
+						
+						break;
+					}
+					
+					if(!(ssg_eg & SSG_EG_HLD))
+					{
+						if(adsr->passes < 4)
+						{
+							adsr->passes++;
+						}
+						
+						else
+						{
+							adsr->passes = 2;
+						}
+					}
+					
+					else
+					{
+						adsr->passes = 1;
+					}
+				}
 				
 				return flags;
 				break;
@@ -494,54 +534,120 @@ Uint32 cyd_cycle_fm_op_adsr(const CydEngine *eng, Uint32 flags, Uint32 ym_env_sh
 				break;
 			}
 		}
+		break;
 		
 		case DONE: return flags; break;
 		
 		case ATTACK:
-		
-		adsr->envelope += adsr->env_speed;
-		
-		if (adsr->envelope >= 0xff0000) 
 		{
-			adsr->envelope_state = DECAY;
-			adsr->envelope = 0xff0000;
-
-			adsr->env_speed = envspd(eng, adsr->d);
-			
-			if(env_ksl_mult != 0.0 || env_ksl_mult != 1.0)
+			if(!(ssg_eg & SSG_EG_ENABLED) || ((ssg_eg & SSG_EG_ENABLED) && (((adsr->passes & 1) && (ssg_eg & SSG_EG_INV)) || (!(adsr->passes & 1) && !(ssg_eg & SSG_EG_INV)))))
 			{
-				adsr->env_speed = (int)((double)envspd(eng, adsr->d) * env_ksl_mult);
-			}
-		}
-		
-		break;
-		
-		case DECAY:
+				adsr->envelope += adsr->env_speed;
+				
+				if (adsr->envelope >= 0xff0000) 
+				{
+					adsr->envelope_state = DECAY;
+					adsr->envelope = 0xff0000;
 
-			if (adsr->envelope > ((Uint32)adsr->s << 19) + adsr->env_speed)
-			{
-				adsr->envelope -= adsr->env_speed;
+					adsr->env_speed = envspd(eng, adsr->d);
+					
+					if(env_ksl_mult != 0.0 || env_ksl_mult != 1.0)
+					{
+						adsr->env_speed = (int)((double)envspd(eng, adsr->d) * env_ksl_mult);
+					}
+				}
 			}
 			
 			else
 			{
-				adsr->envelope = (Uint32)adsr->s << 19;
-				adsr->envelope_state = (adsr->s == 0) ? RELEASE : SUSTAIN;
+				adsr->envelope -= adsr->env_speed;
 				
-				if(env_ksl_mult == 0.0 || env_ksl_mult == 1.0)
+				if (adsr->envelope < 0) 
 				{
-					adsr->env_speed = envspd(eng, adsr->r);
+					adsr->env_speed = -adsr->env_speed;
+					
+					if(env_ksl_mult != 0.0 || env_ksl_mult != 1.0)
+					{
+						adsr->env_speed = -1 * (int)((double)envspd(eng, adsr->a) * env_ksl_mult);
+					}
+				}
+				
+				if(!(ssg_eg & SSG_EG_HLD))
+				{
+					if(adsr->passes < 4)
+					{
+						adsr->passes++;
+					}
+					
+					else
+					{
+						adsr->passes = 2;
+					}
 				}
 				
 				else
 				{
-					adsr->env_speed = (int)((double)envspd(eng, adsr->r) * env_ksl_mult);
+					adsr->passes = 1;
 				}
 			}
+		}
+		break;
 		
+		case DECAY:
+		{
+			if(!(ssg_eg & SSG_EG_ENABLED) || ((ssg_eg & SSG_EG_ENABLED) && (((adsr->passes & 1) && (ssg_eg & SSG_EG_INV)) || (!(adsr->passes & 1) && !(ssg_eg & SSG_EG_INV)))))
+			{
+				if (adsr->envelope > ((Uint32)adsr->s << 19) + adsr->env_speed)
+				{
+					adsr->envelope -= adsr->env_speed;
+				}
+				
+				else
+				{
+					adsr->envelope = (Uint32)adsr->s << 19;
+					
+					adsr->envelope_state = (ssg_eg & SSG_EG_ENABLED) ? SUSTAIN : ((adsr->s == 0) ? RELEASE : SUSTAIN);
+					
+					if(env_ksl_mult == 0.0 || env_ksl_mult == 1.0)
+					{
+						adsr->env_speed = envspd(eng, adsr->r);
+					}
+					
+					else
+					{
+						adsr->env_speed = (int)((double)envspd(eng, adsr->r) * env_ksl_mult);
+					}
+				}
+			}
+			
+			else
+			{
+				if (adsr->envelope < ((Uint32)adsr->s << 19) + adsr->env_speed)
+				{
+					adsr->envelope += adsr->env_speed;
+				}
+				
+				else
+				{
+					adsr->envelope = (Uint32)adsr->s << 19;
+					adsr->envelope_state = SUSTAIN;
+					
+					if(env_ksl_mult == 0.0 || env_ksl_mult == 1.0)
+					{
+						adsr->env_speed = envspd(eng, adsr->r);
+					}
+					
+					else
+					{
+						adsr->env_speed = (int)((double)envspd(eng, adsr->r) * env_ksl_mult);
+					}
+				}
+			}
+		}
 		break;
 		
 		case RELEASE:
+		{
 			if (adsr->envelope > adsr->env_speed)
 			{
 				adsr->envelope -= adsr->env_speed;
@@ -553,7 +659,8 @@ Uint32 cyd_cycle_fm_op_adsr(const CydEngine *eng, Uint32 flags, Uint32 ym_env_sh
 				if ((flags & (CYD_CHN_ENABLE_WAVE | CYD_CHN_WAVE_OVERRIDE_ENV)) != (CYD_CHN_ENABLE_WAVE | CYD_CHN_WAVE_OVERRIDE_ENV)) flags &= ~CYD_CHN_ENABLE_GATE;
 				adsr->envelope = 0;
 			}
-			break;
+		}
+		break;
 	}
 #endif
 

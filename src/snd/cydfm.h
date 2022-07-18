@@ -71,7 +71,7 @@ typedef struct //wasn't there
 	
 	Uint8 ssg_eg_type; //0-7
 	
-	Sint8 detune; //-7..7, 4 * finetune
+	Sint8 detune; //-7..7, 2 * finetune
 	Uint8 coarse_detune; //OPM DT2, 0..3
 	
 	Sint32 trigger_delay;

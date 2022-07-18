@@ -49,7 +49,7 @@ OTHER DEALINGS IN THE SOFTWARE.
 
 #define MUS_MAX_COMMANDS 8
 
-#define DETUNE 2
+#define DETUNE ((Sint32)(2))
 
 typedef unsigned long char32_t;
 
@@ -95,7 +95,7 @@ typedef struct //wasn't there
     Sint8 finetune;
 	Uint8 noise_note;
 	
-	Sint8 detune; //-3..3, 16 * finetune
+	Sint8 detune; //-7..7, 2 * finetune
 	Uint8 coarse_detune; //OPM DT2, 0..3
 	
     Uint8 feedback;
@@ -632,6 +632,7 @@ enum
 	MUS_FX_JUMP = 0xff00,
 	MUS_FX_LABEL = 0xfd00,
 	MUS_FX_LOOP = 0xfe00,
+	MUS_FX_RELEASE_POINT = 0xfb00, //wasn't there //jump to the command after this one when release is triggered
 	MUS_FX_TRIGGER_RELEASE = 0x7c00,
 	MUS_FX_TRIGGER_FM_RELEASE = 0x4c00, //wasn't there
 	MUS_FX_TRIGGER_CARRIER_RELEASE = 0x4d00, //wasn't there
