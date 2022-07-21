@@ -384,7 +384,7 @@ void mus_set_fm_op_note(MusEngine* mus, int chan, CydFm* fm, Uint32 note, int i 
 		if(fm->flags & CYD_FM_ENABLE_3CH_EXP_MODE)
 		{
 			//chn->subosc[subosc].frequency = (Uint64)(ACC_LENGTH >> (cyd->oversample)) / 64 * (Uint64)(frequency) / (Uint64)cyd->sample_rate;
-			fm->ops[i].osc.frequency = (Uint64)(ACC_LENGTH >> (mus->cyd->oversample)) / 64 * (Uint64)frequency / (Uint64)mus->cyd->sample_rate;
+			fm->ops[i].osc.frequency = (Uint64)(ACC_LENGTH >> (mus->cyd->oversample)) / 64 * (Uint64)frequency / (Uint64)mus->cyd->sample_rate / (((ins->fm_flags & CYD_FM_ENABLE_3CH_EXP_MODE) ? (ins->ops[i].flags & MUS_FM_OP_QUARTER_FREQ) : (ins->flags & MUS_INST_QUARTER_FREQ)) ? 4 : 1);
 			//fm->ops[i].osc.frequency = (Uint64)(ACC_LENGTH >> (mus->cyd->oversample)) / 64 * (Uint64)frequency / (Uint64)mus->cyd->sample_rate;
 			//fm->ops[i].scale_freq = (Uint64)(ACC_LENGTH >> (mus->cyd->oversample)) / 64 * (Uint64)(get_freq((Uint32)(((Uint16)ins->ops[i].base_note) << 8) + fm->ops[i].finetune)) / (Uint64)mus->cyd->sample_rate;
 		}
@@ -393,7 +393,7 @@ void mus_set_fm_op_note(MusEngine* mus, int chan, CydFm* fm, Uint32 note, int i 
 		{
 			if(fm->fm_freq_LUT == 0)
 			{
-				fm->ops[i].osc.frequency = (Uint64)(ACC_LENGTH >> (mus->cyd->oversample)) / 64 * (Uint64)(frequency) / (Uint64)mus->cyd->sample_rate * (Uint64)harmonic1[fm->ops[i].harmonic & 15] / (Uint64)harmonic1[fm->ops[i].harmonic >> 4];
+				fm->ops[i].osc.frequency = (Uint64)(ACC_LENGTH >> (mus->cyd->oversample)) / 64 * (Uint64)(frequency) / (Uint64)mus->cyd->sample_rate * (Uint64)harmonic1[fm->ops[i].harmonic & 15] / (Uint64)harmonic1[fm->ops[i].harmonic >> 4] / (((ins->fm_flags & CYD_FM_ENABLE_3CH_EXP_MODE) ? (ins->ops[i].flags & MUS_FM_OP_QUARTER_FREQ) : (ins->flags & MUS_INST_QUARTER_FREQ)) ? 4 : 1);
 				
 				//fm->ops[i].osc.frequency = (Uint64)(ACC_LENGTH >> (mus->cyd->oversample)) / 64 * (Uint64)(frequency) / (Uint64)mus->cyd->sample_rate * (Uint64)harmonic1[fm->ops[i].harmonic & 15] / (Uint64)harmonic1[fm->ops[i].harmonic >> 4];
 				
@@ -402,7 +402,7 @@ void mus_set_fm_op_note(MusEngine* mus, int chan, CydFm* fm, Uint32 note, int i 
 			
 			else
 			{
-				fm->ops[i].osc.frequency = (Uint64)(ACC_LENGTH >> (mus->cyd->oversample)) / 64 * (Uint64)(frequency) / (Uint64)mus->cyd->sample_rate * (Uint64)harmonicOPN1[fm->ops[i].harmonic & 15] / (Uint64)harmonicOPN1[fm->ops[i].harmonic >> 4];
+				fm->ops[i].osc.frequency = (Uint64)(ACC_LENGTH >> (mus->cyd->oversample)) / 64 * (Uint64)(frequency) / (Uint64)mus->cyd->sample_rate * (Uint64)harmonicOPN1[fm->ops[i].harmonic & 15] / (Uint64)harmonicOPN1[fm->ops[i].harmonic >> 4] / (((ins->fm_flags & CYD_FM_ENABLE_3CH_EXP_MODE) ? (ins->ops[i].flags & MUS_FM_OP_QUARTER_FREQ) : (ins->flags & MUS_INST_QUARTER_FREQ)) ? 4 : 1);
 				
 				//fm->ops[i].osc.frequency = (Uint64)(ACC_LENGTH >> (mus->cyd->oversample)) / 64 * (Uint64)(frequency) / (Uint64)mus->cyd->sample_rate * (Uint64)harmonicOPN1[fm->ops[i].harmonic & 15] / (Uint64)harmonicOPN1[fm->ops[i].harmonic >> 4];
 				//fm->ops[i].scale_freq = (Uint64)(ACC_LENGTH >> (mus->cyd->oversample)) / 64 * (Uint64)(get_freq((Uint32)(((Uint16)ins->base_note) << 8) + fm->ops[i].finetune)) / (Uint64)mus->cyd->sample_rate * (Uint64)harmonicOPN1[fm->ops[i].harmonic & 15] / (Uint64)harmonicOPN1[fm->ops[i].harmonic >> 4];
@@ -416,12 +416,12 @@ void mus_set_fm_op_note(MusEngine* mus, int chan, CydFm* fm, Uint32 note, int i 
 			
 			if(fm->fm_freq_LUT == 0)
 			{
-				fm->ops[i].osc.wave.frequency = (Uint64)WAVETABLE_RESOLUTION * (Uint64)fm->ops[i].wave_entry->sample_rate / (Uint64)mus->cyd->sample_rate * (Uint64)wave_frequency / (Uint64)get_freq(fm->ops[i].wave_entry->base_note) * (Uint64)harmonic1[fm->ops[i].harmonic & 15] / (Uint64)harmonic1[fm->ops[i].harmonic >> 4];
+				fm->ops[i].osc.wave.frequency = (Uint64)WAVETABLE_RESOLUTION * (Uint64)fm->ops[i].wave_entry->sample_rate / (Uint64)mus->cyd->sample_rate * (Uint64)wave_frequency / (Uint64)get_freq(fm->ops[i].wave_entry->base_note) * (Uint64)harmonic1[fm->ops[i].harmonic & 15] / (Uint64)harmonic1[fm->ops[i].harmonic >> 4] / (((ins->fm_flags & CYD_FM_ENABLE_3CH_EXP_MODE) ? (ins->ops[i].flags & MUS_FM_OP_QUARTER_FREQ) : (ins->flags & MUS_INST_QUARTER_FREQ)) ? 4 : 1);
 			}
 			
 			else
 			{
-				fm->ops[i].osc.wave.frequency = (Uint64)WAVETABLE_RESOLUTION * (Uint64)fm->ops[i].wave_entry->sample_rate / (Uint64)mus->cyd->sample_rate * (Uint64)wave_frequency / (Uint64)get_freq(fm->ops[i].wave_entry->base_note) * (Uint64)harmonicOPN1[fm->ops[i].harmonic & 15] / (Uint64)harmonicOPN1[fm->ops[i].harmonic >> 4];
+				fm->ops[i].osc.wave.frequency = (Uint64)WAVETABLE_RESOLUTION * (Uint64)fm->ops[i].wave_entry->sample_rate / (Uint64)mus->cyd->sample_rate * (Uint64)wave_frequency / (Uint64)get_freq(fm->ops[i].wave_entry->base_note) * (Uint64)harmonicOPN1[fm->ops[i].harmonic & 15] / (Uint64)harmonicOPN1[fm->ops[i].harmonic >> 4] / (((ins->fm_flags & CYD_FM_ENABLE_3CH_EXP_MODE) ? (ins->ops[i].flags & MUS_FM_OP_QUARTER_FREQ) : (ins->flags & MUS_INST_QUARTER_FREQ)) ? 4 : 1);
 			}	
 		}
 		
@@ -4666,7 +4666,7 @@ void mus_trigger_fm_op_internal(CydFm* fm, MusInstrument* ins, CydChannel* cydch
 	{
 		chn->ops[i].noise_note = ins->ops[i].noise_note;
 		
-		Uint32 frequency = get_freq((chn->ops[i].noise_note << 8) / (ins->ops[i].flags & MUS_FM_OP_QUARTER_FREQ ? 4 : 1));
+		Uint32 frequency = get_freq((chn->ops[i].noise_note << 8) / (((ins->fm_flags & CYD_FM_ENABLE_3CH_EXP_MODE) ? (ins->ops[i].flags & MUS_FM_OP_QUARTER_FREQ) : (ins->flags & MUS_INST_QUARTER_FREQ)) ? 4 : 1));
 		
 		if (frequency != 0)
 		{
@@ -4680,7 +4680,7 @@ void mus_trigger_fm_op_internal(CydFm* fm, MusInstrument* ins, CydChannel* cydch
 		{
 			chn->ops[i].noise_note = ins->ops[i].base_note;
 			
-			Uint32 frequency = get_freq((chn->ops[i].noise_note << 8) / (ins->ops[i].flags & MUS_FM_OP_QUARTER_FREQ ? 4 : 1));
+			Uint32 frequency = get_freq((chn->ops[i].noise_note << 8) / (((ins->fm_flags & CYD_FM_ENABLE_3CH_EXP_MODE) ? (ins->ops[i].flags & MUS_FM_OP_QUARTER_FREQ) : (ins->flags & MUS_INST_QUARTER_FREQ)) ? 4 : 1));
 			
 			if (frequency != 0)
 			{
@@ -4696,12 +4696,12 @@ void mus_trigger_fm_op_internal(CydFm* fm, MusInstrument* ins, CydChannel* cydch
 			
 			if(ins->fm_freq_LUT == 0)
 			{
-				frequency = get_freq((chn->ops[i].noise_note << 8) / (ins->ops[i].flags & MUS_FM_OP_QUARTER_FREQ ? 4 : 1) * (Uint64)harmonic1[fm->ops[i].harmonic & 15] / (Uint64)harmonic1[fm->ops[i].harmonic >> 4]);
+				frequency = get_freq((chn->ops[i].noise_note << 8) / (((ins->fm_flags & CYD_FM_ENABLE_3CH_EXP_MODE) ? (ins->ops[i].flags & MUS_FM_OP_QUARTER_FREQ) : (ins->flags & MUS_INST_QUARTER_FREQ)) ? 4 : 1)) * (Uint64)harmonic1[fm->ops[i].harmonic & 15] / (Uint64)harmonic1[fm->ops[i].harmonic >> 4];
 			}
 			
 			else
 			{
-				frequency = get_freq((chn->ops[i].noise_note << 8) / (ins->ops[i].flags & MUS_FM_OP_QUARTER_FREQ ? 4 : 1) * (Uint64)harmonicOPN1[fm->ops[i].harmonic & 15] / (Uint64)harmonicOPN1[fm->ops[i].harmonic >> 4]);
+				frequency = get_freq((chn->ops[i].noise_note << 8) / (((ins->fm_flags & CYD_FM_ENABLE_3CH_EXP_MODE) ? (ins->ops[i].flags & MUS_FM_OP_QUARTER_FREQ) : (ins->flags & MUS_INST_QUARTER_FREQ)) ? 4 : 1)) * (Uint64)harmonicOPN1[fm->ops[i].harmonic & 15] / (Uint64)harmonicOPN1[fm->ops[i].harmonic >> 4];
 			}
 			
 			if (frequency != 0)
