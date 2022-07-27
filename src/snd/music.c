@@ -4214,7 +4214,10 @@ static void mus_exec_prog_tick(MusEngine *mus, int chan, int advance)
 			{
 				tick = inst & (MUS_PROG_LEN);
 				
-				goto do_it_again;
+				if(tick != chn->program_tick)
+				{
+					goto do_it_again;
+				}
 			}
 			break;
 
@@ -4372,7 +4375,10 @@ static void mus_exec_4op_prog_tick(MusEngine *mus, int chan, int advance, int i 
 			{
 				tick = inst & (MUS_PROG_LEN);
 				
-				goto do_it_again4op;
+				if(tick != chn->ops[i].program_tick)
+				{
+					goto do_it_again4op;
+				}
 			}
 			break;
 
