@@ -5807,6 +5807,24 @@ int mus_advance_tick(void* udata)
 									muschn->instrument = pinst;
 								}
 							}
+							
+							if(note == MUS_NOTE_CUT)
+							{
+								if (!(muschn->flags & MUS_CHN_DISABLED))
+								{
+									cydchn->adsr.volume = 0;
+									track_status->volume = 0;
+								}
+								
+								if(muschn->instrument->fm_flags && CYD_FM_ENABLE_4OP)
+								{
+									for(int i1 = 0; i1 < CYD_FM_NUM_OPS; ++i1)
+									{
+										cydchn->fm.ops[i].adsr.volume = 0;
+										track_status->ops_status[i].volume = 0;
+									}
+								}
+							}
 
 							if (note == MUS_NOTE_RELEASE)
 							{
@@ -5825,13 +5843,13 @@ int mus_advance_tick(void* udata)
 									
 									if(!(muschn->instrument->fm_flags & CYD_FM_FOUROP_USE_MAIN_INST_PROG) && (muschn->instrument->fm_flags & CYD_FM_ENABLE_4OP))
 									{
-										for(int i = 0; i < CYD_FM_NUM_OPS; ++i)
+										for(int i1 = 0; i1 < CYD_FM_NUM_OPS; ++i1)
 										{
 											for(int j = 0; j < MUS_PROG_LEN; ++j)
 											{
-												if((muschn->instrument->ops[i].program[j] & 0xff00) == MUS_FX_RELEASE_POINT)
+												if((muschn->instrument->ops[i1].program[j] & 0xff00) == MUS_FX_RELEASE_POINT)
 												{
-													muschn->ops[i].program_tick = j + 1;
+													muschn->ops[i1].program_tick = j + 1;
 													break;
 												}
 											}

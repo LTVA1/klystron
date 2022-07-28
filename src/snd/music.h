@@ -406,7 +406,9 @@ enum
 enum
 {
 	MUS_NOTE_NONE = 0xff,
-	MUS_NOTE_RELEASE = 0xfe
+	MUS_NOTE_RELEASE = 0xfe,
+	
+	MUS_NOTE_CUT = 0xfd,
 };
 
 enum
