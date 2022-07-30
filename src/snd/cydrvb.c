@@ -39,7 +39,9 @@ void cydrvb_init(CydReverb *rvb, int rate)
 	rvb->size = bufsize;
 	rvb->rate = rate;
 #ifdef STEREOOUTPUT
+	//debug("before fx calloc");
 	rvb->buffer = calloc(sizeof(*rvb->buffer) * 2, bufsize);
+	//debug("%d", rvb->buffer);
 #else
 	rvb->buffer = calloc(sizeof(*rvb->buffer), bufsize);
 #endif
@@ -141,7 +143,7 @@ void cydrvb_set_tap(CydReverb *rvb, int idx, int delay_ms, int gain_db, int pann
 		rvb->tap[idx].gain_l = 0;
 		rvb->tap[idx].gain_r = 0;
 #else
-                rvb->tap[idx].gain = 0;
+        rvb->tap[idx].gain = 0;
 #endif
 	}
 	

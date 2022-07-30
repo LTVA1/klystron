@@ -7065,6 +7065,7 @@ void mus_get_default_instrument(MusInstrument *inst)
 void mus_set_fx(MusEngine *mus, MusSong *song)
 {
 	cyd_lock(mus->cyd, 1);
+	
 	for(int f = 0; f < CYD_MAX_FX_CHANNELS; ++f)
 	{
 		cydfx_set(&mus->cyd->fx[f], &song->fx[f], mus->cyd->sample_rate);
@@ -7073,7 +7074,7 @@ void mus_set_fx(MusEngine *mus, MusSong *song)
 #ifndef CYD_DISABLE_INACCURACY
 	mus->pitch_mask = (~0) << song->pitch_inaccuracy;
 #endif
-
+	
 	cyd_lock(mus->cyd, 0);
 }
 
