@@ -409,6 +409,7 @@ enum
 	MUS_NOTE_RELEASE = 0xfe,
 	
 	MUS_NOTE_CUT = 0xfd,
+	MUS_NOTE_MACRO_RELEASE = 0xfc,
 };
 
 enum

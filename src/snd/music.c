@@ -331,7 +331,7 @@ static void mus_set_frequency(MusEngine *mus, int chan, Uint16 note, int divider
 
 		Uint32 frequency = 0;
 
-		if (final != 0)
+		if (final != 0 || (note == 0 && s == 0))
 		{
 #ifndef CYD_DISABLE_INACCURACY
 			frequency = get_freq(final) & mus->pitch_mask;
@@ -5825,6 +5825,36 @@ int mus_advance_tick(void* udata)
 									}
 								}
 							}
+							
+							if (note == MUS_NOTE_MACRO_RELEASE)
+							{
+								if(muschn->instrument != NULL)
+								{
+									for(int i = 0; i < MUS_PROG_LEN; ++i)
+									{
+										if((muschn->instrument->program[i] & 0xff00) == MUS_FX_RELEASE_POINT)
+										{
+											muschn->program_tick = i + 1;
+											break;
+										}
+									}
+									
+									if(!(muschn->instrument->fm_flags & CYD_FM_FOUROP_USE_MAIN_INST_PROG) && (muschn->instrument->fm_flags & CYD_FM_ENABLE_4OP))
+									{
+										for(int i1 = 0; i1 < CYD_FM_NUM_OPS; ++i1)
+										{
+											for(int j = 0; j < MUS_PROG_LEN; ++j)
+											{
+												if((muschn->instrument->ops[i1].program[j] & 0xff00) == MUS_FX_RELEASE_POINT)
+												{
+													muschn->ops[i1].program_tick = j + 1;
+													break;
+												}
+											}
+										}
+									}
+								}
+							}
 
 							if (note == MUS_NOTE_RELEASE)
 							{
@@ -5858,7 +5888,7 @@ int mus_advance_tick(void* udata)
 								}
 							}
 							
-							else if (pinst && note != MUS_NOTE_NONE)
+							else if (pinst && note != MUS_NOTE_NONE && note != MUS_NOTE_CUT && note != MUS_NOTE_MACRO_RELEASE)
 							{
 								track_status->slide_speed = 0;
 								int speed = pinst->slide_speed | 1;

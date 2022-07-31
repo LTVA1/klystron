@@ -27,6 +27,20 @@ OTHER DEALINGS IN THE SOFTWARE.
 
 const Uint32 frequency_table[FREQ_TAB_SIZE] =
 {
+	/*
+	(Uint32)(8.175799 * 64), //-1 (negative) octave (unused)
+	(Uint32)(8.661957 * 64),
+	(Uint32)(9.177024 * 64),
+	(Uint32)(9.722718 * 64),
+	(Uint32)(10.30086 * 64),
+	(Uint32)(10.91338 * 64),
+	(Uint32)(11.56233 * 64),
+	(Uint32)(12.24986 * 64),
+	(Uint32)(12.97827 * 64),
+	(Uint32)(13.75000 * 64),
+	(Uint32)(14.56762 * 64),
+	(Uint32)(15.43385 * 64),*/
+	
 	(Uint32)(16.35 * 64), //0 octave
 	(Uint32)(17.32 * 64),
 	(Uint32)(18.35 * 64),
@@ -156,6 +170,20 @@ const Uint32 frequency_table[FREQ_TAB_SIZE] =
 	(Uint32)(14080.00 * 64),
 	(Uint32)(14917.24 * 64),
 	(Uint32)(15804.27 * 64),
+	
+	/*
+	(Uint32)(16744.04 * 64), //10th octave (unused)
+	(Uint32)(17739.69 * 64),
+	(Uint32)(18794.55 * 64),
+	(Uint32)(19912.13 * 64),
+	(Uint32)(21096.16 * 64),
+	(Uint32)(22350.61 * 64),
+	(Uint32)(23679.64 * 64),
+	(Uint32)(25087.71 * 64),
+	(Uint32)(26579.50 * 64),
+	(Uint32)(28160.00 * 64),
+	(Uint32)(29834.48 * 64),
+	(Uint32)(31608.53 * 64),*/
 };
 
 
@@ -186,7 +214,7 @@ Uint32 get_freq(int note)
 		
 		//debug("freq sent %d Hz", f1 + ((f2-f1) * (note & 0xff)) / 256);
 		
-		return f1 + (Uint64)((f2-f1) * (note & 0xff)) / 256;
+		return f1 + (Uint64)((f2 - f1) * (note & 0xff)) / 256;
 	}
 }
 
