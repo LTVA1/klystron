@@ -6258,19 +6258,25 @@ int mus_poll_status(MusEngine *mus, int *song_position, int *pattern_position, M
 			{
 				cyd_env[i] = cyd_env_output(mus->cyd, mus->cyd->channel[i].flags, &mus->cyd->channel[i].adsr, MAX_VOLUME);
 				
-				if(mus->cyd->channel[i].fm.flags & CYD_FM_ENABLE_4OP)
+				if(mus->cyd->channel[i].flags & CYD_CHN_ENABLE_FM)
 				{
-					Uint32 temp = 0;
+					Uint32 temp;
 					
-					for(int j = 0; j < CYD_FM_NUM_OPS; ++j)
+					if(cyd_env_output(mus->cyd, temp, &mus->cyd->channel[i].fm.adsr, MAX_VOLUME) > cyd_env[i])
 					{
-						if(cyd_fm_op_env_output(mus->cyd, mus->cyd->channel[i].fm.ops[j].flags, &mus->cyd->channel[i].fm.ops[j].adsr, MAX_VOLUME) > temp)
-						{
-							temp = cyd_fm_op_env_output(mus->cyd, mus->cyd->channel[i].fm.ops[j].flags, &mus->cyd->channel[i].fm.ops[j].adsr, MAX_VOLUME);
-						}
+						cyd_env[i] = cyd_env_output(mus->cyd, temp, &mus->cyd->channel[i].fm.adsr, MAX_VOLUME);
 					}
 					
-					cyd_env[i] = temp;
+					if(mus->cyd->channel[i].fm.flags & CYD_FM_ENABLE_4OP)
+					{
+						for(int j = 0; j < CYD_FM_NUM_OPS; ++j)
+						{
+							if(cyd_fm_op_env_output(mus->cyd, mus->cyd->channel[i].fm.ops[j].flags, &mus->cyd->channel[i].fm.ops[j].adsr, MAX_VOLUME) > cyd_env[i])
+							{
+								cyd_env[i] = cyd_fm_op_env_output(mus->cyd, mus->cyd->channel[i].fm.ops[j].flags, &mus->cyd->channel[i].fm.ops[j].adsr, MAX_VOLUME);
+							}
+						}
+					}
 				}
 			}
 		}
