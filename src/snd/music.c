@@ -4212,10 +4212,14 @@ static void mus_exec_prog_tick(MusEngine *mus, int chan, int advance)
 		{
 			case MUS_FX_JUMP:
 			{
+				//debug("tick tick %d chn->program_tick %d", tick, chn->program_tick);
+				//debug("unite bit %d", chn->instrument->program_unite_bits[tick / 8] & (1 << (tick & 7)));
+				
 				tick = inst & (MUS_PROG_LEN);
 				
 				if(tick != chn->program_tick)
 				{
+					//debug("tick %d chn->program_tick %d", tick, chn->program_tick);
 					goto do_it_again;
 				}
 			}
@@ -6565,7 +6569,7 @@ int mus_load_instrument_RW(Uint8 version, RWops *ctx, MusInstrument *inst, CydWa
 		
 		for(int i = 0; i < progsteps; i++)
 		{
-			if((inst->program[i] & 0xff00) != 0xfc00 && (inst->program[i] & 0xff00) != MUS_FX_LABEL && (inst->program[i] & 0xff00) != MUS_FX_LOOP)
+			if((inst->program[i] & 0xff00) != 0xfc00 && (inst->program[i] & 0xff00) != MUS_FX_LABEL && (inst->program[i] & 0xff00) != MUS_FX_LOOP && (inst->program[i] & 0xff00) != MUS_FX_JUMP)
 			{
 				if(inst->program[i] & 0x8000)
 				{
