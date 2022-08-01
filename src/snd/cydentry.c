@@ -74,10 +74,12 @@ void cyd_wave_entry_init(CydWavetableEntry *entry, const void *data, Uint32 n_sa
 		
 		entry->samples = n_samples;
 	}
+	
 	else
 	{
 		free(entry->data);
 		entry->data = NULL;
 		entry->samples = 0;
+		entry->base_note = (C_ZERO << 8);
 	}
 }

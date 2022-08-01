@@ -30,8 +30,12 @@ OTHER DEALINGS IN THE SOFTWARE.
 
 #include "cydtypes.h"
 
-#define FREQ_TAB_SIZE 120 //was 96
-#define MIDDLE_C (12 * 4)
+#define C_ZERO (12 * 5) /* C-0 */
+
+#define FREQ_TAB_SIZE (120 + C_ZERO) /* was 96 */
+#define MIDDLE_C (12 * 4 + C_ZERO)
+
+
 
 extern const Uint32 frequency_table[FREQ_TAB_SIZE];
 

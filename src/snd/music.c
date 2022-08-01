@@ -384,7 +384,7 @@ void mus_set_fm_op_note(MusEngine* mus, int chan, CydFm* fm, Uint32 note, int i 
 		if(fm->flags & CYD_FM_ENABLE_3CH_EXP_MODE)
 		{
 			//chn->subosc[subosc].frequency = (Uint64)(ACC_LENGTH >> (cyd->oversample)) / 64 * (Uint64)(frequency) / (Uint64)cyd->sample_rate;
-			fm->ops[i].osc.frequency = (Uint64)(ACC_LENGTH >> (mus->cyd->oversample)) / 64 * (Uint64)frequency / (Uint64)mus->cyd->sample_rate / (((ins->fm_flags & CYD_FM_ENABLE_3CH_EXP_MODE) ? (ins->ops[i].flags & MUS_FM_OP_QUARTER_FREQ) : (ins->flags & MUS_INST_QUARTER_FREQ)) ? 4 : 1);
+			fm->ops[i].osc.frequency = (Uint64)(ACC_LENGTH >> (mus->cyd->oversample)) / (Uint64)1024 * (Uint64)frequency / (Uint64)mus->cyd->sample_rate / (((ins->fm_flags & CYD_FM_ENABLE_3CH_EXP_MODE) ? (ins->ops[i].flags & MUS_FM_OP_QUARTER_FREQ) : (ins->flags & MUS_INST_QUARTER_FREQ)) ? 4 : 1);
 			//fm->ops[i].osc.frequency = (Uint64)(ACC_LENGTH >> (mus->cyd->oversample)) / 64 * (Uint64)frequency / (Uint64)mus->cyd->sample_rate;
 			//fm->ops[i].scale_freq = (Uint64)(ACC_LENGTH >> (mus->cyd->oversample)) / 64 * (Uint64)(get_freq((Uint32)(((Uint16)ins->ops[i].base_note) << 8) + fm->ops[i].finetune)) / (Uint64)mus->cyd->sample_rate;
 		}
@@ -393,7 +393,7 @@ void mus_set_fm_op_note(MusEngine* mus, int chan, CydFm* fm, Uint32 note, int i 
 		{
 			if(fm->fm_freq_LUT == 0)
 			{
-				fm->ops[i].osc.frequency = (Uint64)(ACC_LENGTH >> (mus->cyd->oversample)) / 64 * (Uint64)(frequency) / (Uint64)mus->cyd->sample_rate * (Uint64)harmonic1[fm->ops[i].harmonic & 15] / (Uint64)harmonic1[fm->ops[i].harmonic >> 4] / (((ins->fm_flags & CYD_FM_ENABLE_3CH_EXP_MODE) ? (ins->ops[i].flags & MUS_FM_OP_QUARTER_FREQ) : (ins->flags & MUS_INST_QUARTER_FREQ)) ? 4 : 1);
+				fm->ops[i].osc.frequency = (Uint64)(ACC_LENGTH >> (mus->cyd->oversample)) / (Uint64)1024 * (Uint64)(frequency) / (Uint64)mus->cyd->sample_rate * (Uint64)harmonic1[fm->ops[i].harmonic & 15] / (Uint64)harmonic1[fm->ops[i].harmonic >> 4] / (((ins->fm_flags & CYD_FM_ENABLE_3CH_EXP_MODE) ? (ins->ops[i].flags & MUS_FM_OP_QUARTER_FREQ) : (ins->flags & MUS_INST_QUARTER_FREQ)) ? 4 : 1);
 				
 				//fm->ops[i].osc.frequency = (Uint64)(ACC_LENGTH >> (mus->cyd->oversample)) / 64 * (Uint64)(frequency) / (Uint64)mus->cyd->sample_rate * (Uint64)harmonic1[fm->ops[i].harmonic & 15] / (Uint64)harmonic1[fm->ops[i].harmonic >> 4];
 				
@@ -402,7 +402,7 @@ void mus_set_fm_op_note(MusEngine* mus, int chan, CydFm* fm, Uint32 note, int i 
 			
 			else
 			{
-				fm->ops[i].osc.frequency = (Uint64)(ACC_LENGTH >> (mus->cyd->oversample)) / 64 * (Uint64)(frequency) / (Uint64)mus->cyd->sample_rate * (Uint64)harmonicOPN1[fm->ops[i].harmonic & 15] / (Uint64)harmonicOPN1[fm->ops[i].harmonic >> 4] / (((ins->fm_flags & CYD_FM_ENABLE_3CH_EXP_MODE) ? (ins->ops[i].flags & MUS_FM_OP_QUARTER_FREQ) : (ins->flags & MUS_INST_QUARTER_FREQ)) ? 4 : 1);
+				fm->ops[i].osc.frequency = (Uint64)(ACC_LENGTH >> (mus->cyd->oversample)) / (Uint64)1024 * (Uint64)(frequency) / (Uint64)mus->cyd->sample_rate * (Uint64)harmonicOPN1[fm->ops[i].harmonic & 15] / (Uint64)harmonicOPN1[fm->ops[i].harmonic >> 4] / (((ins->fm_flags & CYD_FM_ENABLE_3CH_EXP_MODE) ? (ins->ops[i].flags & MUS_FM_OP_QUARTER_FREQ) : (ins->flags & MUS_INST_QUARTER_FREQ)) ? 4 : 1);
 				
 				//fm->ops[i].osc.frequency = (Uint64)(ACC_LENGTH >> (mus->cyd->oversample)) / 64 * (Uint64)(frequency) / (Uint64)mus->cyd->sample_rate * (Uint64)harmonicOPN1[fm->ops[i].harmonic & 15] / (Uint64)harmonicOPN1[fm->ops[i].harmonic >> 4];
 				//fm->ops[i].scale_freq = (Uint64)(ACC_LENGTH >> (mus->cyd->oversample)) / 64 * (Uint64)(get_freq((Uint32)(((Uint16)ins->base_note) << 8) + fm->ops[i].finetune)) / (Uint64)mus->cyd->sample_rate * (Uint64)harmonicOPN1[fm->ops[i].harmonic & 15] / (Uint64)harmonicOPN1[fm->ops[i].harmonic >> 4];
@@ -445,7 +445,7 @@ static void mus_set_noise_fixed_pitch_note(MusEngine *mus, int chan, Uint16 note
 	{
 		if (frequency != 0)
 		{
-			chn->subosc[i].noise_frequency = (Uint64)(ACC_LENGTH >> (mus->cyd->oversample)) / 16 * (Uint64)(frequency) / (Uint64)mus->cyd->sample_rate / 4;
+			chn->subosc[i].noise_frequency = (Uint64)(ACC_LENGTH >> (mus->cyd->oversample)) / (Uint64)1024 * (Uint64)(frequency) / (Uint64)mus->cyd->sample_rate;
 		}
 	}
 }
@@ -3693,7 +3693,7 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 							{
 								if (frequency != 0)
 								{
-									cydchn->subosc[i].noise_frequency = (Uint64)(ACC_LENGTH >> (mus->cyd->oversample)) / 16 * (Uint64)(frequency) / (Uint64)mus->cyd->sample_rate;
+									cydchn->subosc[i].noise_frequency = (Uint64)(ACC_LENGTH >> (mus->cyd->oversample)) / (Uint64)1024 * (Uint64)(frequency) / (Uint64)mus->cyd->sample_rate;
 								}
 							}
 							
@@ -3705,7 +3705,7 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 									
 									if (frequency != 0)
 									{
-										cydchn->fm.ops[i].osc.noise_frequency = (Uint64)(ACC_LENGTH >> (mus->cyd->oversample)) / 16 * (Uint64)(frequency) / (Uint64)mus->cyd->sample_rate;
+										cydchn->fm.ops[i].osc.noise_frequency = (Uint64)(ACC_LENGTH >> (mus->cyd->oversample)) / (Uint64)1024 * (Uint64)(frequency) / (Uint64)mus->cyd->sample_rate;
 									}
 								}
 							}
@@ -3719,7 +3719,7 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 							
 							if (frequency != 0)
 							{
-								cydchn->fm.ops[ops_index - 1].osc.noise_frequency = (Uint64)(ACC_LENGTH >> (mus->cyd->oversample)) / 16 * (Uint64)(frequency) / (Uint64)mus->cyd->sample_rate;
+								cydchn->fm.ops[ops_index - 1].osc.noise_frequency = (Uint64)(ACC_LENGTH >> (mus->cyd->oversample)) / (Uint64)1024 * (Uint64)(frequency) / (Uint64)mus->cyd->sample_rate;
 							}
 							
 							break;
@@ -4676,7 +4676,7 @@ void mus_trigger_fm_op_internal(CydFm* fm, MusInstrument* ins, CydChannel* cydch
 		
 		if (frequency != 0)
 		{
-			fm->ops[i].osc.noise_frequency = (Uint64)(ACC_LENGTH >> (mus->cyd->oversample)) / (Uint64)64 * (Uint64)(frequency) / (Uint64)mus->cyd->sample_rate;
+			fm->ops[i].osc.noise_frequency = (Uint64)(ACC_LENGTH >> (mus->cyd->oversample)) / (Uint64)1024 * (Uint64)(frequency) / (Uint64)mus->cyd->sample_rate;
 		}
 	}
 	
@@ -4690,7 +4690,7 @@ void mus_trigger_fm_op_internal(CydFm* fm, MusInstrument* ins, CydChannel* cydch
 			
 			if (frequency != 0)
 			{
-				fm->ops[i].osc.noise_frequency = (Uint64)(ACC_LENGTH) / (Uint64)64 * (Uint64)(frequency) / (Uint64)mus->cyd->sample_rate;
+				fm->ops[i].osc.noise_frequency = (Uint64)(ACC_LENGTH) / (Uint64)1024 * (Uint64)(frequency) / (Uint64)mus->cyd->sample_rate;
 			}
 		}
 		
@@ -4712,7 +4712,7 @@ void mus_trigger_fm_op_internal(CydFm* fm, MusInstrument* ins, CydChannel* cydch
 			
 			if (frequency != 0)
 			{
-				fm->ops[i].osc.noise_frequency = (Uint64)(ACC_LENGTH) / (Uint64)64 * (Uint64)(frequency) / (Uint64)mus->cyd->sample_rate;
+				fm->ops[i].osc.noise_frequency = (Uint64)(ACC_LENGTH) / (Uint64)1024 * (Uint64)(frequency) / (Uint64)mus->cyd->sample_rate;
 			}
 		}
 	}
@@ -6366,6 +6366,11 @@ static void load_wavetable_entry(Uint8 version, CydWavetableEntry* e, RWops *ctx
 	FIX_ENDIAN(e->loop_begin);
 	FIX_ENDIAN(e->loop_end);
 	FIX_ENDIAN(e->base_note);
+	
+	if(version < 35)
+	{
+		e->base_note += (12 * 5) << 8;
+	}
 
 	if (e->samples > 0)
 	{
@@ -6632,6 +6637,12 @@ int mus_load_instrument_RW(Uint8 version, RWops *ctx, MusInstrument *inst, CydWa
 	
 	_VER_READ(&inst->slide_speed, 0);
 	_VER_READ(&inst->base_note, 0);
+	
+	if(version < 35)
+	{
+		//debug("ttttttt");
+		inst->base_note += (12 * 5);
+	}
 
 	if (version >= 20)
 	{
@@ -6747,6 +6758,11 @@ int mus_load_instrument_RW(Uint8 version, RWops *ctx, MusInstrument *inst, CydWa
 		VER_READ(version, 29, 0xff, &inst->fm_base_note, 0); //wasn't there
 		VER_READ(version, 29, 0xff, &inst->fm_finetune, 0); //wasn't there
 		
+		if(version < 35)
+		{
+			inst->fm_base_note += (12 * 5);
+		}
+		
 		if(version < 34)
 		{
 			VER_READ(version, 31, 0xff, &inst->fm_freq_LUT, 0);
@@ -6779,6 +6795,12 @@ int mus_load_instrument_RW(Uint8 version, RWops *ctx, MusInstrument *inst, CydWa
 				if(inst->fm_flags & CYD_FM_ENABLE_3CH_EXP_MODE)
 				{
 					VER_READ(version, 34, 0xff, &inst->ops[i].base_note, 0);
+					
+					if(version < 35)
+					{
+						inst->ops[i].base_note += (12 * 5);
+					}
+					
 					VER_READ(version, 34, 0xff, &inst->ops[i].finetune, 0);
 				}
 				
@@ -6911,7 +6933,7 @@ int mus_load_instrument_RW(Uint8 version, RWops *ctx, MusInstrument *inst, CydWa
 	
 	if(version < 30)
 	{
-		if(inst->cutoff == 0x7ff)
+		if(inst->cutoff == 0x7ff) //extended filter cutoff range
 		{
 			inst->cutoff = 0xfff;
 		}
@@ -7830,9 +7852,9 @@ int mus_load_song_RW(RWops *ctx, MusSong *song, CydWavetableEntry *wavetable_ent
 			{
 				size_t s = sizeof(song->pattern[i].step[0]);
 				if (version < 2)
-					s = sizeof(Uint8)*3;
+					s = sizeof(Uint8) * 3;
 				else
-					s = sizeof(Uint8)*3 + sizeof(Uint16) + 1; // aligment issue in version 6 songs
+					s = sizeof(Uint8) * 3 + sizeof(Uint16) + 1; // aligment issue in version 6 songs
 
 				for (int step = 0; step < song->pattern[i].num_steps; ++step)
 				{
@@ -7855,7 +7877,15 @@ int mus_load_song_RW(RWops *ctx, MusSong *song, CydWavetableEntry *wavetable_ent
 					Uint8 bits = (s & 1 || s == song->pattern[i].num_steps - 1) ? (*current & 0xf) : (*current >> 4);
 
 					if (bits & MUS_PAK_BIT_NOTE)
+					{
 						my_RWread(ctx, &song->pattern[i].step[s].note, 1, sizeof(song->pattern[i].step[s].note));
+						
+						if(version < 35 && song->pattern[i].step[s].note != MUS_NOTE_NONE && song->pattern[i].step[s].note != MUS_NOTE_RELEASE && song->pattern[i].step[s].note != MUS_NOTE_CUT && song->pattern[i].step[s].note != MUS_NOTE_MACRO_RELEASE)
+						{
+							song->pattern[i].step[s].note += 12 * 5;
+						}
+					}
+					
 					else
 						song->pattern[i].step[s].note = MUS_NOTE_NONE;
 

@@ -1033,12 +1033,12 @@ static Sint32 cyd_output_fm_ops(CydEngine *cyd, CydChannel *chn, int chan_num, /
 		{
 			Sint16 vol_ksl_level_final = (chn->fm.ops[i].flags & CYD_FM_OP_ENABLE_VOLUME_KEY_SCALING) ? chn->fm.ops[i].vol_ksl_level : -1;
 			
-			chn->fm.ops[i].vol_ksl_mult = (vol_ksl_level_final == -1) ? 1.0 : (pow(((Uint64)get_freq((chn->fm.ops[i].base_note << 8) + chn->fm.ops[i].finetune + chn->fm.ops[i].detune * DETUNE + coarse_detune_table[chn->fm.ops[i].coarse_detune]) * (Uint64)(ACC_LENGTH) / (Uint64)64 / (Uint64)cyd->sample_rate + 1.0) / (chn->fm.ops[i].osc.frequency + 1.0), (vol_ksl_level_final == 0 ? 0 : (vol_ksl_level_final / 127.0))));
+			chn->fm.ops[i].vol_ksl_mult = (vol_ksl_level_final == -1) ? 1.0 : (pow(((Uint64)get_freq((chn->fm.ops[i].base_note << 8) + chn->fm.ops[i].finetune + chn->fm.ops[i].detune * DETUNE + coarse_detune_table[chn->fm.ops[i].coarse_detune]) * (Uint64)(ACC_LENGTH) / (Uint64)1024 / (Uint64)cyd->sample_rate + 1.0) / (chn->fm.ops[i].osc.frequency + 1.0), (vol_ksl_level_final == 0 ? 0 : (vol_ksl_level_final / 127.0))));
 			//chn->fm.ops[i].vol_ksl_mult = (vol_ksl_level_final == -1) ? 1.0 : (pow((get_freq((chn->fm.ops[i].base_note << 8) + chn->fm.ops[i].finetune + chn->fm.ops[i].detune * 8 + chn->fm.ops[i].coarse_detune * 128) + 1.0) / (get_freq(chn->fm.ops[i].freq_for_ksl) + 1.0), (vol_ksl_level_final == 0 ? 0 : (vol_ksl_level_final / 127.0))));
 			
 			Sint16 env_ksl_level_final = (chn->fm.ops[i].flags & CYD_FM_OP_ENABLE_ENVELOPE_KEY_SCALING) ? chn->fm.ops[i].env_ksl_level : -1;
 			
-			chn->fm.ops[i].env_ksl_mult = (env_ksl_level_final == -1) ? 1.0 : (pow(((Uint64)get_freq((chn->fm.ops[i].base_note << 8) + chn->fm.ops[i].finetune + chn->fm.ops[i].detune * DETUNE + coarse_detune_table[chn->fm.ops[i].coarse_detune]) * (Uint64)(ACC_LENGTH) / (Uint64)64 / (Uint64)cyd->sample_rate + 1.0) / (chn->fm.ops[i].osc.frequency + 1.0), (env_ksl_level_final == 0 ? 0 : (env_ksl_level_final / 127.0))));
+			chn->fm.ops[i].env_ksl_mult = (env_ksl_level_final == -1) ? 1.0 : (pow(((Uint64)get_freq((chn->fm.ops[i].base_note << 8) + chn->fm.ops[i].finetune + chn->fm.ops[i].detune * DETUNE + coarse_detune_table[chn->fm.ops[i].coarse_detune]) * (Uint64)(ACC_LENGTH) / (Uint64)1024 / (Uint64)cyd->sample_rate + 1.0) / (chn->fm.ops[i].osc.frequency + 1.0), (env_ksl_level_final == 0 ? 0 : (env_ksl_level_final / 127.0))));
 			//chn->fm.ops[i].env_ksl_mult = (env_ksl_level_final == -1) ? 1.0 : (pow((get_freq((chn->fm.ops[i].base_note << 8) + chn->fm.ops[i].finetune + chn->fm.ops[i].detune * 8 + chn->fm.ops[i].coarse_detune * 128) + 1.0) / (get_freq(chn->fm.ops[i].freq_for_ksl) + 1.0), (env_ksl_level_final == 0 ? 0 : (env_ksl_level_final / 127.0))));
 			chn->fm.ops[i].env_ksl_mult = 1.0 / chn->fm.ops[i].env_ksl_mult;
 		}
@@ -2148,10 +2148,10 @@ void cyd_set_frequency(CydEngine *cyd, CydChannel *chn, int subosc, Uint32 frequ
 {
 	if (frequency != 0)
 	{
-		chn->subosc[subosc].frequency = (Uint64)(ACC_LENGTH >> (cyd->oversample)) / 64 * (Uint64)(frequency) / (Uint64)cyd->sample_rate;
+		chn->subosc[subosc].frequency = (Uint64)(ACC_LENGTH >> (cyd->oversample)) / (Uint64)1024 * (Uint64)(frequency) / (Uint64)cyd->sample_rate;
 
 #ifndef CYD_DISABLE_LFSR	
-		chn->subosc[subosc].lfsr_period = (Uint64)cyd->sample_rate * 64 / frequency;
+		chn->subosc[subosc].lfsr_period = (Uint64)cyd->sample_rate * (Uint64)1024 / frequency;
 #endif
 	}
 	else
@@ -2189,7 +2189,7 @@ void cyd_set_env_frequency(CydEngine *cyd, CydChannel *chn, Uint32 frequency)
 #ifndef CYD_DISABLE_BUZZ
 	chn->subosc[0].buzz_detune_freq = frequency;
 	
-	chn->adsr.env_speed = (Uint64)YM_LENGTH / 16 * (Uint64)frequency / (Uint64)cyd->sample_rate / 4;
+	chn->adsr.env_speed = (Uint64)YM_LENGTH / (Uint64)1024 * (Uint64)frequency / (Uint64)cyd->sample_rate;
 #endif
 }
 

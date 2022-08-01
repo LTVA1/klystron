@@ -129,12 +129,12 @@ void cydfm_set_frequency(const CydEngine *cyd, CydFm *fm, Uint32 base_frequency)
 {
 	if(fm->fm_freq_LUT == 0)
 	{
-		fm->period = ((Uint64)(ACC_LENGTH) / 64 * (Uint64)(base_frequency + ((fm->fm_base_note - fm->fm_carrier_base_note) << 8) + fm->fm_finetune + fm->fm_vib) / (Uint64)cyd->sample_rate) * (Uint64)harmonic[fm->harmonic & 15] / (Uint64)harmonic[fm->harmonic >> 4];
+		fm->period = ((Uint64)(ACC_LENGTH) / (Uint64)1024 * (Uint64)(base_frequency + ((fm->fm_base_note - fm->fm_carrier_base_note) << 8) + fm->fm_finetune + fm->fm_vib) / (Uint64)cyd->sample_rate) * (Uint64)harmonic[fm->harmonic & 15] / (Uint64)harmonic[fm->harmonic >> 4];
 	}
 	
 	else
 	{
-		fm->period = ((Uint64)(ACC_LENGTH) / 64 * (Uint64)(base_frequency + ((fm->fm_base_note - fm->fm_carrier_base_note) << 8) + fm->fm_finetune + fm->fm_vib) / (Uint64)cyd->sample_rate) * (Uint64)harmonicOPN[fm->harmonic & 15] / (Uint64)harmonicOPN[fm->harmonic >> 4];
+		fm->period = ((Uint64)(ACC_LENGTH) / (Uint64)1024 * (Uint64)(base_frequency + ((fm->fm_base_note - fm->fm_carrier_base_note) << 8) + fm->fm_finetune + fm->fm_vib) / (Uint64)cyd->sample_rate) * (Uint64)harmonicOPN[fm->harmonic & 15] / (Uint64)harmonicOPN[fm->harmonic >> 4];
 	}
 	
 	Sint16 vol_ksl_level_final = (fm->flags & CYD_FM_ENABLE_VOLUME_KEY_SCALING) ? fm->fm_vol_ksl_level : -1;
