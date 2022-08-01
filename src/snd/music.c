@@ -5810,18 +5810,21 @@ int mus_advance_tick(void* udata)
 							
 							if(note == MUS_NOTE_CUT)
 							{
-								if (!(muschn->flags & MUS_CHN_DISABLED))
+								if(muschn->instrument != NULL)
 								{
-									cydchn->adsr.volume = 0;
-									track_status->volume = 0;
-								}
-								
-								if(muschn->instrument->fm_flags && CYD_FM_ENABLE_4OP)
-								{
-									for(int i1 = 0; i1 < CYD_FM_NUM_OPS; ++i1)
+									if (!(muschn->flags & MUS_CHN_DISABLED))
 									{
-										cydchn->fm.ops[i].adsr.volume = 0;
-										track_status->ops_status[i].volume = 0;
+										cydchn->adsr.volume = 0;
+										track_status->volume = 0;
+									}
+									
+									if(muschn->instrument->fm_flags && CYD_FM_ENABLE_4OP)
+									{
+										for(int i1 = 0; i1 < CYD_FM_NUM_OPS; ++i1)
+										{
+											cydchn->fm.ops[i].adsr.volume = 0;
+											track_status->ops_status[i].volume = 0;
+										}
 									}
 								}
 							}
