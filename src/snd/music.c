@@ -6617,6 +6617,20 @@ int mus_load_instrument_RW(Uint8 version, RWops *ctx, MusInstrument *inst, CydWa
 		}
 	}
 	
+	if(version < 35)
+	{
+		for(int i = 0; i < progsteps; i++)
+		{
+			if(((inst->program[i] & (version < 32 ? 0x7f00 : 0xff00)) == MUS_FX_ARPEGGIO_ABS)) 
+			//to account for negative octaves
+			{
+				Uint8 temp = inst->program[i] & 0xff;
+				inst->program[i] &= 0xff00;
+				inst->program[i] |= (temp + 12 * 5);
+			}
+		}
+	}
+	
 	_VER_READ(&inst->prog_period, 0);
 	
 	if(((inst->flags & MUS_INST_SAVE_LFO_SETTINGS) && version >= 31) || version < 31)
@@ -6887,6 +6901,20 @@ int mus_load_instrument_RW(Uint8 version, RWops *ctx, MusInstrument *inst, CydWa
 				if (progsteps)
 				{
 					_VER_READ(&inst->ops[i].program, (int)progsteps * sizeof(inst->ops[i].program[0]));
+				}
+				
+				if(version < 35)
+				{
+					for(int j = 0; j < progsteps; j++)
+					{
+						if(inst->ops[i].program[j] & 0xff00 == MUS_FX_ARPEGGIO_ABS) 
+						//to account for negative octaves
+						{
+							Uint8 temp = inst->ops[i].program[j] & 0xff;
+							inst->ops[i].program[j] &= 0xff00;
+							inst->ops[i].program[j] |= (temp + 12 * 5);
+						}
+					}
 				}
 				
 				VER_READ(version, 34, 0xff, &inst->ops[i].prog_period, 0);
