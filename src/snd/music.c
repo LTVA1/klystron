@@ -6502,6 +6502,11 @@ int mus_load_instrument_RW(Uint8 version, RWops *ctx, MusInstrument *inst, CydWa
 	if(inst->cydflags & CYD_CHN_ENABLE_FIXED_NOISE_PITCH)
 	{
 		VER_READ(version, 33, 0xff, &inst->noise_note, 0);
+		
+		if(version < 35)
+		{
+			inst->noise_note += 12 * 5;
+		}
 	}
 	
 	if((inst->cydflags & CYD_CHN_ENABLE_VOLUME_KEY_SCALING) && version >= 32)
@@ -6621,7 +6626,7 @@ int mus_load_instrument_RW(Uint8 version, RWops *ctx, MusInstrument *inst, CydWa
 	{
 		for(int i = 0; i < progsteps; i++)
 		{
-			if(((inst->program[i] & (version < 32 ? 0x7f00 : 0xff00)) == MUS_FX_ARPEGGIO_ABS)) 
+			if(((inst->program[i] & (version < 32 ? 0x7f00 : 0xff00)) == MUS_FX_ARPEGGIO_ABS) || ((inst->program[i] & (version < 32 ? 0x7f00 : 0xff00)) == MUS_FX_SET_NOISE_CONSTANT_PITCH)) 
 			//to account for negative octaves
 			{
 				Uint8 temp = inst->program[i] & 0xff;
@@ -6858,6 +6863,11 @@ int mus_load_instrument_RW(Uint8 version, RWops *ctx, MusInstrument *inst, CydWa
 				if(inst->ops[i].cydflags & CYD_FM_OP_ENABLE_FIXED_NOISE_PITCH)
 				{
 					VER_READ(version, 34, 0xff, &inst->ops[i].noise_note, 0);
+					
+					if(version < 35)
+					{
+						inst->ops[i].noise_note += 12 * 5;
+					}
 				}
 				
 				if(inst->ops[i].cydflags & CYD_FM_OP_ENABLE_VOLUME_KEY_SCALING)
