@@ -410,6 +410,7 @@ enum
 	
 	MUS_NOTE_CUT = 0xfd,
 	MUS_NOTE_MACRO_RELEASE = 0xfc,
+	MUS_NOTE_RELEASE_WITHOUT_MACRO = 0xfb,
 };
 
 enum
@@ -636,10 +637,14 @@ enum
 	MUS_FX_LABEL = 0xfd00,
 	MUS_FX_LOOP = 0xfe00,
 	MUS_FX_RELEASE_POINT = 0xfb00, //wasn't there //jump to the command after this one when release is triggered
+	
 	MUS_FX_TRIGGER_RELEASE = 0x7c00,
+	MUS_FX_TRIGGER_MACRO_RELEASE = 0x7300,
 	MUS_FX_TRIGGER_FM_RELEASE = 0x4c00, //wasn't there
 	MUS_FX_TRIGGER_CARRIER_RELEASE = 0x4d00, //wasn't there
+	
 	MUS_FX_RESTART_PROGRAM = 0x7d00,
+	
 	MUS_FX_NOP = 0xfffe,
 };
 

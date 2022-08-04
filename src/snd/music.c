@@ -2066,6 +2066,18 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 				
 				else if(ops_index == 0)
 				{
+					if(chn->instrument != NULL)
+					{
+						for(int i = 0; i < MUS_PROG_LEN; ++i)
+						{
+							if((chn->instrument->program[i] & 0xff00) == MUS_FX_RELEASE_POINT)
+							{
+								chn->program_tick = i + 1;
+								break;
+							}
+						}
+					}
+					
 					cydchn->flags &= ~CYD_CHN_WAVE_OVERRIDE_ENV;
 					cydchn->adsr.envelope_state = RELEASE;
 					
@@ -2093,6 +2105,74 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 					
 					cydchn->fm.ops[ops_index - 1].adsr.passes = 0;
 					
+					if(chn->instrument != NULL)
+					{
+						for(int j = 0; j < MUS_PROG_LEN; ++j)
+						{
+							if((chn->instrument->ops[ops_index - 1].program[j] & 0xff00) == MUS_FX_RELEASE_POINT)
+							{
+								chn->ops[ops_index - 1].program_tick = j + 1;
+							}
+						}
+					}
+				}
+			}
+		}
+		break;
+		
+		case MUS_FX_TRIGGER_MACRO_RELEASE:
+		{
+			if (tick == (inst & 0xff))
+			{
+				if(ops_index == 0xFF)
+				{
+					if(chn->instrument != NULL)
+					{
+						for(int i = 0; i < MUS_PROG_LEN; ++i)
+						{
+							if((chn->instrument->program[i] & 0xff00) == MUS_FX_RELEASE_POINT)
+							{
+								chn->program_tick = i + 1;
+								break;
+							}
+						}
+						
+						if(!(chn->instrument->fm_flags & CYD_FM_FOUROP_USE_MAIN_INST_PROG) && (chn->instrument->fm_flags & CYD_FM_ENABLE_4OP))
+						{
+							for(int i = 0; i < CYD_FM_NUM_OPS; ++i)
+							{
+								for(int j = 0; j < MUS_PROG_LEN; ++j)
+								{
+									if((chn->instrument->ops[i].program[j] & 0xff00) == MUS_FX_RELEASE_POINT)
+									{
+										chn->ops[i].program_tick = j + 1;
+										break;
+									}
+								}
+								
+								cydchn->fm.ops[i].adsr.passes = 0;
+							}
+						}
+					}
+				}
+				
+				else if(ops_index == 0)
+				{
+					if(chn->instrument != NULL)
+					{
+						for(int i = 0; i < MUS_PROG_LEN; ++i)
+						{
+							if((chn->instrument->program[i] & 0xff00) == MUS_FX_RELEASE_POINT)
+							{
+								chn->program_tick = i + 1;
+								break;
+							}
+						}
+					}
+				}
+				
+				else
+				{
 					if(chn->instrument != NULL)
 					{
 						for(int j = 0; j < MUS_PROG_LEN; ++j)
@@ -5862,6 +5942,11 @@ int mus_advance_tick(void* udata)
 									}
 								}
 							}
+							
+							if (note == MUS_NOTE_RELEASE_WITHOUT_MACRO)
+							{
+								cyd_enable_gate(mus->cyd, &mus->cyd->channel[i], 0);
+							}
 
 							if (note == MUS_NOTE_RELEASE)
 							{
@@ -5895,7 +5980,7 @@ int mus_advance_tick(void* udata)
 								}
 							}
 							
-							else if (pinst && note != MUS_NOTE_NONE && note != MUS_NOTE_CUT && note != MUS_NOTE_MACRO_RELEASE)
+							else if (pinst && note != MUS_NOTE_NONE && note != MUS_NOTE_CUT && note != MUS_NOTE_MACRO_RELEASE && note != MUS_NOTE_RELEASE_WITHOUT_MACRO)
 							{
 								track_status->slide_speed = 0;
 								int speed = pinst->slide_speed | 1;
@@ -6931,7 +7016,7 @@ int mus_load_instrument_RW(Uint8 version, RWops *ctx, MusInstrument *inst, CydWa
 				{
 					for(int j = 0; j < progsteps; j++)
 					{
-						if(inst->ops[i].program[j] & 0xff00 == MUS_FX_ARPEGGIO_ABS) 
+						if((inst->ops[i].program[j] & 0xff00) == MUS_FX_ARPEGGIO_ABS || (inst->ops[i].program[j] & 0xff00) == MUS_FX_SET_NOISE_CONSTANT_PITCH) 
 						//to account for negative octaves
 						{
 							Uint8 temp = inst->ops[i].program[j] & 0xff;
@@ -7995,10 +8080,6 @@ int mus_load_song_RW(RWops *ctx, MusSong *song, CydWavetableEntry *wavetable_ent
 						song->pattern[i].step[s].command[0] += my_min(temp * 2, 255);
 					}
 					
-					
-					
-					//debug("%d", temp_ctrl);
-					
 					if (bits & MUS_PAK_BIT_CTRL)
 					{
 						//debug("coding bits loaded %d, ctrl bit %d", num_additional_commands, temp_ctrl);
@@ -8023,7 +8104,21 @@ int mus_load_song_RW(RWops *ctx, MusSong *song, CydWavetableEntry *wavetable_ent
 							}
 						}
 					}
-
+					
+					if(version < 35)
+					{
+						for(int k = 0; k < MUS_MAX_COMMANDS; k++)
+						{
+							if(((song->pattern[i].step[s].command[k] & 0xff00) == MUS_FX_SET_NOISE_CONSTANT_PITCH || (song->pattern[i].step[s].command[k] & 0xff00) == MUS_FX_ARPEGGIO_ABS))
+							//to account for negative octaves
+							{
+								Uint8 temp = song->pattern[i].step[s].command[k] & 0xff;
+								song->pattern[i].step[s].command[k] &= 0xff00;
+								song->pattern[i].step[s].command[k] |= (temp + 12 * 5);
+							}
+						}
+					}
+					
 					if (bits & MUS_PAK_BIT_VOLUME)
 					{
 						my_RWread(ctx, &song->pattern[i].step[s].volume, 1, sizeof(song->pattern[i].step[s].volume));
