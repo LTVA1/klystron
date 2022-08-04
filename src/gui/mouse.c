@@ -102,7 +102,7 @@ int check_event(const SDL_Event *event, const SDL_Rect *rect, void (*action)(voi
 }
 
 
-void set_motion_target(void (*action)(int,int,void*), void *param)
+void set_motion_target(void (*action)(int, int, void*), void *param)
 {
 	motion_target = action;
 	motion_param = param;
