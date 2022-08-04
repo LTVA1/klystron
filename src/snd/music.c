@@ -6604,6 +6604,20 @@ int mus_load_instrument_RW(Uint8 version, RWops *ctx, MusInstrument *inst, CydWa
 		}
 	}
 	
+	if(version >= 32)
+	{
+		for(int i = 0; i < progsteps; i++)
+		{
+			if((inst->program[i] & 0xff00) == MUS_FX_LABEL || (inst->program[i] & 0xff00) == MUS_FX_LOOP || (inst->program[i] & 0xff00) == MUS_FX_JUMP)
+			{
+				if(inst->program_unite_bits[i / 8] & (1 << (i & 7)))
+				{
+					inst->program_unite_bits[i / 8] &= ~(1 << (i & 7));
+				}
+			}
+		}
+	}
+	
 	if(version < 33)
 	{
 		for(int i = 0; i < progsteps; i++)
