@@ -3736,6 +3736,21 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 					{
 						chn->arpeggio_note = 0;
 						chn->fixed_note = (inst & 0xff) << 8;
+						
+						if(ops_index == 0xFF)
+						{
+							for(int i = 0; i < CYD_FM_NUM_OPS; ++i)
+							{
+								chn->ops[i].arpeggio_note = 0;
+								chn->ops[i].fixed_note = (inst & 0xff) << 8;
+							}
+						}
+					}
+					
+					else
+					{
+						chn->ops[ops_index - 1].arpeggio_note = 0;
+						chn->ops[ops_index - 1].fixed_note = (inst & 0xff) << 8;
 					}
 				}
 				break;
@@ -3756,6 +3771,19 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 							chn->arpeggio_note = track_status->extarp2;
 						else
 							chn->arpeggio_note = inst & 0xff;
+						
+						if(ops_index == 0xFF)
+						{
+							for(int i = 0; i < CYD_FM_NUM_OPS; ++i)
+							{
+								chn->ops[i].arpeggio_note = inst & 0xff;
+							}
+						}
+					}
+					
+					else
+					{
+						chn->ops[ops_index - 1].arpeggio_note = inst & 0xff;
 					}
 				}
 				break;
@@ -4818,6 +4846,8 @@ void mus_trigger_fm_op_internal(CydFm* fm, MusInstrument* ins, CydChannel* cydch
 	fm->ops[i].freq_for_ksl = (Uint64)(ACC_LENGTH) / 64 * (Uint64)get_freq(chn->ops[i].last_note) / (Uint64)mus->cyd->sample_rate;
 	//fm->ops[i].freq_for_ksl = get_freq(chn->ops[i].last_note);
 	
+	chn->ops[i].arpeggio_note = 0;
+	
 	chn->ops[i].current_tick = 0;
 	chn->ops[i].prog_period = ins->ops[i].prog_period;
 	
@@ -5790,7 +5820,7 @@ static void mus_advance_channel(MusEngine* mus, int chan)
 	{
 		for(int i = 0; i < CYD_FM_NUM_OPS; ++i)
 		{
-			Sint32 note_ops = mus->channel[chan].ops[i].note + ops_vib[i];
+			Sint32 note_ops = (mus->channel[chan].ops[i].note) + ops_vib[i] + ((Uint16)mus->channel[chan].ops[i].arpeggio_note << 8);
 
 			if (note_ops < 0) note_ops = 0;
 			if (note_ops > FREQ_TAB_SIZE << 8) note_ops = (FREQ_TAB_SIZE - 1) << 8;
@@ -5906,8 +5936,8 @@ int mus_advance_tick(void* udata)
 									{
 										for(int i1 = 0; i1 < CYD_FM_NUM_OPS; ++i1)
 										{
-											cydchn->fm.ops[i].adsr.volume = 0;
-											track_status->ops_status[i].volume = 0;
+											cydchn->fm.ops[i1].adsr.volume = 0;
+											track_status->ops_status[i1].volume = 0;
 										}
 									}
 								}

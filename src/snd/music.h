@@ -205,6 +205,7 @@ enum
 typedef struct
 {
 	Uint32 note;
+	Uint8 arpeggio_note;
 	
 	Uint8 noise_note;
 	
