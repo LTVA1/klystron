@@ -3776,6 +3776,12 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 						{
 							for(int i = 0; i < CYD_FM_NUM_OPS; ++i)
 							{
+								if (chn->ops[i].fixed_note != 0xffff)
+								{
+									chn->ops[i].note = chn->ops[i].last_note;
+									chn->ops[i].fixed_note = 0xffff;
+								}
+								
 								chn->ops[i].arpeggio_note = inst & 0xff;
 							}
 						}
@@ -3783,6 +3789,12 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 					
 					else
 					{
+						if (chn->ops[ops_index - 1].fixed_note != 0xffff)
+						{
+							chn->ops[ops_index - 1].note = chn->ops[ops_index - 1].last_note;
+							chn->ops[ops_index - 1].fixed_note = 0xffff;
+						}
+						
 						chn->ops[ops_index - 1].arpeggio_note = inst & 0xff;
 					}
 				}
@@ -4847,6 +4859,7 @@ void mus_trigger_fm_op_internal(CydFm* fm, MusInstrument* ins, CydChannel* cydch
 	//fm->ops[i].freq_for_ksl = get_freq(chn->ops[i].last_note);
 	
 	chn->ops[i].arpeggio_note = 0;
+	chn->ops[i].fixed_note = 0xffff;
 	
 	chn->ops[i].current_tick = 0;
 	chn->ops[i].prog_period = ins->ops[i].prog_period;
@@ -5820,7 +5833,8 @@ static void mus_advance_channel(MusEngine* mus, int chan)
 	{
 		for(int i = 0; i < CYD_FM_NUM_OPS; ++i)
 		{
-			Sint32 note_ops = (mus->channel[chan].ops[i].note) + ops_vib[i] + ((Uint16)mus->channel[chan].ops[i].arpeggio_note << 8);
+			//Sint32 note_ops = (mus->channel[chan].ops[i].note) + ops_vib[i] + ((Uint16)mus->channel[chan].ops[i].arpeggio_note << 8);
+			Sint32 note_ops = (mus->channel[chan].ops[i].fixed_note != 0xffff ? mus->channel[chan].ops[i].fixed_note : mus->channel[chan].ops[i].note) + ops_vib[i] + ((Uint16)mus->channel[chan].ops[i].arpeggio_note << 8);
 
 			if (note_ops < 0) note_ops = 0;
 			if (note_ops > FREQ_TAB_SIZE << 8) note_ops = (FREQ_TAB_SIZE - 1) << 8;
