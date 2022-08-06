@@ -175,6 +175,22 @@ static void cyd_init_log_tables(CydEngine *cyd)
 	
 	cyd->lookup_table_ym[0] = 0;
 #endif
+	
+	const double pi = 3.14159265358979323846;
+	
+	//initializing sine lookup table
+	
+	for(int i = 0; i < 16384; ++i)
+	{
+		double sine = (sin((double)i / 16384.0 / 2.0 * pi) + 1.0) * 32768.0;
+		
+		Uint16 sine_scaled = (Uint16)sine;
+		
+		cyd->sine_table[i] = sine_scaled;
+		cyd->sine_table[32767 - i] = sine_scaled;
+		cyd->sine_table[32767 + i] = (Uint16)(((Sint32)sine_scaled - (Sint32)32768) * (Sint32)(-1) + (Sint32)32768);
+		cyd->sine_table[65535 - i] = (Uint16)(((Sint32)sine_scaled - (Sint32)32768) * (Sint32)(-1) + (Sint32)32768);
+	}
 }
 
 void cyd_set_fm_op_wavetable_offset(CydChannel *chn, Uint16 offset /* 0..0x1000 = 0-100% */, Uint8 i) //if sample is looped, set start offset

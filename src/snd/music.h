@@ -200,6 +200,7 @@ enum
 	MUS_FX_WAVE_SAW = 8,
 	MUS_FX_WAVE_LFSR = 16,
 	MUS_FX_WAVE_WAVE = 32,
+	MUS_FX_WAVE_SINE = 64,
 };
 
 typedef struct

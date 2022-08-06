@@ -4078,6 +4078,9 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 
 							if (inst & MUS_FX_WAVE_WAVE)
 								final |= CYD_CHN_ENABLE_WAVE;
+							
+							if (inst & MUS_FX_WAVE_SINE)
+								final |= CYD_CHN_ENABLE_SINE;
 
 #ifndef CYD_DISABLE_LFSR
 							if (inst & MUS_FX_WAVE_LFSR)
@@ -4103,6 +4106,9 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 
 									if (inst & MUS_FX_WAVE_SAW)
 										final |= CYD_FM_OP_ENABLE_SAW;
+									
+									if (inst & MUS_FX_WAVE_SINE)
+										final |= CYD_FM_OP_ENABLE_SINE;
 
 									if ((inst & MUS_FX_WAVE_WAVE) && (chn->instrument->ops[i].cydflags & CYD_FM_OP_ENABLE_WAVE))
 										final |= CYD_FM_OP_ENABLE_WAVE;
@@ -4129,11 +4135,14 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 
 							if (inst & MUS_FX_WAVE_SAW)
 								final |= CYD_FM_OP_ENABLE_SAW;
+							
+							if (inst & MUS_FX_WAVE_SINE)
+								final |= CYD_FM_OP_ENABLE_SINE;
 
 							if ((inst & MUS_FX_WAVE_WAVE) && (chn->instrument->ops[ops_index - 1].cydflags & CYD_FM_OP_ENABLE_WAVE))
 								final |= CYD_FM_OP_ENABLE_WAVE;
 							
-							cydchn->fm.ops[ops_index - 1].flags = (cydchn->fm.ops[ops_index - 1].flags & (~WAVEFORMS)) | (final & WAVEFORMS);
+							cydchn->fm.ops[ops_index - 1].flags = (cydchn->fm.ops[ops_index - 1].flags & (~FM_OP_WAVEFORMS)) | (final & FM_OP_WAVEFORMS);
 							
 							break;
 						}
@@ -7262,6 +7271,8 @@ void mus_get_default_instrument(MusInstrument *inst)
 	inst->fm_env_ksl_level = 0x80;
 	inst->fm_4op_vol = 0x80;
 	
+	inst->alg = 1;
+	
 	inst->adsr.a = 1 * ENVELOPE_SCALE;
 	inst->adsr.d = 12 * ENVELOPE_SCALE;
 	inst->volume = MAX_VOLUME;
@@ -7290,7 +7301,7 @@ void mus_get_default_instrument(MusInstrument *inst)
 	{
 		inst->ops[i].flags = MUS_FM_OP_SET_PW | MUS_FM_OP_SET_CUTOFF | MUS_FM_OP_SAVE_LFO_SETTINGS | MUS_FM_OP_RELATIVE_VOLUME;
 		inst->ops[i].pw = 0x600;
-		inst->ops[i].cydflags = CYD_FM_OP_ENABLE_TRIANGLE | CYD_FM_OP_ENABLE_KEY_SYNC | CYD_FM_OP_ENABLE_EXPONENTIAL_VOLUME;
+		inst->ops[i].cydflags = CYD_FM_OP_ENABLE_SINE | CYD_FM_OP_ENABLE_KEY_SYNC | CYD_FM_OP_ENABLE_EXPONENTIAL_VOLUME;
 		
 		inst->ops[i].adsr.a = 1 * ENVELOPE_SCALE;
 		inst->ops[i].adsr.d = 12 * ENVELOPE_SCALE;
