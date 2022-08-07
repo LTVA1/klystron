@@ -152,7 +152,7 @@ static void cyd_init_log_tables(CydEngine *cyd)
 	
 	for (int i = 0; i < LUT_SIZE; ++i)
 	{
-		cyd->lookup_table[i] = i * (i/2) / ((LUT_SIZE*LUT_SIZE / 65536)/2);
+		cyd->lookup_table[i] = i * (i / 2) / ((LUT_SIZE * LUT_SIZE / 65536) / 2);
 	}
 	
 #ifndef CYD_DISABLE_BUZZ
@@ -499,125 +499,39 @@ Uint32 cyd_cycle_fm_op_adsr(const CydEngine *eng, Uint32 flags, Uint32 ym_env_sh
 //remember that in SSG-EG mode envelope decay should be executed 6 times faster than in normal mode (http://gendev.spritesmind.net/forum/viewtopic.php?p=5716#5716)
 //while attack speed would stay unaffected
 #ifndef CYD_DISABLE_ENVELOPE
-	switch (adsr->envelope_state)
-	{
-		case SUSTAIN:
+		// SID style ADSR envelope
+
+		switch (adsr->envelope_state)
 		{
-			if(ssg_eg & SSG_EG_ENABLED)
-			{
-				if((ssg_eg & SSG_EG_ENABLED) && (ssg_eg & SSG_EG_INV))
-				{
-					if(adsr->passes & 1)
-					{
-						adsr->envelope = (Uint32)adsr->s << 19;
-						adsr->envelope_state = DECAY;
-						
-						if(env_ksl_mult == 0.0 || env_ksl_mult == 1.0)
-						{
-							adsr->env_speed = envspd(eng, adsr->d) * SSG_EG_SPEED_MULT;
-						}
-						
-						else
-						{
-							adsr->env_speed = (int)((double)envspd(eng, adsr->d) * env_ksl_mult) * SSG_EG_SPEED_MULT;
-						}
-						
-						break;
-					}
-					
-					if(!(ssg_eg & SSG_EG_HLD))
-					{
-						if(adsr->passes < 4)
-						{
-							adsr->passes++;
-						}
-						
-						else
-						{
-							adsr->passes = 2;
-						}
-					}
-					
-					else
-					{
-						adsr->passes = 1;
-					}
-				}
-				
-				return flags;
-				break;
-			}
+			case SUSTAIN:
+			case DONE: return flags; break;
 			
-			else 
-			{
-				return flags;
-				break;
-			}
-		}
-		break;
-		
-		case DONE: return flags; break;
-		
-		case ATTACK:
-		{
-			if(!(ssg_eg & SSG_EG_ENABLED) || ((ssg_eg & SSG_EG_ENABLED) && (((adsr->passes & 1) && (ssg_eg & SSG_EG_INV)) || (!(adsr->passes & 1) && !(ssg_eg & SSG_EG_INV)))))
+			case ATTACK:
+			
+			if(adsr->envelope < 0xff0000)
 			{
 				adsr->envelope += adsr->env_speed;
-				
-				if (adsr->envelope >= 0xff0000) 
-				{
-					adsr->envelope_state = DECAY;
-					adsr->envelope = 0xff0000;
+			}
+			
+			if (adsr->envelope >= 0xff0000) 
+			{
+				adsr->envelope_state = DECAY;
+				adsr->envelope = 0xff0000;
 
-					adsr->env_speed = envspd(eng, adsr->d);
-					
-					if(env_ksl_mult != 0.0 || env_ksl_mult != 1.0)
-					{
-						adsr->env_speed = (int)((double)envspd(eng, adsr->d) * env_ksl_mult);
-					}
+				adsr->env_speed = envspd(eng, adsr->d);
+				
+				if(env_ksl_mult != 0.0 || env_ksl_mult != 1.0)
+				{
+					adsr->env_speed = (int)((double)envspd(eng, adsr->d) * env_ksl_mult);
 				}
 			}
 			
-			else
-			{
-				adsr->envelope -= adsr->env_speed;
-				
-				if (adsr->envelope < 0) 
-				{
-					adsr->env_speed = -adsr->env_speed;
-					
-					if(env_ksl_mult != 0.0 || env_ksl_mult != 1.0)
-					{
-						adsr->env_speed = -1 * (int)((double)envspd(eng, adsr->a) * env_ksl_mult);
-					}
-				}
-				
-				if(!(ssg_eg & SSG_EG_HLD))
-				{
-					if(adsr->passes < 4)
-					{
-						adsr->passes++;
-					}
-					
-					else
-					{
-						adsr->passes = 2;
-					}
-				}
-				
-				else
-				{
-					adsr->passes = 1;
-				}
-			}
-		}
-		break;
-		
-		case DECAY:
-		{
-			if(!(ssg_eg & SSG_EG_ENABLED) || ((ssg_eg & SSG_EG_ENABLED) && (((adsr->passes & 1) && (ssg_eg & SSG_EG_INV)) || (!(adsr->passes & 1) && !(ssg_eg & SSG_EG_INV)))))
-			{
-				if (adsr->envelope > ((Uint32)adsr->s << 19) + adsr->env_speed)
+			break;
+			
+			case DECAY:
+
+				if (adsr->envelope >= ((Uint32)adsr->s << 19) + adsr->env_speed)
+				//if (adsr->envelope > ((Uint32)adsr->s << 19) + adsr->env_speed)
 				{
 					adsr->envelope -= adsr->env_speed;
 				}
@@ -625,8 +539,7 @@ Uint32 cyd_cycle_fm_op_adsr(const CydEngine *eng, Uint32 flags, Uint32 ym_env_sh
 				else
 				{
 					adsr->envelope = (Uint32)adsr->s << 19;
-					
-					adsr->envelope_state = (ssg_eg & SSG_EG_ENABLED) ? SUSTAIN : ((adsr->s == 0) ? RELEASE : SUSTAIN);
+					adsr->envelope_state = (adsr->s == 0) ? RELEASE : SUSTAIN;
 					
 					if(env_ksl_mult == 0.0 || env_ksl_mult == 1.0)
 					{
@@ -638,52 +551,24 @@ Uint32 cyd_cycle_fm_op_adsr(const CydEngine *eng, Uint32 flags, Uint32 ym_env_sh
 						adsr->env_speed = (int)((double)envspd(eng, adsr->r) * env_ksl_mult);
 					}
 				}
-			}
 			
-			else
-			{
-				if (adsr->envelope < ((Uint32)adsr->s << 19) + adsr->env_speed)
+			break;
+			
+			case RELEASE:
+				if (adsr->envelope > adsr->env_speed)
 				{
-					adsr->envelope += adsr->env_speed;
+					adsr->envelope -= adsr->env_speed;
 				}
 				
-				else
+				else 
 				{
-					adsr->envelope = (Uint32)adsr->s << 19;
-					adsr->envelope_state = SUSTAIN;
-					
-					if(env_ksl_mult == 0.0 || env_ksl_mult == 1.0)
-					{
-						adsr->env_speed = envspd(eng, adsr->r);
-					}
-					
-					else
-					{
-						adsr->env_speed = (int)((double)envspd(eng, adsr->r) * env_ksl_mult);
-					}
+					adsr->envelope_state = DONE;
+					if ((flags & (CYD_CHN_ENABLE_WAVE | CYD_CHN_WAVE_OVERRIDE_ENV)) != (CYD_CHN_ENABLE_WAVE | CYD_CHN_WAVE_OVERRIDE_ENV)) flags &= ~CYD_CHN_ENABLE_GATE;
+					adsr->envelope = 0;
 				}
-			}
+				break;
 		}
-		break;
-		
-		case RELEASE:
-		{
-			if (adsr->envelope > adsr->env_speed)
-			{
-				adsr->envelope -= adsr->env_speed;
-			}
-			
-			else 
-			{
-				adsr->envelope_state = DONE;
-				if ((flags & (CYD_CHN_ENABLE_WAVE | CYD_CHN_WAVE_OVERRIDE_ENV)) != (CYD_CHN_ENABLE_WAVE | CYD_CHN_WAVE_OVERRIDE_ENV)) flags &= ~CYD_CHN_ENABLE_GATE;
-				adsr->envelope = 0;
-			}
-		}
-		break;
-	}
 #endif
-
 	
 	return flags;
 }
@@ -1562,7 +1447,7 @@ Sint32 cyd_fm_op_env_output(const CydEngine *cyd, Uint32 chn_flags, const CydFmO
 #ifndef CYD_DISABLE_ENVELOPE
 	if (adsr->envelope_state == ATTACK)
 	{
-		if(chn_flags & CYD_CHN_ENABLE_EXPONENTIAL_ATTACK)
+		if(chn_flags & CYD_FM_OP_ENABLE_EXPONENTIAL_ATTACK)
 		{                                                                                                                                                                                //                                _
 			return ((Sint64)input * (65535 - cyd->lookup_table_exponential[(65535 - (adsr->envelope / 0x800) - 1) & (EXP_LUT_SIZE - 1)])) / 65536 * (Sint32)(adsr->volume) / MAX_VOLUME; //so attack goes curvy like this /
 		} //EXP_LUT_SIZE
@@ -1575,7 +1460,7 @@ Sint32 cyd_fm_op_env_output(const CydEngine *cyd, Uint32 chn_flags, const CydFmO
 	
 	if (adsr->envelope_state == DECAY)
 	{
-		if(chn_flags & CYD_CHN_ENABLE_EXPONENTIAL_DECAY)
+		if(chn_flags & CYD_FM_OP_ENABLE_EXPONENTIAL_DECAY)
 		{
 			Sint64 out = ((Sint64)input * (cyd->lookup_table_exponential[(Uint32)((((double)adsr->envelope - (double)0xff0000) * (double)32 / ((double)32 - (double)adsr->s) / (double)0x800) - (double)1) & (EXP_LUT_SIZE - 1)])) / 65536 * (Sint32)(adsr->volume) / MAX_VOLUME;// * (32 - adsr->s) / 32; //so decay (and release below) go curvy like this  \_
 			return (Sint64)((double)out * (double)(cyd->lookup_table[1023] - cyd->lookup_table[adsr->s * 32]) / (double)cyd->lookup_table[1023]) + (Sint64)((double)((Sint64)input * (Sint32)(adsr->volume) / MAX_VOLUME) * (double)cyd->lookup_table[adsr->s * 32] / (double)cyd->lookup_table[1023]);
@@ -1589,7 +1474,7 @@ Sint32 cyd_fm_op_env_output(const CydEngine *cyd, Uint32 chn_flags, const CydFmO
 	
 	if (adsr->envelope_state == RELEASE)
 	{
-		if(chn_flags & CYD_CHN_ENABLE_EXPONENTIAL_RELEASE)
+		if(chn_flags & CYD_FM_OP_ENABLE_EXPONENTIAL_RELEASE)
 		{
 			Sint64 out = ((Sint64)input * (cyd->lookup_table_exponential[(Uint32)((((double)adsr->envelope - (double)(adsr->s << 19)) * (double)32 / ((double)adsr->s) / (double)0x800) - (double)1) & (EXP_LUT_SIZE - 1)])) / 65536 * (Sint32)(adsr->volume) / MAX_VOLUME;
 			return (Sint64)((double)out * (double)(cyd->lookup_table[adsr->s * 32]) / (double)cyd->lookup_table[1023]);
