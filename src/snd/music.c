@@ -4297,6 +4297,18 @@ static void mus_exec_track_command(MusEngine *mus, int chan, int first_tick)
 				track_status->extarp2 = (inst & 0xf);
 			}
 			break;
+			
+			case MUS_FX_SET_2ND_ARP_NOTE:
+			{
+				track_status->extarp1 = (inst & 0xff);
+			}
+			break;
+			
+			case MUS_FX_SET_3RD_ARP_NOTE:
+			{
+				track_status->extarp2 = (inst & 0xff);
+			}
+			break;
 
 			default:
 			{
