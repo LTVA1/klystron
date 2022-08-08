@@ -374,64 +374,118 @@ static Sint32 harmonicOPN1[16] = { (Sint32)(0.5 * MUL), 1 * MUL, 2 * MUL, 3 * MU
 void mus_set_fm_op_note(MusEngine* mus, int chan, CydFm* fm, Uint32 note, int i /*op number*/, bool update_note, int divider, MusInstrument *ins)
 {
 	MusChannel *chn = &mus->channel[chan];
+	MusTrackStatus *track_status = &mus->song_track[chan];
 	
 	if (update_note) chn->ops[i].note = note;
 	
-	Uint32 frequency = get_freq(note);
-	
-	if (frequency != 0)
+	for (int s = 0; s < CYD_SUB_OSCS; ++s)
 	{
-		if(fm->flags & CYD_FM_ENABLE_3CH_EXP_MODE)
+		Uint32 frequency = 0;
+		
+		Uint32 final = 0;
+		
+		bool zero_miltiosc_freq = false;
+		
+		if(chn->instrument)
 		{
-			//chn->subosc[subosc].frequency = (Uint64)(ACC_LENGTH >> (cyd->oversample)) / 64 * (Uint64)(frequency) / (Uint64)cyd->sample_rate;
-			fm->ops[i].osc.frequency = (Uint64)(ACC_LENGTH >> (mus->cyd->oversample)) / (Uint64)1024 * (Uint64)frequency / (Uint64)mus->cyd->sample_rate / (((ins->fm_flags & CYD_FM_ENABLE_3CH_EXP_MODE) ? (ins->ops[i].flags & MUS_FM_OP_QUARTER_FREQ) : (ins->flags & MUS_INST_QUARTER_FREQ)) ? 4 : 1);
-			//fm->ops[i].osc.frequency = (Uint64)(ACC_LENGTH >> (mus->cyd->oversample)) / 64 * (Uint64)frequency / (Uint64)mus->cyd->sample_rate;
-			//fm->ops[i].scale_freq = (Uint64)(ACC_LENGTH >> (mus->cyd->oversample)) / 64 * (Uint64)(get_freq((Uint32)(((Uint16)ins->ops[i].base_note) << 8) + fm->ops[i].finetune)) / (Uint64)mus->cyd->sample_rate;
+			if (s == 0 || (chn->instrument->flags & MUS_INST_MULTIOSC))
+			{
+				switch (s)
+				{
+					default:
+					case 0:
+						final = note;
+						break;
+
+					case 1:
+						if (track_status->extarp1 != 0)
+							final = note + ((Uint16)track_status->extarp1 << 8);
+						else
+						{
+							final = 0;
+							zero_miltiosc_freq = true;
+						}
+						break;
+
+					case 2:
+						if (track_status->extarp2 != 0)
+							final = note + ((Uint16)track_status->extarp2 << 8);
+						else
+						{
+							final = 0;
+							zero_miltiosc_freq = true;
+						}
+						break;
+				}
+				
+				frequency = get_freq(final);
+			}
+		}
+		
+		if (frequency != 0 && zero_miltiosc_freq == false)
+		{
+			if(fm->flags & CYD_FM_ENABLE_3CH_EXP_MODE)
+			{
+				//chn->subosc[subosc].frequency = (Uint64)(ACC_LENGTH >> (cyd->oversample)) / 64 * (Uint64)(frequency) / (Uint64)cyd->sample_rate;
+				fm->ops[i].subosc[s].frequency = (Uint64)(ACC_LENGTH >> (mus->cyd->oversample)) / (Uint64)1024 * (Uint64)frequency / (Uint64)mus->cyd->sample_rate / (((ins->fm_flags & CYD_FM_ENABLE_3CH_EXP_MODE) ? (ins->ops[i].flags & MUS_FM_OP_QUARTER_FREQ) : (ins->flags & MUS_INST_QUARTER_FREQ)) ? 4 : 1);
+				//fm->ops[i].osc.frequency = (Uint64)(ACC_LENGTH >> (mus->cyd->oversample)) / 64 * (Uint64)frequency / (Uint64)mus->cyd->sample_rate;
+				//fm->ops[i].scale_freq = (Uint64)(ACC_LENGTH >> (mus->cyd->oversample)) / 64 * (Uint64)(get_freq((Uint32)(((Uint16)ins->ops[i].base_note) << 8) + fm->ops[i].finetune)) / (Uint64)mus->cyd->sample_rate;
+			}
+			
+			else
+			{
+				if(fm->fm_freq_LUT == 0)
+				{
+					fm->ops[i].subosc[s].frequency = (Uint64)(ACC_LENGTH >> (mus->cyd->oversample)) / (Uint64)1024 * (Uint64)(frequency) / (Uint64)mus->cyd->sample_rate * (Uint64)harmonic1[fm->ops[i].harmonic & 15] / (Uint64)harmonic1[fm->ops[i].harmonic >> 4] / (((ins->fm_flags & CYD_FM_ENABLE_3CH_EXP_MODE) ? (ins->ops[i].flags & MUS_FM_OP_QUARTER_FREQ) : (ins->flags & MUS_INST_QUARTER_FREQ)) ? 4 : 1);
+					
+					//fm->ops[i].osc.frequency = (Uint64)(ACC_LENGTH >> (mus->cyd->oversample)) / 64 * (Uint64)(frequency) / (Uint64)mus->cyd->sample_rate * (Uint64)harmonic1[fm->ops[i].harmonic & 15] / (Uint64)harmonic1[fm->ops[i].harmonic >> 4];
+					
+					//fm->ops[i].scale_freq = (Uint64)(ACC_LENGTH >> (mus->cyd->oversample)) / 64 * (Uint64)(get_freq((Uint32)(((Uint16)ins->base_note) << 8) + fm->ops[i].finetune)) / (Uint64)mus->cyd->sample_rate * (Uint64)harmonic1[fm->ops[i].harmonic & 15] / (Uint64)harmonic1[fm->ops[i].harmonic >> 4];
+				}
+				
+				else
+				{
+					fm->ops[i].subosc[s].frequency = (Uint64)(ACC_LENGTH >> (mus->cyd->oversample)) / (Uint64)1024 * (Uint64)(frequency) / (Uint64)mus->cyd->sample_rate * (Uint64)harmonicOPN1[fm->ops[i].harmonic & 15] / (Uint64)harmonicOPN1[fm->ops[i].harmonic >> 4] / (((ins->fm_flags & CYD_FM_ENABLE_3CH_EXP_MODE) ? (ins->ops[i].flags & MUS_FM_OP_QUARTER_FREQ) : (ins->flags & MUS_INST_QUARTER_FREQ)) ? 4 : 1);
+					
+					//fm->ops[i].osc.frequency = (Uint64)(ACC_LENGTH >> (mus->cyd->oversample)) / 64 * (Uint64)(frequency) / (Uint64)mus->cyd->sample_rate * (Uint64)harmonicOPN1[fm->ops[i].harmonic & 15] / (Uint64)harmonicOPN1[fm->ops[i].harmonic >> 4];
+					//fm->ops[i].scale_freq = (Uint64)(ACC_LENGTH >> (mus->cyd->oversample)) / 64 * (Uint64)(get_freq((Uint32)(((Uint16)ins->base_note) << 8) + fm->ops[i].finetune)) / (Uint64)mus->cyd->sample_rate * (Uint64)harmonicOPN1[fm->ops[i].harmonic & 15] / (Uint64)harmonicOPN1[fm->ops[i].harmonic >> 4];
+				}	
+			}
 		}
 		
 		else
 		{
-			if(fm->fm_freq_LUT == 0)
-			{
-				fm->ops[i].osc.frequency = (Uint64)(ACC_LENGTH >> (mus->cyd->oversample)) / (Uint64)1024 * (Uint64)(frequency) / (Uint64)mus->cyd->sample_rate * (Uint64)harmonic1[fm->ops[i].harmonic & 15] / (Uint64)harmonic1[fm->ops[i].harmonic >> 4] / (((ins->fm_flags & CYD_FM_ENABLE_3CH_EXP_MODE) ? (ins->ops[i].flags & MUS_FM_OP_QUARTER_FREQ) : (ins->flags & MUS_INST_QUARTER_FREQ)) ? 4 : 1);
-				
-				//fm->ops[i].osc.frequency = (Uint64)(ACC_LENGTH >> (mus->cyd->oversample)) / 64 * (Uint64)(frequency) / (Uint64)mus->cyd->sample_rate * (Uint64)harmonic1[fm->ops[i].harmonic & 15] / (Uint64)harmonic1[fm->ops[i].harmonic >> 4];
-				
-				//fm->ops[i].scale_freq = (Uint64)(ACC_LENGTH >> (mus->cyd->oversample)) / 64 * (Uint64)(get_freq((Uint32)(((Uint16)ins->base_note) << 8) + fm->ops[i].finetune)) / (Uint64)mus->cyd->sample_rate * (Uint64)harmonic1[fm->ops[i].harmonic & 15] / (Uint64)harmonic1[fm->ops[i].harmonic >> 4];
-			}
-			
-			else
-			{
-				fm->ops[i].osc.frequency = (Uint64)(ACC_LENGTH >> (mus->cyd->oversample)) / (Uint64)1024 * (Uint64)(frequency) / (Uint64)mus->cyd->sample_rate * (Uint64)harmonicOPN1[fm->ops[i].harmonic & 15] / (Uint64)harmonicOPN1[fm->ops[i].harmonic >> 4] / (((ins->fm_flags & CYD_FM_ENABLE_3CH_EXP_MODE) ? (ins->ops[i].flags & MUS_FM_OP_QUARTER_FREQ) : (ins->flags & MUS_INST_QUARTER_FREQ)) ? 4 : 1);
-				
-				//fm->ops[i].osc.frequency = (Uint64)(ACC_LENGTH >> (mus->cyd->oversample)) / 64 * (Uint64)(frequency) / (Uint64)mus->cyd->sample_rate * (Uint64)harmonicOPN1[fm->ops[i].harmonic & 15] / (Uint64)harmonicOPN1[fm->ops[i].harmonic >> 4];
-				//fm->ops[i].scale_freq = (Uint64)(ACC_LENGTH >> (mus->cyd->oversample)) / 64 * (Uint64)(get_freq((Uint32)(((Uint16)ins->base_note) << 8) + fm->ops[i].finetune)) / (Uint64)mus->cyd->sample_rate * (Uint64)harmonicOPN1[fm->ops[i].harmonic & 15] / (Uint64)harmonicOPN1[fm->ops[i].harmonic >> 4];
-			}	
+			fm->ops[i].subosc[s].frequency = 0;
+			fm->ops[i].subosc[s].wave.frequency = 0;
 		}
 		
 		//fm->ops[i].osc.wave.frequency = fm->ops[i].osc.frequency / 4;
+		
 		if (fm->ops[i].flags & CYD_FM_OP_ENABLE_WAVE)
 		{
-			Uint32 wave_frequency = get_freq((ins->ops[i].flags & MUS_FM_OP_WAVE_LOCK_NOTE) ? fm->ops[i].wave_entry->base_note : note);
+			Uint32 wave_frequency = get_freq((ins->ops[i].flags & MUS_FM_OP_WAVE_LOCK_NOTE) ? fm->ops[i].wave_entry->base_note : final);
 			
-			if(fm->fm_freq_LUT == 0)
+			if(frequency != 0 && wave_frequency != 0 && zero_miltiosc_freq == false)
 			{
-				fm->ops[i].osc.wave.frequency = (Uint64)WAVETABLE_RESOLUTION * (Uint64)fm->ops[i].wave_entry->sample_rate / (Uint64)mus->cyd->sample_rate * (Uint64)wave_frequency / (Uint64)get_freq(fm->ops[i].wave_entry->base_note) * (Uint64)harmonic1[fm->ops[i].harmonic & 15] / (Uint64)harmonic1[fm->ops[i].harmonic >> 4] / (((ins->fm_flags & CYD_FM_ENABLE_3CH_EXP_MODE) ? (ins->ops[i].flags & MUS_FM_OP_QUARTER_FREQ) : (ins->flags & MUS_INST_QUARTER_FREQ)) ? 4 : 1);
+				if(fm->fm_freq_LUT == 0)
+				{
+					//debug("test");
+					fm->ops[i].subosc[s].wave.frequency = (Uint64)WAVETABLE_RESOLUTION * (Uint64)fm->ops[i].wave_entry->sample_rate / (Uint64)mus->cyd->sample_rate * (Uint64)wave_frequency / (Uint64)get_freq(fm->ops[i].wave_entry->base_note) * (Uint64)harmonic1[fm->ops[i].harmonic & 15] / (Uint64)harmonic1[fm->ops[i].harmonic >> 4] / (((ins->fm_flags & CYD_FM_ENABLE_3CH_EXP_MODE) ? (ins->ops[i].flags & MUS_FM_OP_QUARTER_FREQ) : (ins->flags & MUS_INST_QUARTER_FREQ)) ? 4 : 1);
+				}
+				
+				else
+				{
+					fm->ops[i].subosc[s].wave.frequency = (Uint64)WAVETABLE_RESOLUTION * (Uint64)fm->ops[i].wave_entry->sample_rate / (Uint64)mus->cyd->sample_rate * (Uint64)wave_frequency / (Uint64)get_freq(fm->ops[i].wave_entry->base_note) * (Uint64)harmonicOPN1[fm->ops[i].harmonic & 15] / (Uint64)harmonicOPN1[fm->ops[i].harmonic >> 4] / (((ins->fm_flags & CYD_FM_ENABLE_3CH_EXP_MODE) ? (ins->ops[i].flags & MUS_FM_OP_QUARTER_FREQ) : (ins->flags & MUS_INST_QUARTER_FREQ)) ? 4 : 1);
+				}
 			}
 			
 			else
 			{
-				fm->ops[i].osc.wave.frequency = (Uint64)WAVETABLE_RESOLUTION * (Uint64)fm->ops[i].wave_entry->sample_rate / (Uint64)mus->cyd->sample_rate * (Uint64)wave_frequency / (Uint64)get_freq(fm->ops[i].wave_entry->base_note) * (Uint64)harmonicOPN1[fm->ops[i].harmonic & 15] / (Uint64)harmonicOPN1[fm->ops[i].harmonic >> 4] / (((ins->fm_flags & CYD_FM_ENABLE_3CH_EXP_MODE) ? (ins->ops[i].flags & MUS_FM_OP_QUARTER_FREQ) : (ins->flags & MUS_INST_QUARTER_FREQ)) ? 4 : 1);
-			}	
+				fm->ops[i].subosc[s].wave.frequency = 0;
+			}
 		}
 		
 		fm->ops[i].true_freq = frequency;
-	}
-	
-	else
-	{
-		fm->ops[i].osc.frequency = 0;
-		fm->ops[i].osc.wave.frequency = 0;
 	}
 }
 
@@ -1251,13 +1305,17 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 						{
 							if (cydchn->fm.ops[i].wave_entry)
 							{
-								if ((cydchn->fm.ops[i].wave_entry->flags & CYD_WAVE_LOOP) && (cydchn->fm.ops[i].osc.wave.start_offset + (cydchn->fm.ops[i].osc.wave.start_offset + (inst & 0xff) * 16 > 0xffff ? 0xffff : (inst & 0xff) * 16) < cydchn->fm.ops[i].osc.wave.end_offset))
+								for (int s = 0; s < CYD_SUB_OSCS; ++s)
 								{
-									cydchn->fm.ops[i].osc.wave.start_offset += (cydchn->fm.ops[i].osc.wave.start_offset + (inst & 0xff) * 16 > 0xffff ? 0xffff : (inst & 0xff) * 16);
-									
-									cydchn->fm.ops[i].osc.wave.start_point_track_status = (Uint64)cydchn->fm.ops[i].osc.wave.start_offset * WAVETABLE_RESOLUTION * cydchn->fm.ops[i].wave_entry->samples / 0x10000;
-									
-									cydchn->fm.ops[i].osc.wave.use_start_track_status_offset = true;
+									if ((cydchn->fm.ops[i].wave_entry->flags & CYD_WAVE_LOOP) && (cydchn->fm.ops[i].subosc[s].wave.start_offset + (cydchn->fm.ops[i].subosc[s].wave.start_offset + (inst & 0xff) * 16 > 0xffff ? 0xffff : (inst & 0xff) * 16) < cydchn->fm.ops[i].subosc[s].wave.end_offset))
+									{
+										
+										cydchn->fm.ops[i].subosc[s].wave.start_offset += (cydchn->fm.ops[i].subosc[s].wave.start_offset + (inst & 0xff) * 16 > 0xffff ? 0xffff : (inst & 0xff) * 16);
+										
+										cydchn->fm.ops[i].subosc[s].wave.start_point_track_status = (Uint64)cydchn->fm.ops[i].subosc[s].wave.start_offset * WAVETABLE_RESOLUTION * cydchn->fm.ops[i].wave_entry->samples / 0x10000;
+										
+										cydchn->fm.ops[i].subosc[s].wave.use_start_track_status_offset = true;
+									}
 								}
 							}
 						}
@@ -1270,13 +1328,16 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 				{
 					if (cydchn->fm.ops[ops_index - 1].wave_entry)
 					{
-						if ((cydchn->fm.ops[ops_index - 1].wave_entry->flags & CYD_WAVE_LOOP) && (cydchn->fm.ops[ops_index - 1].osc.wave.start_offset + (cydchn->fm.ops[ops_index - 1].osc.wave.start_offset + (inst & 0xff) * 16 > 0xffff ? 0xffff : (inst & 0xff) * 16) < cydchn->fm.ops[ops_index - 1].osc.wave.end_offset))
+						for (int s = 0; s < CYD_SUB_OSCS; ++s)
 						{
-							cydchn->fm.ops[ops_index - 1].osc.wave.start_offset += (cydchn->fm.ops[ops_index - 1].osc.wave.start_offset + (inst & 0xff) * 16 > 0xffff ? 0xffff : (inst & 0xff) * 16);
-							
-							cydchn->fm.ops[ops_index - 1].osc.wave.start_point_track_status = (Uint64)cydchn->fm.ops[ops_index - 1].osc.wave.start_offset * WAVETABLE_RESOLUTION * cydchn->fm.ops[ops_index - 1].wave_entry->samples / 0x10000;
-							
-							cydchn->fm.ops[ops_index - 1].osc.wave.use_start_track_status_offset = true;
+							if ((cydchn->fm.ops[ops_index - 1].wave_entry->flags & CYD_WAVE_LOOP) && (cydchn->fm.ops[ops_index - 1].subosc[s].wave.start_offset + (cydchn->fm.ops[ops_index - 1].subosc[s].wave.start_offset + (inst & 0xff) * 16 > 0xffff ? 0xffff : (inst & 0xff) * 16) < cydchn->fm.ops[ops_index - 1].subosc[s].wave.end_offset))
+							{
+								cydchn->fm.ops[ops_index - 1].subosc[s].wave.start_offset += (cydchn->fm.ops[ops_index - 1].subosc[s].wave.start_offset + (inst & 0xff) * 16 > 0xffff ? 0xffff : (inst & 0xff) * 16);
+								
+								cydchn->fm.ops[ops_index - 1].subosc[s].wave.start_point_track_status = (Uint64)cydchn->fm.ops[ops_index - 1].subosc[s].wave.start_offset * WAVETABLE_RESOLUTION * cydchn->fm.ops[ops_index - 1].wave_entry->samples / 0x10000;
+								
+								cydchn->fm.ops[ops_index - 1].subosc[s].wave.use_start_track_status_offset = true;
+							}
 						}
 					}
 				}
@@ -1312,13 +1373,16 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 						{
 							if (cydchn->fm.ops[i].wave_entry)
 							{
-								if ((cydchn->fm.ops[i].wave_entry->flags & CYD_WAVE_LOOP) && (cydchn->fm.ops[i].osc.wave.start_offset - ((Sint32)cydchn->fm.ops[i].osc.wave.start_offset - (inst & 0xff) * 16 < 0 ? 0 : (inst & 0xff) * 16) < cydchn->fm.ops[i].osc.wave.end_offset))
+								for (int s = 0; s < CYD_SUB_OSCS; ++s)
 								{
-									cydchn->fm.ops[i].osc.wave.start_offset -= ((Sint32)cydchn->fm.ops[i].osc.wave.start_offset - (inst & 0xff) * 16 < 0 ? 0 : (inst & 0xff) * 16);
-									
-									cydchn->fm.ops[i].osc.wave.start_point_track_status = (Uint64)cydchn->fm.ops[i].osc.wave.start_offset * WAVETABLE_RESOLUTION * cydchn->fm.ops[i].wave_entry->samples / 0x10000;
-									
-									cydchn->fm.ops[i].osc.wave.use_start_track_status_offset = true;
+									if ((cydchn->fm.ops[i].wave_entry->flags & CYD_WAVE_LOOP) && (cydchn->fm.ops[i].subosc[s].wave.start_offset - ((Sint32)cydchn->fm.ops[i].subosc[s].wave.start_offset - (inst & 0xff) * 16 < 0 ? 0 : (inst & 0xff) * 16) < cydchn->fm.ops[i].subosc[s].wave.end_offset))
+									{
+										cydchn->fm.ops[i].subosc[s].wave.start_offset -= ((Sint32)cydchn->fm.ops[i].subosc[s].wave.start_offset - (inst & 0xff) * 16 < 0 ? 0 : (inst & 0xff) * 16);
+										
+										cydchn->fm.ops[i].subosc[s].wave.start_point_track_status = (Uint64)cydchn->fm.ops[i].subosc[s].wave.start_offset * WAVETABLE_RESOLUTION * cydchn->fm.ops[i].wave_entry->samples / 0x10000;
+										
+										cydchn->fm.ops[i].subosc[s].wave.use_start_track_status_offset = true;
+									}
 								}
 							}
 						}
@@ -1331,13 +1395,16 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 				{
 					if (cydchn->fm.ops[ops_index - 1].wave_entry)
 					{
-						if ((cydchn->fm.ops[ops_index - 1].wave_entry->flags & CYD_WAVE_LOOP) && (cydchn->fm.ops[ops_index - 1].osc.wave.start_offset - ((Sint32)cydchn->fm.ops[ops_index - 1].osc.wave.start_offset - (inst & 0xff) * 16 < 0 ? 0 : (inst & 0xff) * 16) < cydchn->fm.ops[ops_index - 1].osc.wave.end_offset))
+						for (int s = 0; s < CYD_SUB_OSCS; ++s)
 						{
-							cydchn->fm.ops[ops_index - 1].osc.wave.start_offset -= ((Sint32)cydchn->fm.ops[ops_index - 1].osc.wave.start_offset - (inst & 0xff) * 16 < 0 ? 0 : (inst & 0xff) * 16);
-							
-							cydchn->fm.ops[ops_index - 1].osc.wave.start_point_track_status = (Uint64)cydchn->fm.ops[ops_index - 1].osc.wave.start_offset * WAVETABLE_RESOLUTION * cydchn->fm.ops[ops_index - 1].wave_entry->samples / 0x10000;
-							
-							cydchn->fm.ops[ops_index - 1].osc.wave.use_start_track_status_offset = true;
+							if ((cydchn->fm.ops[ops_index - 1].wave_entry->flags & CYD_WAVE_LOOP) && (cydchn->fm.ops[ops_index - 1].subosc[s].wave.start_offset - ((Sint32)cydchn->fm.ops[ops_index - 1].subosc[s].wave.start_offset - (inst & 0xff) * 16 < 0 ? 0 : (inst & 0xff) * 16) < cydchn->fm.ops[ops_index - 1].subosc[s].wave.end_offset))
+							{
+								cydchn->fm.ops[ops_index - 1].subosc[s].wave.start_offset -= ((Sint32)cydchn->fm.ops[ops_index - 1].subosc[s].wave.start_offset - (inst & 0xff) * 16 < 0 ? 0 : (inst & 0xff) * 16);
+								
+								cydchn->fm.ops[ops_index - 1].subosc[s].wave.start_point_track_status = (Uint64)cydchn->fm.ops[ops_index - 1].subosc[s].wave.start_offset * WAVETABLE_RESOLUTION * cydchn->fm.ops[ops_index - 1].wave_entry->samples / 0x10000;
+								
+								cydchn->fm.ops[ops_index - 1].subosc[s].wave.use_start_track_status_offset = true;
+							}
 						}
 					}
 					
@@ -1375,13 +1442,16 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 						{
 							if (cydchn->fm.ops[i].wave_entry)
 							{
-								if ((cydchn->fm.ops[i].wave_entry->flags & CYD_WAVE_LOOP) && (cydchn->fm.ops[i].osc.wave.end_offset - ((Sint32)cydchn->fm.ops[i].osc.wave.end_offset - (inst & 0xff) * 16 < 0 ? 0 : (inst & 0xff) * 16) > cydchn->fm.ops[i].osc.wave.start_offset))
+								for (int s = 0; s < CYD_SUB_OSCS; ++s)
 								{
-									cydchn->fm.ops[i].osc.wave.end_offset -= ((Sint32)cydchn->fm.ops[i].osc.wave.end_offset - (inst & 0xff) * 16 < 0 ? 0 : (inst & 0xff) * 16);
-									
-									cydchn->fm.ops[i].osc.wave.end_point_track_status = (Uint64)cydchn->fm.ops[i].osc.wave.end_offset * WAVETABLE_RESOLUTION * cydchn->fm.ops[i].wave_entry->samples / 0x10000;
-									
-									cydchn->fm.ops[i].osc.wave.use_end_track_status_offset = true;
+									if ((cydchn->fm.ops[i].wave_entry->flags & CYD_WAVE_LOOP) && (cydchn->fm.ops[i].subosc[s].wave.end_offset - ((Sint32)cydchn->fm.ops[i].subosc[s].wave.end_offset - (inst & 0xff) * 16 < 0 ? 0 : (inst & 0xff) * 16) > cydchn->fm.ops[i].subosc[s].wave.start_offset))
+									{
+										cydchn->fm.ops[i].subosc[s].wave.end_offset -= ((Sint32)cydchn->fm.ops[i].subosc[s].wave.end_offset - (inst & 0xff) * 16 < 0 ? 0 : (inst & 0xff) * 16);
+										
+										cydchn->fm.ops[i].subosc[s].wave.end_point_track_status = (Uint64)cydchn->fm.ops[i].subosc[s].wave.end_offset * WAVETABLE_RESOLUTION * cydchn->fm.ops[i].wave_entry->samples / 0x10000;
+										
+										cydchn->fm.ops[i].subosc[s].wave.use_end_track_status_offset = true;
+									}
 								}
 							}
 						}
@@ -1394,13 +1464,16 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 				{
 					if (cydchn->fm.ops[ops_index - 1].wave_entry)
 					{
-						if ((cydchn->fm.ops[ops_index - 1].wave_entry->flags & CYD_WAVE_LOOP) && (cydchn->fm.ops[ops_index - 1].osc.wave.end_offset - ((Sint32)cydchn->fm.ops[ops_index - 1].osc.wave.end_offset - (inst & 0xff) * 16 < 0 ? 0 : (inst & 0xff) * 16) > cydchn->fm.ops[ops_index - 1].osc.wave.start_offset))
+						for (int s = 0; s < CYD_SUB_OSCS; ++s)
 						{
-							cydchn->fm.ops[ops_index - 1].osc.wave.end_offset -= ((Sint32)cydchn->fm.ops[ops_index - 1].osc.wave.end_offset - (inst & 0xff) * 16 < 0 ? 0 : (inst & 0xff) * 16);
-							
-							cydchn->fm.ops[ops_index - 1].osc.wave.end_point_track_status = (Uint64)cydchn->fm.ops[ops_index - 1].osc.wave.end_offset * WAVETABLE_RESOLUTION * cydchn->fm.ops[ops_index - 1].wave_entry->samples / 0x10000;
-							
-							cydchn->fm.ops[ops_index - 1].osc.wave.use_end_track_status_offset = true;
+							if ((cydchn->fm.ops[ops_index - 1].wave_entry->flags & CYD_WAVE_LOOP) && (cydchn->fm.ops[ops_index - 1].subosc[s].wave.end_offset - ((Sint32)cydchn->fm.ops[ops_index - 1].subosc[s].wave.end_offset - (inst & 0xff) * 16 < 0 ? 0 : (inst & 0xff) * 16) > cydchn->fm.ops[ops_index - 1].subosc[s].wave.start_offset))
+							{
+								cydchn->fm.ops[ops_index - 1].subosc[s].wave.end_offset -= ((Sint32)cydchn->fm.ops[ops_index - 1].subosc[s].wave.end_offset - (inst & 0xff) * 16 < 0 ? 0 : (inst & 0xff) * 16);
+								
+								cydchn->fm.ops[ops_index - 1].subosc[s].wave.end_point_track_status = (Uint64)cydchn->fm.ops[ops_index - 1].subosc[s].wave.end_offset * WAVETABLE_RESOLUTION * cydchn->fm.ops[ops_index - 1].wave_entry->samples / 0x10000;
+								
+								cydchn->fm.ops[ops_index - 1].subosc[s].wave.use_end_track_status_offset = true;
+							}
 						}
 					}
 					
@@ -1438,13 +1511,16 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 						{
 							if (cydchn->fm.ops[i].wave_entry)
 							{
-								if ((cydchn->fm.ops[i].wave_entry->flags & CYD_WAVE_LOOP) && (cydchn->fm.ops[i].osc.wave.end_offset + (cydchn->subosc[0].wave.end_offset + (inst & 0xff) * 16 > 0xffff ? 0xffff : (inst & 0xff) * 16) > cydchn->fm.ops[i].osc.wave.start_offset))
+								for (int s = 0; s < CYD_SUB_OSCS; ++s)
 								{
-									cydchn->fm.ops[i].osc.wave.end_offset += (cydchn->fm.ops[i].osc.wave.end_offset + (inst & 0xff) * 16 > 0xffff ? 0xffff : (inst & 0xff) * 16);
-									
-									cydchn->fm.ops[i].osc.wave.end_point_track_status = (Uint64)cydchn->fm.ops[i].osc.wave.end_offset * WAVETABLE_RESOLUTION * cydchn->fm.ops[i].wave_entry->samples / 0x10000;
-									
-									cydchn->fm.ops[i].osc.wave.use_end_track_status_offset = true;
+									if ((cydchn->fm.ops[i].wave_entry->flags & CYD_WAVE_LOOP) && (cydchn->fm.ops[i].subosc[s].wave.end_offset + (cydchn->fm.ops[i].subosc[s].wave.end_offset + (inst & 0xff) * 16 > 0xffff ? 0xffff : (inst & 0xff) * 16) > cydchn->fm.ops[i].subosc[s].wave.start_offset))
+									{
+										cydchn->fm.ops[i].subosc[s].wave.end_offset += (cydchn->fm.ops[i].subosc[s].wave.end_offset + (inst & 0xff) * 16 > 0xffff ? 0xffff : (inst & 0xff) * 16);
+										
+										cydchn->fm.ops[i].subosc[s].wave.end_point_track_status = (Uint64)cydchn->fm.ops[i].subosc[s].wave.end_offset * WAVETABLE_RESOLUTION * cydchn->fm.ops[i].wave_entry->samples / 0x10000;
+										
+										cydchn->fm.ops[i].subosc[s].wave.use_end_track_status_offset = true;
+									}
 								}
 							}
 						}
@@ -1457,13 +1533,16 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 				{
 					if (cydchn->fm.ops[ops_index - 1].wave_entry)
 					{
-						if ((cydchn->fm.ops[ops_index - 1].wave_entry->flags & CYD_WAVE_LOOP) && (cydchn->fm.ops[ops_index - 1].osc.wave.end_offset + (cydchn->subosc[0].wave.end_offset + (inst & 0xff) * 16 > 0xffff ? 0xffff : (inst & 0xff) * 16) > cydchn->fm.ops[ops_index - 1].osc.wave.start_offset))
+						for (int s = 0; s < CYD_SUB_OSCS; ++s)
 						{
-							cydchn->fm.ops[ops_index - 1].osc.wave.end_offset += (cydchn->fm.ops[ops_index - 1].osc.wave.end_offset + (inst & 0xff) * 16 > 0xffff ? 0xffff : (inst & 0xff) * 16);
-							
-							cydchn->fm.ops[ops_index - 1].osc.wave.end_point_track_status = (Uint64)cydchn->fm.ops[ops_index - 1].osc.wave.end_offset * WAVETABLE_RESOLUTION * cydchn->fm.ops[ops_index - 1].wave_entry->samples / 0x10000;
-							
-							cydchn->fm.ops[ops_index - 1].osc.wave.use_end_track_status_offset = true;
+							if ((cydchn->fm.ops[ops_index - 1].wave_entry->flags & CYD_WAVE_LOOP) && (cydchn->fm.ops[ops_index - 1].subosc[s].wave.end_offset + (cydchn->fm.ops[ops_index - 1].subosc[s].wave.end_offset + (inst & 0xff) * 16 > 0xffff ? 0xffff : (inst & 0xff) * 16) > cydchn->fm.ops[ops_index - 1].subosc[s].wave.start_offset))
+							{
+								cydchn->fm.ops[ops_index - 1].subosc[s].wave.end_offset += (cydchn->fm.ops[ops_index - 1].subosc[s].wave.end_offset + (inst & 0xff) * 16 > 0xffff ? 0xffff : (inst & 0xff) * 16);
+								
+								cydchn->fm.ops[ops_index - 1].subosc[s].wave.end_point_track_status = (Uint64)cydchn->fm.ops[ops_index - 1].subosc[s].wave.end_offset * WAVETABLE_RESOLUTION * cydchn->fm.ops[ops_index - 1].wave_entry->samples / 0x10000;
+								
+								cydchn->fm.ops[ops_index - 1].subosc[s].wave.use_end_track_status_offset = true;
+							}
 						}
 					}
 					
@@ -2352,13 +2431,16 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 								{
 									if (cydchn->fm.ops[i].wave_entry)
 									{
-										if ((cydchn->fm.ops[i].wave_entry->flags & CYD_WAVE_LOOP) && (cydchn->fm.ops[i].osc.wave.start_offset + (cydchn->fm.ops[i].osc.wave.start_offset + (inst & 0xf) > 0xffff ? 0xffff : (inst & 0xf)) < cydchn->fm.ops[i].osc.wave.end_offset))
+										for (int s = 0; s < CYD_SUB_OSCS; ++s)
 										{
-											cydchn->fm.ops[i].osc.wave.start_offset += (cydchn->fm.ops[i].osc.wave.start_offset + (inst & 0xf) > 0xffff ? 0xffff : (inst & 0xf));
-											
-											cydchn->fm.ops[i].osc.wave.start_point_track_status = (Uint64)cydchn->fm.ops[i].osc.wave.start_offset * WAVETABLE_RESOLUTION * cydchn->fm.ops[i].wave_entry->samples / 0x10000;
-											
-											cydchn->fm.ops[i].osc.wave.use_start_track_status_offset = true;
+											if ((cydchn->fm.ops[i].wave_entry->flags & CYD_WAVE_LOOP) && (cydchn->fm.ops[i].subosc[s].wave.start_offset + (cydchn->fm.ops[i].subosc[s].wave.start_offset + (inst & 0xf) > 0xffff ? 0xffff : (inst & 0xf)) < cydchn->fm.ops[i].subosc[s].wave.end_offset))
+											{
+												cydchn->fm.ops[i].subosc[s].wave.start_offset += (cydchn->fm.ops[i].subosc[s].wave.start_offset + (inst & 0xf) > 0xffff ? 0xffff : (inst & 0xf));
+												
+												cydchn->fm.ops[i].subosc[s].wave.start_point_track_status = (Uint64)cydchn->fm.ops[i].subosc[s].wave.start_offset * WAVETABLE_RESOLUTION * cydchn->fm.ops[i].wave_entry->samples / 0x10000;
+												
+												cydchn->fm.ops[i].subosc[s].wave.use_start_track_status_offset = true;
+											}
 										}
 									}
 								}
@@ -2371,13 +2453,16 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 						{
 							if (cydchn->fm.ops[ops_index - 1].wave_entry)
 							{
-								if ((cydchn->fm.ops[ops_index - 1].wave_entry->flags & CYD_WAVE_LOOP) && (cydchn->fm.ops[ops_index - 1].osc.wave.start_offset + (cydchn->fm.ops[ops_index - 1].osc.wave.start_offset + (inst & 0xf) > 0xffff ? 0xffff : (inst & 0xf)) < cydchn->fm.ops[ops_index - 1].osc.wave.end_offset))
+								for (int s = 0; s < CYD_SUB_OSCS; ++s)
 								{
-									cydchn->fm.ops[ops_index - 1].osc.wave.start_offset += (cydchn->fm.ops[ops_index - 1].osc.wave.start_offset + (inst & 0xf) > 0xffff ? 0xffff : (inst & 0xf));
-									
-									cydchn->fm.ops[ops_index - 1].osc.wave.start_point_track_status = (Uint64)cydchn->fm.ops[ops_index - 1].osc.wave.start_offset * WAVETABLE_RESOLUTION * cydchn->fm.ops[ops_index - 1].wave_entry->samples / 0x10000;
-									
-									cydchn->fm.ops[ops_index - 1].osc.wave.use_start_track_status_offset = true;
+									if ((cydchn->fm.ops[ops_index - 1].wave_entry->flags & CYD_WAVE_LOOP) && (cydchn->fm.ops[ops_index - 1].subosc[s].wave.start_offset + (cydchn->fm.ops[ops_index - 1].subosc[s].wave.start_offset + (inst & 0xf) > 0xffff ? 0xffff : (inst & 0xf)) < cydchn->fm.ops[ops_index - 1].subosc[s].wave.end_offset))
+									{
+										cydchn->fm.ops[ops_index - 1].subosc[s].wave.start_offset += (cydchn->fm.ops[ops_index - 1].subosc[s].wave.start_offset + (inst & 0xf) > 0xffff ? 0xffff : (inst & 0xf));
+										
+										cydchn->fm.ops[ops_index - 1].subosc[s].wave.start_point_track_status = (Uint64)cydchn->fm.ops[ops_index - 1].subosc[s].wave.start_offset * WAVETABLE_RESOLUTION * cydchn->fm.ops[ops_index - 1].wave_entry->samples / 0x10000;
+										
+										cydchn->fm.ops[ops_index - 1].subosc[s].wave.use_start_track_status_offset = true;
+									}
 								}
 							}
 						}
@@ -2413,13 +2498,16 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 								{
 									if (cydchn->fm.ops[i].wave_entry)
 									{
-										if ((cydchn->fm.ops[i].wave_entry->flags & CYD_WAVE_LOOP) && (cydchn->fm.ops[i].osc.wave.start_offset - ((Sint32)cydchn->fm.ops[i].osc.wave.start_offset - (inst & 0xf) < 0 ? 0 : (inst & 0xf)) < cydchn->fm.ops[i].osc.wave.end_offset))
+										for (int s = 0; s < CYD_SUB_OSCS; ++s)
 										{
-											cydchn->fm.ops[i].osc.wave.start_offset -= ((Sint32)cydchn->fm.ops[i].osc.wave.start_offset - (inst & 0xf) < 0 ? 0 : (inst & 0xf));
-											
-											cydchn->fm.ops[i].osc.wave.start_point_track_status = (Uint64)cydchn->fm.ops[i].osc.wave.start_offset * WAVETABLE_RESOLUTION * cydchn->fm.ops[i].wave_entry->samples / 0x10000;
-											
-											cydchn->fm.ops[i].osc.wave.use_start_track_status_offset = true;
+											if ((cydchn->fm.ops[i].wave_entry->flags & CYD_WAVE_LOOP) && (cydchn->fm.ops[i].subosc[s].wave.start_offset - ((Sint32)cydchn->fm.ops[i].subosc[s].wave.start_offset - (inst & 0xf) < 0 ? 0 : (inst & 0xf)) < cydchn->fm.ops[i].subosc[s].wave.end_offset))
+											{
+												cydchn->fm.ops[i].subosc[s].wave.start_offset -= ((Sint32)cydchn->fm.ops[i].subosc[s].wave.start_offset - (inst & 0xf) < 0 ? 0 : (inst & 0xf));
+												
+												cydchn->fm.ops[i].subosc[s].wave.start_point_track_status = (Uint64)cydchn->fm.ops[i].subosc[s].wave.start_offset * WAVETABLE_RESOLUTION * cydchn->fm.ops[i].wave_entry->samples / 0x10000;
+												
+												cydchn->fm.ops[i].subosc[s].wave.use_start_track_status_offset = true;
+											}
 										}
 									}
 								}
@@ -2432,13 +2520,16 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 						{
 							if (cydchn->fm.ops[ops_index - 1].wave_entry)
 							{
-								if ((cydchn->fm.ops[ops_index - 1].wave_entry->flags & CYD_WAVE_LOOP) && (cydchn->fm.ops[ops_index - 1].osc.wave.start_offset - ((Sint32)cydchn->fm.ops[ops_index - 1].osc.wave.start_offset - (inst & 0xf) < 0 ? 0 : (inst & 0xf)) < cydchn->fm.ops[ops_index - 1].osc.wave.end_offset))
+								for (int s = 0; s < CYD_SUB_OSCS; ++s)
 								{
-									cydchn->fm.ops[ops_index - 1].osc.wave.start_offset -= ((Sint32)cydchn->fm.ops[ops_index - 1].osc.wave.start_offset - (inst & 0xf) < 0 ? 0 : (inst & 0xf));
-									
-									cydchn->fm.ops[ops_index - 1].osc.wave.start_point_track_status = (Uint64)cydchn->fm.ops[ops_index - 1].osc.wave.start_offset * WAVETABLE_RESOLUTION * cydchn->fm.ops[ops_index - 1].wave_entry->samples / 0x10000;
-									
-									cydchn->fm.ops[ops_index - 1].osc.wave.use_start_track_status_offset = true;
+									if ((cydchn->fm.ops[ops_index - 1].wave_entry->flags & CYD_WAVE_LOOP) && (cydchn->fm.ops[ops_index - 1].subosc[s].wave.start_offset - ((Sint32)cydchn->fm.ops[ops_index - 1].subosc[s].wave.start_offset - (inst & 0xf) < 0 ? 0 : (inst & 0xf)) < cydchn->fm.ops[ops_index - 1].subosc[s].wave.end_offset))
+									{
+										cydchn->fm.ops[ops_index - 1].subosc[s].wave.start_offset -= ((Sint32)cydchn->fm.ops[ops_index - 1].subosc[s].wave.start_offset - (inst & 0xf) < 0 ? 0 : (inst & 0xf));
+										
+										cydchn->fm.ops[ops_index - 1].subosc[s].wave.start_point_track_status = (Uint64)cydchn->fm.ops[ops_index - 1].subosc[s].wave.start_offset * WAVETABLE_RESOLUTION * cydchn->fm.ops[ops_index - 1].wave_entry->samples / 0x10000;
+										
+										cydchn->fm.ops[ops_index - 1].subosc[s].wave.use_start_track_status_offset = true;
+									}
 								}
 							}
 							
@@ -2476,13 +2567,16 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 								{
 									if (cydchn->fm.ops[i].wave_entry)
 									{
-										if ((cydchn->fm.ops[i].wave_entry->flags & CYD_WAVE_LOOP) && (cydchn->fm.ops[i].osc.wave.end_offset - ((Sint32)cydchn->fm.ops[i].osc.wave.end_offset - (inst & 0xf) < 0 ? 0 : (inst & 0xf)) > cydchn->fm.ops[i].osc.wave.start_offset))
+										for (int s = 0; s < CYD_SUB_OSCS; ++s)
 										{
-											cydchn->fm.ops[i].osc.wave.end_offset -= ((Sint32)cydchn->fm.ops[i].osc.wave.end_offset - (inst & 0xf) < 0 ? 0 : (inst & 0xf));
-											
-											cydchn->fm.ops[i].osc.wave.end_point_track_status = (Uint64)cydchn->fm.ops[i].osc.wave.end_offset * WAVETABLE_RESOLUTION * cydchn->fm.ops[i].wave_entry->samples / 0x10000;
-											
-											cydchn->fm.ops[i].osc.wave.use_end_track_status_offset = true;
+											if ((cydchn->fm.ops[i].wave_entry->flags & CYD_WAVE_LOOP) && (cydchn->fm.ops[i].subosc[s].wave.end_offset - ((Sint32)cydchn->fm.ops[i].subosc[s].wave.end_offset - (inst & 0xf) < 0 ? 0 : (inst & 0xf)) > cydchn->fm.ops[i].subosc[s].wave.start_offset))
+											{
+												cydchn->fm.ops[i].subosc[s].wave.end_offset -= ((Sint32)cydchn->fm.ops[i].subosc[s].wave.end_offset - (inst & 0xf) < 0 ? 0 : (inst & 0xf));
+												
+												cydchn->fm.ops[i].subosc[s].wave.end_point_track_status = (Uint64)cydchn->fm.ops[i].subosc[s].wave.end_offset * WAVETABLE_RESOLUTION * cydchn->fm.ops[i].wave_entry->samples / 0x10000;
+												
+												cydchn->fm.ops[i].subosc[s].wave.use_end_track_status_offset = true;
+											}
 										}
 									}
 								}
@@ -2495,13 +2589,16 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 						{
 							if (cydchn->fm.ops[ops_index - 1].wave_entry)
 							{
-								if ((cydchn->fm.ops[ops_index - 1].wave_entry->flags & CYD_WAVE_LOOP) && (cydchn->fm.ops[ops_index - 1].osc.wave.end_offset - ((Sint32)cydchn->fm.ops[ops_index - 1].osc.wave.end_offset - (inst & 0xf) < 0 ? 0 : (inst & 0xf)) > cydchn->fm.ops[ops_index - 1].osc.wave.start_offset))
+								for (int s = 0; s < CYD_SUB_OSCS; ++s)
 								{
-									cydchn->fm.ops[ops_index - 1].osc.wave.end_offset -= ((Sint32)cydchn->fm.ops[ops_index - 1].osc.wave.end_offset - (inst & 0xf) < 0 ? 0 : (inst & 0xf));
-									
-									cydchn->fm.ops[ops_index - 1].osc.wave.end_point_track_status = (Uint64)cydchn->fm.ops[ops_index - 1].osc.wave.end_offset * WAVETABLE_RESOLUTION * cydchn->fm.ops[ops_index - 1].wave_entry->samples / 0x10000;
-									
-									cydchn->fm.ops[ops_index - 1].osc.wave.use_end_track_status_offset = true;
+									if ((cydchn->fm.ops[ops_index - 1].wave_entry->flags & CYD_WAVE_LOOP) && (cydchn->fm.ops[ops_index - 1].subosc[s].wave.end_offset - ((Sint32)cydchn->fm.ops[ops_index - 1].subosc[s].wave.end_offset - (inst & 0xf) < 0 ? 0 : (inst & 0xf)) > cydchn->fm.ops[ops_index - 1].subosc[s].wave.start_offset))
+									{
+										cydchn->fm.ops[ops_index - 1].subosc[s].wave.end_offset -= ((Sint32)cydchn->fm.ops[ops_index - 1].subosc[s].wave.end_offset - (inst & 0xf) < 0 ? 0 : (inst & 0xf));
+										
+										cydchn->fm.ops[ops_index - 1].subosc[s].wave.end_point_track_status = (Uint64)cydchn->fm.ops[ops_index - 1].subosc[s].wave.end_offset * WAVETABLE_RESOLUTION * cydchn->fm.ops[ops_index - 1].wave_entry->samples / 0x10000;
+										
+										cydchn->fm.ops[ops_index - 1].subosc[s].wave.use_end_track_status_offset = true;
+									}
 								}
 							}
 							
@@ -2539,13 +2636,16 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 								{
 									if (cydchn->fm.ops[i].wave_entry)
 									{
-										if ((cydchn->fm.ops[i].wave_entry->flags & CYD_WAVE_LOOP) && (cydchn->fm.ops[i].osc.wave.end_offset + (cydchn->subosc[0].wave.end_offset + (inst & 0xf) > 0xffff ? 0xffff : (inst & 0xf)) > cydchn->fm.ops[i].osc.wave.start_offset))
+										for (int s = 0; s < CYD_SUB_OSCS; ++s)
 										{
-											cydchn->fm.ops[i].osc.wave.end_offset += (cydchn->fm.ops[i].osc.wave.end_offset + (inst & 0xf) > 0xffff ? 0xffff : (inst & 0xf));
-											
-											cydchn->fm.ops[i].osc.wave.end_point_track_status = (Uint64)cydchn->fm.ops[i].osc.wave.end_offset * WAVETABLE_RESOLUTION * cydchn->fm.ops[i].wave_entry->samples / 0x10000;
-											
-											cydchn->fm.ops[i].osc.wave.use_end_track_status_offset = true;
+											if ((cydchn->fm.ops[i].wave_entry->flags & CYD_WAVE_LOOP) && (cydchn->fm.ops[i].subosc[s].wave.end_offset + (cydchn->fm.ops[i].subosc[s].wave.end_offset + (inst & 0xf) > 0xffff ? 0xffff : (inst & 0xf)) > cydchn->fm.ops[i].subosc[s].wave.start_offset))
+											{
+												cydchn->fm.ops[i].subosc[s].wave.end_offset += (cydchn->fm.ops[i].subosc[s].wave.end_offset + (inst & 0xf) > 0xffff ? 0xffff : (inst & 0xf));
+												
+												cydchn->fm.ops[i].subosc[s].wave.end_point_track_status = (Uint64)cydchn->fm.ops[i].subosc[s].wave.end_offset * WAVETABLE_RESOLUTION * cydchn->fm.ops[i].wave_entry->samples / 0x10000;
+												
+												cydchn->fm.ops[i].subosc[s].wave.use_end_track_status_offset = true;
+											}
 										}
 									}
 								}
@@ -2558,13 +2658,16 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 						{
 							if (cydchn->fm.ops[ops_index - 1].wave_entry)
 							{
-								if ((cydchn->fm.ops[ops_index - 1].wave_entry->flags & CYD_WAVE_LOOP) && (cydchn->fm.ops[ops_index - 1].osc.wave.end_offset + (cydchn->subosc[0].wave.end_offset + (inst & 0xf) > 0xffff ? 0xffff : (inst & 0xf)) > cydchn->fm.ops[ops_index - 1].osc.wave.start_offset))
+								for (int s = 0; s < CYD_SUB_OSCS; ++s)
 								{
-									cydchn->fm.ops[ops_index - 1].osc.wave.end_offset += (cydchn->fm.ops[ops_index - 1].osc.wave.end_offset + (inst & 0xf) > 0xffff ? 0xffff : (inst & 0xf));
-									
-									cydchn->fm.ops[ops_index - 1].osc.wave.end_point_track_status = (Uint64)cydchn->fm.ops[ops_index - 1].osc.wave.end_offset * WAVETABLE_RESOLUTION * cydchn->fm.ops[ops_index - 1].wave_entry->samples / 0x10000;
-									
-									cydchn->fm.ops[ops_index - 1].osc.wave.use_end_track_status_offset = true;
+									if ((cydchn->fm.ops[ops_index - 1].wave_entry->flags & CYD_WAVE_LOOP) && (cydchn->fm.ops[ops_index - 1].subosc[s].wave.end_offset + (cydchn->fm.ops[ops_index - 1].subosc[s].wave.end_offset + (inst & 0xf) > 0xffff ? 0xffff : (inst & 0xf)) > cydchn->fm.ops[ops_index - 1].subosc[s].wave.start_offset))
+									{
+										cydchn->fm.ops[ops_index - 1].subosc[s].wave.end_offset += (cydchn->fm.ops[ops_index - 1].subosc[s].wave.end_offset + (inst & 0xf) > 0xffff ? 0xffff : (inst & 0xf));
+										
+										cydchn->fm.ops[ops_index - 1].subosc[s].wave.end_point_track_status = (Uint64)cydchn->fm.ops[ops_index - 1].subosc[s].wave.end_offset * WAVETABLE_RESOLUTION * cydchn->fm.ops[ops_index - 1].wave_entry->samples / 0x10000;
+										
+										cydchn->fm.ops[ops_index - 1].subosc[s].wave.use_end_track_status_offset = true;
+									}
 								}
 							}
 							
@@ -2770,9 +2873,12 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 										//cyd_cycle_adsr(cyd, 0, 0, &cydchn->fm.ops[i].adsr, cydchn->fm.ops[i].env_ksl_mult);
 										cyd_cycle_fm_op_adsr(cyd, 0, 0, &cydchn->fm.ops[i].adsr, cydchn->fm.ops[i].env_ksl_mult, cydchn->fm.ops[i].ssg_eg_type | (((cydchn->fm.ops[i].flags & CYD_FM_OP_ENABLE_SSG_EG) ? 1 : 0) << 3));
 										
-										cydchn->fm.ops[i].osc.accumulator = 0;
-										cydchn->fm.ops[i].osc.noise_accumulator = 0;
-										cydchn->fm.ops[i].osc.wave.acc = 0;
+										for (int s = 0; s < CYD_SUB_OSCS; ++s)
+										{
+											cydchn->fm.ops[i].subosc[s].accumulator = 0;
+											cydchn->fm.ops[i].subosc[s].noise_accumulator = 0;
+											cydchn->fm.ops[i].subosc[s].wave.acc = 0;
+										}
 										
 										cydchn->fm.ops[i].flags |= CYD_FM_OP_ENABLE_GATE;
 									}
@@ -2804,9 +2910,12 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 								//cyd_cycle_adsr(cyd, 0, 0, &cydchn->fm.ops[ops_index - 1].adsr, cydchn->fm.ops[ops_index - 1].env_ksl_mult);
 								cyd_cycle_fm_op_adsr(cyd, 0, 0, &cydchn->fm.ops[ops_index - 1].adsr, cydchn->fm.ops[ops_index - 1].env_ksl_mult, cydchn->fm.ops[ops_index - 1].ssg_eg_type | (((cydchn->fm.ops[ops_index - 1].flags & CYD_FM_OP_ENABLE_SSG_EG) ? 1 : 0) << 3));
 								
-								cydchn->fm.ops[ops_index - 1].osc.accumulator = 0;
-								cydchn->fm.ops[ops_index - 1].osc.noise_accumulator = 0;
-								cydchn->fm.ops[ops_index - 1].osc.wave.acc = 0;
+								for (int s = 0; s < CYD_SUB_OSCS; ++s)
+								{
+									cydchn->fm.ops[ops_index - 1].subosc[s].accumulator = 0;
+									cydchn->fm.ops[ops_index - 1].subosc[s].noise_accumulator = 0;
+									cydchn->fm.ops[ops_index - 1].subosc[s].wave.acc = 0;
+								}
 								
 								cydchn->fm.ops[ops_index - 1].flags |= CYD_FM_OP_ENABLE_GATE;
 								
@@ -3825,7 +3934,10 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 									
 									if (frequency != 0)
 									{
-										cydchn->fm.ops[i].osc.noise_frequency = (Uint64)(ACC_LENGTH >> (mus->cyd->oversample)) / (Uint64)1024 * (Uint64)(frequency) / (Uint64)mus->cyd->sample_rate;
+										for (int s = 0; s < CYD_SUB_OSCS; ++s)
+										{
+											cydchn->fm.ops[i].subosc[s].noise_frequency = (Uint64)(ACC_LENGTH >> (mus->cyd->oversample)) / (Uint64)1024 * (Uint64)(frequency) / (Uint64)mus->cyd->sample_rate;
+										}
 									}
 								}
 							}
@@ -3839,7 +3951,10 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 							
 							if (frequency != 0)
 							{
-								cydchn->fm.ops[ops_index - 1].osc.noise_frequency = (Uint64)(ACC_LENGTH >> (mus->cyd->oversample)) / (Uint64)1024 * (Uint64)(frequency) / (Uint64)mus->cyd->sample_rate;
+								for (int s = 0; s < CYD_SUB_OSCS; ++s)
+								{
+									cydchn->fm.ops[ops_index - 1].subosc[s].noise_frequency = (Uint64)(ACC_LENGTH >> (mus->cyd->oversample)) / (Uint64)1024 * (Uint64)(frequency) / (Uint64)mus->cyd->sample_rate;
+								}
 							}
 							
 							break;
@@ -4733,10 +4848,13 @@ void mus_trigger_fm_op_internal(CydFm* fm, MusInstrument* ins, CydChannel* cydch
 		
 		fm->ops[i].wave_entry = &mus->cyd->wavetable_entries[ins->ops[i].wavetable_entry];
 		
-		fm->ops[i].osc.wave.playing = true;
-		fm->ops[i].osc.wave.acc = 0;
-		fm->ops[i].osc.wave.frequency = 0;
-		fm->ops[i].osc.wave.direction = 0;
+		for (int s = 0; s < CYD_SUB_OSCS; ++s)
+		{
+			fm->ops[i].subosc[s].wave.playing = true;
+			fm->ops[i].subosc[s].wave.acc = 0;
+			fm->ops[i].subosc[s].wave.frequency = 0;
+			fm->ops[i].subosc[s].wave.direction = 0;
+		}
 	}
 	
 	else
@@ -4821,7 +4939,10 @@ void mus_trigger_fm_op_internal(CydFm* fm, MusInstrument* ins, CydChannel* cydch
 		
 		if (frequency != 0)
 		{
-			fm->ops[i].osc.noise_frequency = (Uint64)(ACC_LENGTH >> (mus->cyd->oversample)) / (Uint64)1024 * (Uint64)(frequency) / (Uint64)mus->cyd->sample_rate;
+			for (int s = 0; s < CYD_SUB_OSCS; ++s)
+			{
+				fm->ops[i].subosc[s].noise_frequency = (Uint64)(ACC_LENGTH >> (mus->cyd->oversample)) / (Uint64)1024 * (Uint64)(frequency) / (Uint64)mus->cyd->sample_rate;
+			}
 		}
 	}
 	
@@ -4835,7 +4956,10 @@ void mus_trigger_fm_op_internal(CydFm* fm, MusInstrument* ins, CydChannel* cydch
 			
 			if (frequency != 0)
 			{
-				fm->ops[i].osc.noise_frequency = (Uint64)(ACC_LENGTH) / (Uint64)1024 * (Uint64)(frequency) / (Uint64)mus->cyd->sample_rate;
+				for (int s = 0; s < CYD_SUB_OSCS; ++s)
+				{
+					fm->ops[i].subosc[s].noise_frequency = (Uint64)(ACC_LENGTH >> (mus->cyd->oversample)) / (Uint64)1024 * (Uint64)(frequency) / (Uint64)mus->cyd->sample_rate;
+				}
 			}
 		}
 		
@@ -4857,7 +4981,10 @@ void mus_trigger_fm_op_internal(CydFm* fm, MusInstrument* ins, CydChannel* cydch
 			
 			if (frequency != 0)
 			{
-				fm->ops[i].osc.noise_frequency = (Uint64)(ACC_LENGTH) / (Uint64)1024 * (Uint64)(frequency) / (Uint64)mus->cyd->sample_rate;
+				for (int s = 0; s < CYD_SUB_OSCS; ++s)
+				{
+					fm->ops[i].subosc[s].noise_frequency = (Uint64)(ACC_LENGTH >> (mus->cyd->oversample)) / (Uint64)1024 * (Uint64)(frequency) / (Uint64)mus->cyd->sample_rate;
+				}
 			}
 		}
 	}
@@ -4955,12 +5082,18 @@ void mus_trigger_fm_op_internal(CydFm* fm, MusInstrument* ins, CydChannel* cydch
 	
 	if(fm->ops[i].flags & CYD_FM_OP_ENABLE_KEY_SYNC)
 	{
-		fm->ops[i].osc.accumulator = 0;
-		fm->ops[i].osc.noise_accumulator = 0;
-		fm->ops[i].osc.wave.acc = 0;
+		for (int s = 0; s < CYD_SUB_OSCS; ++s)
+		{
+			fm->ops[i].subosc[s].accumulator = 0;
+			fm->ops[i].subosc[s].noise_accumulator = 0;
+			fm->ops[i].subosc[s].wave.acc = 0;
+		}
 	}
 	
-	fm->ops[i].osc.random = RANDOM_SEED;
+	for (int s = 0; s < CYD_SUB_OSCS; ++s)
+	{
+		fm->ops[i].subosc[s].random = RANDOM_SEED;
+	}
 
 	fm->ops[i].sync_source = ins->ops[i].sync_source == 0xff ? chan : ins->ops[i].sync_source;
 	fm->ops[i].ring_mod = ins->ops[i].ring_mod == 0xff ? chan : ins->ops[i].ring_mod;
@@ -5005,14 +5138,17 @@ void mus_trigger_fm_op_internal(CydFm* fm, MusInstrument* ins, CydChannel* cydch
 	
 	mus_set_fm_op_note(mus, chan, fm, chn->ops[i].last_note, i /*op number*/, 1, 1, ins);
 	
-	fm->ops[i].osc.wave.end_offset = 0xffff;
-	fm->ops[i].osc.wave.start_offset = 0;
-	
-	fm->ops[i].osc.wave.start_point_track_status = 0;
-	fm->ops[i].osc.wave.end_point_track_status = 0;
-	
-	fm->ops[i].osc.wave.use_start_track_status_offset = false;
-	fm->ops[i].osc.wave.use_end_track_status_offset = false;
+	for (int s = 0; s < CYD_SUB_OSCS; ++s)
+	{
+		fm->ops[i].subosc[s].wave.end_offset = 0xffff;
+		fm->ops[i].subosc[s].wave.start_offset = 0;
+		
+		fm->ops[i].subosc[s].wave.start_point_track_status = 0;
+		fm->ops[i].subosc[s].wave.end_point_track_status = 0;
+		
+		fm->ops[i].subosc[s].wave.use_start_track_status_offset = false;
+		fm->ops[i].subosc[s].wave.use_end_track_status_offset = false;
+	}
 }
 
 
@@ -5483,9 +5619,12 @@ static void mus_advance_channel(MusEngine* mus, int chan)
 				//cyd_cycle_adsr(mus->cyd, 0, 0, &mus->cyd->channel[chan].fm.ops[i].adsr, mus->cyd->channel[chan].fm.ops[i].env_ksl_mult);
 				cyd_cycle_fm_op_adsr(mus->cyd, 0, 0, &mus->cyd->channel[chan].fm.ops[i].adsr, mus->cyd->channel[chan].fm.ops[i].env_ksl_mult,  mus->cyd->channel[chan].fm.ops[i].ssg_eg_type | ((( mus->cyd->channel[chan].fm.ops[i].flags & CYD_FM_OP_ENABLE_SSG_EG) ? 1 : 0) << 3));
 				
-				mus->cyd->channel[chan].fm.ops[i].osc.accumulator = 0;
-				mus->cyd->channel[chan].fm.ops[i].osc.noise_accumulator = 0;
-				mus->cyd->channel[chan].fm.ops[i].osc.wave.acc = 0;
+				for (int s = 0; s < CYD_SUB_OSCS; ++s)
+				{
+					mus->cyd->channel[chan].fm.ops[i].subosc[s].accumulator = 0;
+					mus->cyd->channel[chan].fm.ops[i].subosc[s].noise_accumulator = 0;
+					mus->cyd->channel[chan].fm.ops[i].subosc[s].wave.acc = 0;
+				}
 				
 				mus->cyd->channel[chan].fm.ops[i].flags |= CYD_FM_OP_ENABLE_GATE;
 				

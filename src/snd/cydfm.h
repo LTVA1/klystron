@@ -29,7 +29,8 @@ typedef struct //wasn't there
 	
 	const CydWavetableEntry* wave_entry;
 	
-	CydOscState osc;
+	//CydOscState osc;
+	CydOscState subosc[CYD_SUB_OSCS];
 	
 	Uint8 wavetable_entry;
 	
@@ -47,7 +48,7 @@ typedef struct //wasn't there
 	CydFilter flts[CYD_NUMBER_OF_FILTER_MODULES];
 	
 	//Sint32 prev, prev2;
-	Uint32 prev, prev2;
+	Uint32 prev[CYD_SUB_OSCS], prev2[CYD_SUB_OSCS];
 	
 	Uint32 env_output;
 	Uint8 attack_start;
@@ -76,7 +77,7 @@ typedef struct //wasn't there
 	
 	Sint32 trigger_delay;
 	
-	Sint32 mod, noise_mod, wave_mod;
+	Sint32 mod[CYD_SUB_OSCS], noise_mod[CYD_SUB_OSCS], wave_mod[CYD_SUB_OSCS];
 	//Uint32 mod, noise_mod, wave_mod;
 } CydFmOp;
 

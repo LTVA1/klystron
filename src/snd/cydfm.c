@@ -22,7 +22,10 @@ void cydfm_init(CydFm *fm)
 	
 	for(int i = 0; i < CYD_FM_NUM_OPS; ++i)
 	{
-		fm->ops[i].prev = fm->ops[i].prev2 = 0;
+		for (int s = 0; s < CYD_SUB_OSCS; ++s)
+		{
+			fm->ops[i].prev[s] = fm->ops[i].prev2[s] = 0;
+		}
 	}
 }
 
