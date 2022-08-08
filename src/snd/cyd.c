@@ -956,11 +956,11 @@ static Sint32 cyd_output_fm_ops(CydEngine *cyd, CydChannel *chn, int chan_num, /
 		{
 			if (chn->fm.ops[i].feedback > 0)
 			{
-				acc = ((Uint64)chn->fm.ops[i].osc.accumulator + (Uint64)chn->fm.ops[i].mod + (((Uint64)chn->fm.ops[i].prev + (Uint64)chn->fm.ops[i].prev2) / (Uint64)2 + (Uint64)WAVE_AMP / (Uint64)2) * (Uint64)4096 / (Uint64)fbtab1[chn->fm.ops[i].feedback]);
+				acc = ((Uint64)chn->fm.ops[i].osc.accumulator + (Uint64)chn->fm.ops[i].mod + (((Uint64)chn->fm.ops[i].prev + (Uint64)chn->fm.ops[i].prev2) / (Uint64)2 + (Uint64)WAVE_AMP / (Uint64)2) * (Uint64)16384 / (Uint64)fbtab1[chn->fm.ops[i].feedback]);
 				
 				if(chn->fm.ops[i].flags & CYD_FM_OP_ENABLE_FIXED_NOISE_PITCH)
 				{
-					noise_acc = ((Uint64)chn->fm.ops[i].osc.noise_accumulator + (Uint64)chn->fm.ops[i].noise_mod + (((Uint64)chn->fm.ops[i].prev + (Uint64)chn->fm.ops[i].prev2) / (Uint64)2 + (Uint64)WAVE_AMP / (Uint64)2) * (Uint64)4096 / (Uint64)fbtab1[chn->fm.ops[i].feedback]);
+					noise_acc = ((Uint64)chn->fm.ops[i].osc.noise_accumulator + (Uint64)chn->fm.ops[i].noise_mod + (((Uint64)chn->fm.ops[i].prev + (Uint64)chn->fm.ops[i].prev2) / (Uint64)2 + (Uint64)WAVE_AMP / (Uint64)2) * (Uint64)16384 / (Uint64)fbtab1[chn->fm.ops[i].feedback]);
 				}
 				
 				if ((chn->fm.ops[i].flags & CYD_FM_OP_ENABLE_WAVE) && chn->fm.ops[i].wave_entry) 
