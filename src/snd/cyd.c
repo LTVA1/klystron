@@ -984,95 +984,92 @@ static Sint32 cyd_output_fm_ops(CydEngine *cyd, CydChannel *chn, int chan_num, /
 		{
 			for (int sub = 0; sub < CYD_SUB_OSCS; ++sub)
 			{
-				if (chn->fm.ops[i].feedback > 0)
+				if(chn->fm.ops[i].subosc[sub].frequency != 0)
 				{
-					acc = ((Uint64)chn->fm.ops[i].subosc[sub].accumulator + (Uint64)chn->fm.ops[i].mod[sub] + (((Uint64)chn->fm.ops[i].prev[sub] + (Uint64)chn->fm.ops[i].prev2[sub]) / (Uint64)2 + (Uint64)WAVE_AMP / (Uint64)2) * (Uint64)16384 / (Uint64)fbtab1[chn->fm.ops[i].feedback]);
+					if (chn->fm.ops[i].feedback > 0)
+					{
+						acc = ((Uint64)chn->fm.ops[i].subosc[sub].accumulator + (Uint64)chn->fm.ops[i].mod[sub] + (((Uint64)chn->fm.ops[i].prev[sub] + (Uint64)chn->fm.ops[i].prev2[sub]) / (Uint64)2 + (Uint64)WAVE_AMP / (Uint64)2) * (Uint64)16384 / (Uint64)fbtab1[chn->fm.ops[i].feedback]);
+						
+						if(chn->fm.ops[i].flags & CYD_FM_OP_ENABLE_FIXED_NOISE_PITCH)
+						{
+							noise_acc = ((Uint64)chn->fm.ops[i].subosc[sub].noise_accumulator + (Uint64)chn->fm.ops[i].noise_mod[sub] + (((Uint64)chn->fm.ops[i].prev[sub] + (Uint64)chn->fm.ops[i].prev2[sub]) / (Uint64)2 + (Uint64)WAVE_AMP / (Uint64)2) * (Uint64)16384 / (Uint64)fbtab1[chn->fm.ops[i].feedback]);
+						}
+						
+						if ((chn->fm.ops[i].flags & CYD_FM_OP_ENABLE_WAVE) && chn->fm.ops[i].wave_entry) 
+						{
+							//wave_acc = ((Uint64)chn->fm.ops[i].osc.wave.acc + chn->fm.ops[i].prev * 2048 / fbtab1[chn->fm.ops[i].feedback]) & (ACC_LENGTH - 1); //this worked
+							wave_acc[sub] = ((Uint64)chn->fm.ops[i].subosc[sub].wave.acc + (Uint64)chn->fm.ops[i].wave_mod[sub] + (((Uint64)chn->fm.ops[i].prev[sub] + (Uint64)chn->fm.ops[i].prev2[sub]) / (Uint64)2 + (Uint64)WAVE_AMP / (Uint64)2) * (Uint64)16 * ((Uint64)chn->fm.ops[i].wave_entry->loop_end - (Uint64)chn->fm.ops[i].wave_entry->loop_begin) / (Uint64)fbtab1[chn->fm.ops[i].feedback]);
+						}
+					}
+					
+					else
+					{
+						acc = ((Uint64)chn->fm.ops[i].subosc[sub].accumulator + (Uint64)chn->fm.ops[i].mod[sub]);
+						noise_acc = ((Uint64)chn->fm.ops[i].subosc[sub].noise_accumulator + (Uint64)chn->fm.ops[i].noise_mod[sub]);
+						
+						if ((chn->fm.ops[i].flags & CYD_FM_OP_ENABLE_WAVE) && chn->fm.ops[i].wave_entry) 
+						{
+							wave_acc[sub] = ((Uint64)chn->fm.ops[i].subosc[sub].wave.acc + (Uint64)chn->fm.ops[i].wave_mod[sub]);
+						}
+					}
+					
+					Uint64 accumulator = acc;
+					ovr[sub] += cyd_osc(chn->fm.ops[i].flags & ~(CYD_CHN_ENABLE_LFSR), accumulator, chn->fm.ops[i].pw, chn->fm.ops[i].subosc[sub].random, 0, chn->fm.ops[i].mixmode, cyd) - WAVE_AMP / 2; //ovr += cyd_osc(chn->flags, accumulator % ACC_LENGTH, chn->pw, chn->subosc[sub].random, chn->subosc[sub].lfsr_acc) - WAVE_AMP / 2;
+					
+					Uint32 prev_noise_acc;
+					
+					Uint32 prev_acc = acc;
+					
+					chn->fm.ops[i].subosc[sub].accumulator += (Uint32)chn->fm.ops[i].subosc[sub].frequency;
+					chn->fm.ops[i].subosc[sub].accumulator &= ACC_LENGTH - 1;
 					
 					if(chn->fm.ops[i].flags & CYD_FM_OP_ENABLE_FIXED_NOISE_PITCH)
 					{
-						noise_acc = ((Uint64)chn->fm.ops[i].subosc[sub].noise_accumulator + (Uint64)chn->fm.ops[i].noise_mod[sub] + (((Uint64)chn->fm.ops[i].prev[sub] + (Uint64)chn->fm.ops[i].prev2[sub]) / (Uint64)2 + (Uint64)WAVE_AMP / (Uint64)2) * (Uint64)16384 / (Uint64)fbtab1[chn->fm.ops[i].feedback]);
-					}
-					
-					if ((chn->fm.ops[i].flags & CYD_FM_OP_ENABLE_WAVE) && chn->fm.ops[i].wave_entry) 
-					{
-						//wave_acc = ((Uint64)chn->fm.ops[i].osc.wave.acc + chn->fm.ops[i].prev * 2048 / fbtab1[chn->fm.ops[i].feedback]) & (ACC_LENGTH - 1); //this worked
-						wave_acc[sub] = ((Uint64)chn->fm.ops[i].subosc[sub].wave.acc + (Uint64)chn->fm.ops[i].wave_mod[sub] + (((Uint64)chn->fm.ops[i].prev[sub] + (Uint64)chn->fm.ops[i].prev2[sub]) / (Uint64)2 + (Uint64)WAVE_AMP / (Uint64)2) * (Uint64)16 * ((Uint64)chn->fm.ops[i].wave_entry->loop_end - (Uint64)chn->fm.ops[i].wave_entry->loop_begin) / (Uint64)fbtab1[chn->fm.ops[i].feedback]);
-					}
-				}
-				
-				else
-				{
-					acc = ((Uint64)chn->fm.ops[i].subosc[sub].accumulator + (Uint64)chn->fm.ops[i].mod[sub]);
-					noise_acc = ((Uint64)chn->fm.ops[i].subosc[sub].noise_accumulator + (Uint64)chn->fm.ops[i].noise_mod[sub]);
-					
-					if ((chn->fm.ops[i].flags & CYD_FM_OP_ENABLE_WAVE) && chn->fm.ops[i].wave_entry) 
-					{
-						wave_acc[sub] = ((Uint64)chn->fm.ops[i].subosc[sub].wave.acc + (Uint64)chn->fm.ops[i].wave_mod[sub]);
-					}
-				}
-				
-				if (chn->fm.ops[i].subosc[sub].frequency != 0)
-				{
-					Uint64 accumulator = acc;
-					ovr[sub] += cyd_osc(chn->fm.ops[i].flags & ~(CYD_CHN_ENABLE_LFSR), accumulator, chn->fm.ops[i].pw, chn->fm.ops[i].subosc[sub].random, 0, chn->fm.ops[i].mixmode, cyd) - WAVE_AMP / 2; //ovr += cyd_osc(chn->flags, accumulator % ACC_LENGTH, chn->pw, chn->subosc[sub].random, chn->subosc[sub].lfsr_acc) - WAVE_AMP / 2;
-				}
-				
-				Uint32 prev_noise_acc;
-				
-				Uint32 prev_acc = acc;
-				
-				chn->fm.ops[i].subosc[sub].accumulator += (Uint32)chn->fm.ops[i].subosc[sub].frequency;
-				chn->fm.ops[i].subosc[sub].accumulator &= ACC_LENGTH - 1;
-				
-				if(chn->fm.ops[i].flags & CYD_FM_OP_ENABLE_FIXED_NOISE_PITCH)
-				{
-					prev_noise_acc = chn->fm.ops[i].subosc[sub].noise_accumulator;
-					
-					chn->fm.ops[i].subosc[sub].noise_accumulator += (Uint32)chn->fm.ops[i].subosc[sub].noise_frequency;
-					chn->fm.ops[i].subosc[sub].noise_accumulator &= ACC_LENGTH - 1;
-				}
-				
-				if(chn->fm.ops[i].flags & CYD_FM_OP_ENABLE_FIXED_NOISE_PITCH)
-				{
-					if ((prev_noise_acc & (ACC_LENGTH / 32)) != (chn->fm.ops[i].subosc[sub].noise_accumulator & (ACC_LENGTH / 32)))
-					{
-						if (chn->fm.ops[i].flags & CYD_FM_OP_ENABLE_METAL)
-						{
-							shift_lfsr(&chn->fm.ops[i].subosc[sub].random, 0xe, 8);
-							chn->fm.ops[i].subosc[sub].random &= (1 << (0xe + 1)) - 1;
-						}
+						prev_noise_acc = chn->fm.ops[i].subosc[sub].noise_accumulator;
 						
-						else
+						chn->fm.ops[i].subosc[sub].noise_accumulator += (Uint32)chn->fm.ops[i].subosc[sub].noise_frequency;
+						chn->fm.ops[i].subosc[sub].noise_accumulator &= ACC_LENGTH - 1;
+					}
+					
+					if(chn->fm.ops[i].flags & CYD_FM_OP_ENABLE_FIXED_NOISE_PITCH)
+					{
+						if ((prev_noise_acc & (ACC_LENGTH / 32)) != (chn->fm.ops[i].subosc[sub].noise_accumulator & (ACC_LENGTH / 32)))
 						{
-							shift_lfsr(&chn->fm.ops[i].subosc[sub].random, 22, 17);
-							chn->fm.ops[i].subosc[sub].random &= (1 << (22 + 1)) - 1;
+							if (chn->fm.ops[i].flags & CYD_FM_OP_ENABLE_METAL)
+							{
+								shift_lfsr(&chn->fm.ops[i].subosc[sub].random, 0xe, 8);
+								chn->fm.ops[i].subosc[sub].random &= (1 << (0xe + 1)) - 1;
+							}
+							
+							else
+							{
+								shift_lfsr(&chn->fm.ops[i].subosc[sub].random, 22, 17);
+								chn->fm.ops[i].subosc[sub].random &= (1 << (22 + 1)) - 1;
+							}
+						}
+					}
+					
+					else
+					{
+						if ((prev_acc & (ACC_LENGTH / 32)) != (chn->fm.ops[i].subosc[sub].accumulator & (ACC_LENGTH / 32)))
+						{
+							if (chn->fm.ops[i].flags & CYD_FM_OP_ENABLE_METAL)
+							{
+								shift_lfsr(&chn->fm.ops[i].subosc[sub].random, 0xe, 8);
+								chn->fm.ops[i].subosc[sub].random &= (1 << (0xe + 1)) - 1;
+							}
+							
+							else
+							{
+								shift_lfsr(&chn->fm.ops[i].subosc[sub].random, 22, 17);
+								chn->fm.ops[i].subosc[sub].random &= (1 << (22 + 1)) - 1;
+							}
 						}
 					}
 				}
 				
-				else
-				{
-					if ((prev_acc & (ACC_LENGTH / 32)) != (chn->fm.ops[i].subosc[sub].accumulator & (ACC_LENGTH / 32)))
-					{
-						if (chn->fm.ops[i].flags & CYD_FM_OP_ENABLE_METAL)
-						{
-							shift_lfsr(&chn->fm.ops[i].subosc[sub].random, 0xe, 8);
-							chn->fm.ops[i].subosc[sub].random &= (1 << (0xe + 1)) - 1;
-						}
-						
-						else
-						{
-							shift_lfsr(&chn->fm.ops[i].subosc[sub].random, 22, 17);
-							chn->fm.ops[i].subosc[sub].random &= (1 << (22 + 1)) - 1;
-						}
-					}
-				}
+				ovr[sub] >>= cyd->oversample;
 			}
-		}
-		
-		for (int sub = 0; sub < CYD_SUB_OSCS; ++sub)
-		{
-			ovr[sub] >>= cyd->oversample;
 		}
 		
 		if ((chn->fm.ops[i].flags & CYD_FM_OP_ENABLE_WAVE) && chn->fm.ops[i].wave_entry->data != NULL && !(chn->fm.ops[i].flags & CYD_FM_OP_WAVE_OVERRIDE_ENV))
@@ -1110,10 +1107,7 @@ static Sint32 cyd_output_fm_ops(CydEngine *cyd, CydChannel *chn, int chan_num, /
 				
 				o[i][sub] = (Sint32)((Sint64)o[i][sub] * (Sint64)cyd->lookup_table_exponential[chn->fm.ops[i].adsr.volume * 32] / (Sint64)cyd->lookup_table_exponential[4096]);
 			}
-		}
-		
-		for (int sub = 0; sub < CYD_SUB_OSCS; ++sub)
-		{
+			
 			if (chn->fm.ops[i].flags & CYD_FM_OP_ENABLE_FILTER) 
 			{
 				for(int j = 0; j < two_pow(2, chn->fm.ops[i].flt_slope); ++j)
