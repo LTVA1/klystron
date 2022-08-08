@@ -1118,18 +1118,18 @@ static Sint32 cyd_output_fm_ops(CydEngine *cyd, CydChannel *chn, int chan_num, /
 			{
 				for(int j = 0; j < two_pow(2, chn->fm.ops[i].flt_slope); ++j)
 				{
-					cydflt_cycle(&chn->fm.ops[i].flts[j], o[i][sub]);
+					cydflt_cycle(&chn->fm.ops[i].flts[j][sub], o[i][sub]);
 					
 					switch (chn->fm.ops[i].flttype)
 					{
-						case FLT_BP: o[i][sub] = cydflt_output_bp(&chn->fm.ops[i].flts[j]); break;
-						default: case FLT_LP: o[i][sub] = cydflt_output_lp(&chn->fm.ops[i].flts[j]); break;
-						case FLT_HP: o[i][sub] = cydflt_output_hp(&chn->fm.ops[i].flts[j]); break; //was only up to there
+						case FLT_BP: o[i][sub] = cydflt_output_bp(&chn->fm.ops[i].flts[j][sub]); break;
+						default: case FLT_LP: o[i][sub] = cydflt_output_lp(&chn->fm.ops[i].flts[j][sub]); break;
+						case FLT_HP: o[i][sub] = cydflt_output_hp(&chn->fm.ops[i].flts[j][sub]); break; //was only up to there
 						
-						case FLT_LH: o[i][sub] = (cydflt_output_lp(&chn->fm.ops[i].flts[j]) + cydflt_output_hp(&chn->fm.ops[i].flts[j])) / 2; break;
-						case FLT_HB: o[i][sub] = (cydflt_output_hp(&chn->fm.ops[i].flts[j]) + cydflt_output_bp(&chn->fm.ops[i].flts[j])) / 2; break;
-						case FLT_LB: o[i][sub] = (cydflt_output_lp(&chn->fm.ops[i].flts[j]) + cydflt_output_bp(&chn->fm.ops[i].flts[j])) / 2; break;
-						case FLT_ALL: o[i][sub] = (cydflt_output_lp(&chn->fm.ops[i].flts[j]) + cydflt_output_bp(&chn->fm.ops[i].flts[j]) + cydflt_output_hp(&chn->fm.ops[i].flts[j])) / 3; break;
+						case FLT_LH: o[i][sub] = (cydflt_output_lp(&chn->fm.ops[i].flts[j][sub]) + cydflt_output_hp(&chn->fm.ops[i].flts[j][sub])) / 2; break;
+						case FLT_HB: o[i][sub] = (cydflt_output_hp(&chn->fm.ops[i].flts[j][sub]) + cydflt_output_bp(&chn->fm.ops[i].flts[j][sub])) / 2; break;
+						case FLT_LB: o[i][sub] = (cydflt_output_lp(&chn->fm.ops[i].flts[j][sub]) + cydflt_output_bp(&chn->fm.ops[i].flts[j][sub])) / 2; break;
+						case FLT_ALL: o[i][sub] = (cydflt_output_lp(&chn->fm.ops[i].flts[j][sub]) + cydflt_output_bp(&chn->fm.ops[i].flts[j][sub]) + cydflt_output_hp(&chn->fm.ops[i].flts[j][sub])) / 3; break;
 					}
 				}
 			}

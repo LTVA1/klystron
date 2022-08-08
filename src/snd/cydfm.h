@@ -45,7 +45,7 @@ typedef struct //wasn't there
 	Uint16 tremolo_interpolation_counter;
 	Sint16 curr_tremolo;
 	
-	CydFilter flts[CYD_NUMBER_OF_FILTER_MODULES];
+	CydFilter flts[CYD_NUMBER_OF_FILTER_MODULES][CYD_SUB_OSCS];
 	
 	//Sint32 prev, prev2;
 	Uint32 prev[CYD_SUB_OSCS], prev2[CYD_SUB_OSCS];
