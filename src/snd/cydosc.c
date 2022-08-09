@@ -27,9 +27,9 @@ static inline Uint32 cyd_noise(Uint32 acc)
 	return acc & (WAVE_AMP - 1);
 }
 
-static inline Uint32 cyd_sine(Uint32 acc, CydEngine* cyd) 
+static inline Uint32 cyd_sine(Uint32 acc, Uint8 acc_shift, CydEngine* cyd) 
 {
-	return cyd->sine_table[cyd_saw(acc)];
+	return cyd->sine_table[cyd_saw(acc + (acc_shift << (ACC_BITS - 5)))];
 }
 
 #ifndef CYD_DISABLE_LFSR
@@ -39,7 +39,7 @@ Uint32 cyd_lfsr(Uint32 bits)
 }
 #endif
 
-Sint32 cyd_osc(Uint32 flags, Uint32 accumulator, Uint32 pw, Uint32 random, Uint32 lfsr_acc, Uint8 mixmode, CydEngine* cyd) //Sint32 cyd_osc(Uint32 flags, Uint32 accumulator, Uint32 pw, Uint32 random, Uint32 lfsr_acc)
+Sint32 cyd_osc(Uint32 flags, Uint32 accumulator, Uint32 pw, Uint32 random, Uint32 lfsr_acc, Uint8 mixmode, Uint8 sine_acc_shift, CydEngine* cyd) //Sint32 cyd_osc(Uint32 flags, Uint32 accumulator, Uint32 pw, Uint32 random, Uint32 lfsr_acc)
 {
 	switch (flags & WAVEFORMS & ~CYD_CHN_ENABLE_WAVE)
 	{
@@ -60,7 +60,7 @@ Sint32 cyd_osc(Uint32 flags, Uint32 accumulator, Uint32 pw, Uint32 random, Uint3
 		break;
 		
 		case CYD_CHN_ENABLE_SINE:
-		return cyd_sine(accumulator, cyd);
+		return cyd_sine(accumulator, sine_acc_shift, cyd);
 		break;
 		
 		case CYD_CHN_ENABLE_TRIANGLE|CYD_CHN_ENABLE_PULSE:
@@ -724,254 +724,253 @@ Sint32 cyd_osc(Uint32 flags, Uint32 accumulator, Uint32 pw, Uint32 random, Uint3
 		case CYD_CHN_ENABLE_PULSE|CYD_CHN_ENABLE_SINE:
 		if(mixmode == 0 || mixmode == 3) //bitwise AND (default)
 		{
-			return cyd_pulse(accumulator, pw) & cyd_sine(accumulator, cyd);
+			return cyd_pulse(accumulator, pw) & cyd_sine(accumulator, sine_acc_shift, cyd);
 		}
 		
 		if(mixmode == 1) //sum of oscillators' signals
 		{
-			return (cyd_pulse(accumulator, pw) + cyd_sine(accumulator, cyd)) / 2;
+			return (cyd_pulse(accumulator, pw) + cyd_sine(accumulator, sine_acc_shift, cyd)) / 2;
 		}
 		
 		if(mixmode == 2) //bitwise OR
 		{
-			return cyd_pulse(accumulator, pw) | cyd_sine(accumulator, cyd);
+			return cyd_pulse(accumulator, pw) | cyd_sine(accumulator, sine_acc_shift, cyd);
 		}
 		
 		if(mixmode == 4) //bitwise XOR
 		{ //lol tildearrow sound unit (TSU) wave
-			return cyd_pulse(accumulator, pw) ^ cyd_sine(accumulator, cyd);
+			return cyd_pulse(accumulator, pw) ^ cyd_sine(accumulator, sine_acc_shift, cyd);
 		}
 		break;
 		
 		case CYD_CHN_ENABLE_SAW|CYD_CHN_ENABLE_SINE:
 		if(mixmode == 0 || mixmode == 3) //bitwise AND (default)
 		{
-			return cyd_saw(accumulator) & cyd_sine(accumulator, cyd);
+			return cyd_saw(accumulator) & cyd_sine(accumulator, sine_acc_shift, cyd);
 		}
 		
 		if(mixmode == 1) //sum of oscillators' signals
 		{
-			return (cyd_saw(accumulator) + cyd_sine(accumulator, cyd)) / 2;
+			return (cyd_saw(accumulator) + cyd_sine(accumulator, sine_acc_shift, cyd)) / 2;
 		}
 		
 		if(mixmode == 2) //bitwise OR
 		{
-			return cyd_saw(accumulator) | cyd_sine(accumulator, cyd);
+			return cyd_saw(accumulator) | cyd_sine(accumulator, sine_acc_shift, cyd);
 		}
 		
 		if(mixmode == 4) //bitwise XOR
 		{
-			return cyd_saw(accumulator) ^ cyd_sine(accumulator, cyd);
+			return cyd_saw(accumulator) ^ cyd_sine(accumulator, sine_acc_shift, cyd);
 		}
 		break;
 		
 		case CYD_CHN_ENABLE_TRIANGLE|CYD_CHN_ENABLE_SINE:
 		if(mixmode == 0 || mixmode == 3) //bitwise AND (default)
 		{
-			return cyd_triangle(accumulator) & cyd_sine(accumulator, cyd);
+			return cyd_triangle(accumulator) & cyd_sine(accumulator, sine_acc_shift, cyd);
 		}
 		
 		if(mixmode == 1) //sum of oscillators' signals
 		{
-			return (cyd_triangle(accumulator) + cyd_sine(accumulator, cyd)) / 2;
+			return (cyd_triangle(accumulator) + cyd_sine(accumulator, sine_acc_shift, cyd)) / 2;
 		}
 		
 		if(mixmode == 2) //bitwise OR
 		{
-			return cyd_triangle(accumulator) | cyd_sine(accumulator, cyd);
+			return cyd_triangle(accumulator) | cyd_sine(accumulator, sine_acc_shift, cyd);
 		}
 		
 		if(mixmode == 4) //bitwise XOR
 		{
-			return cyd_triangle(accumulator) ^ cyd_sine(accumulator, cyd);
+			return cyd_triangle(accumulator) ^ cyd_sine(accumulator, sine_acc_shift, cyd);
 		}
 		break;
 		
 		case CYD_CHN_ENABLE_NOISE|CYD_CHN_ENABLE_SINE:
-		return ((flags & CYD_CHN_ENABLE_1_BIT_NOISE) ? ((cyd_noise(random) >= ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 4) : (WAVE_AMP - 1) / 2)) ? ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 2) : (WAVE_AMP - 1)) : 0) : (cyd_noise(random)));
 		
 		if(mixmode == 0 || mixmode == 3) //bitwise AND (default)
 		{
-			return ((flags & CYD_CHN_ENABLE_1_BIT_NOISE) ? ((cyd_noise(random) >= ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 4) : (WAVE_AMP - 1) / 2)) ? ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 2) : (WAVE_AMP - 1)) : 0) : (cyd_noise(random))) & cyd_sine(accumulator, cyd);
+			return ((flags & CYD_CHN_ENABLE_1_BIT_NOISE) ? ((cyd_noise(random) >= ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 4) : (WAVE_AMP - 1) / 2)) ? ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 2) : (WAVE_AMP - 1)) : 0) : (cyd_noise(random))) & cyd_sine(accumulator, sine_acc_shift, cyd);
 		}
 		
 		if(mixmode == 1) //sum of oscillators' signals
 		{
-			return (((flags & CYD_CHN_ENABLE_1_BIT_NOISE) ? ((cyd_noise(random) >= ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 4) : (WAVE_AMP - 1) / 2)) ? ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 2) : (WAVE_AMP - 1)) : 0) : (cyd_noise(random))) + cyd_sine(accumulator, cyd)) / 2;
+			return (((flags & CYD_CHN_ENABLE_1_BIT_NOISE) ? ((cyd_noise(random) >= ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 4) : (WAVE_AMP - 1) / 2)) ? ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 2) : (WAVE_AMP - 1)) : 0) : (cyd_noise(random))) + cyd_sine(accumulator, sine_acc_shift, cyd)) / 2;
 		}
 		
 		if(mixmode == 2) //bitwise OR
 		{
-			return ((flags & CYD_CHN_ENABLE_1_BIT_NOISE) ? ((cyd_noise(random) >= ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 4) : (WAVE_AMP - 1) / 2)) ? ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 2) : (WAVE_AMP - 1)) : 0) : (cyd_noise(random))) | cyd_sine(accumulator, cyd);
+			return ((flags & CYD_CHN_ENABLE_1_BIT_NOISE) ? ((cyd_noise(random) >= ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 4) : (WAVE_AMP - 1) / 2)) ? ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 2) : (WAVE_AMP - 1)) : 0) : (cyd_noise(random))) | cyd_sine(accumulator, sine_acc_shift, cyd);
 		}
 		
 		if(mixmode == 4) //bitwise XOR
 		{
-			return ((flags & CYD_CHN_ENABLE_1_BIT_NOISE) ? ((cyd_noise(random) >= ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 4) : (WAVE_AMP - 1) / 2)) ? ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 2) : (WAVE_AMP - 1)) : 0) : (cyd_noise(random))) ^ cyd_sine(accumulator, cyd);
+			return ((flags & CYD_CHN_ENABLE_1_BIT_NOISE) ? ((cyd_noise(random) >= ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 4) : (WAVE_AMP - 1) / 2)) ? ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 2) : (WAVE_AMP - 1)) : 0) : (cyd_noise(random))) ^ cyd_sine(accumulator, sine_acc_shift, cyd);
 		}
 		break;
 		
 		case CYD_CHN_ENABLE_TRIANGLE|CYD_CHN_ENABLE_PULSE|CYD_CHN_ENABLE_SINE:
 		if(mixmode == 0) //bitwise AND (default)
 		{
-			return cyd_pulse(accumulator, pw) & cyd_triangle(accumulator) & cyd_sine(accumulator, cyd);
+			return cyd_pulse(accumulator, pw) & cyd_triangle(accumulator) & cyd_sine(accumulator, sine_acc_shift, cyd);
 		}
 		
 		if(mixmode == 1) //sum of oscillators' signals
 		{
-			return (cyd_pulse(accumulator, pw) + cyd_triangle(accumulator) + cyd_sine(accumulator, cyd)) / 3;
+			return (cyd_pulse(accumulator, pw) + cyd_triangle(accumulator) + cyd_sine(accumulator, sine_acc_shift, cyd)) / 3;
 		}
 		
 		if(mixmode == 2) //bitwise OR
 		{
-			return cyd_pulse(accumulator, pw) | cyd_triangle(accumulator) | cyd_sine(accumulator, cyd);
+			return cyd_pulse(accumulator, pw) | cyd_triangle(accumulator) | cyd_sine(accumulator, sine_acc_shift, cyd);
 		}
 		
 		if(mixmode == 3) //C64 8580 SID combined waves from 4096 samples-long arrays that are generated at every startup of the tracker (except pulse+tri which is sample)
 		{
-			return (PulseTri_8580[cyd_saw(accumulator) / 8] & cyd_pulse(accumulator, pw) & cyd_sine(accumulator, cyd));
+			return (PulseTri_8580[cyd_saw(accumulator) / 8] & cyd_pulse(accumulator, pw) & cyd_sine(accumulator, sine_acc_shift, cyd));
 		}
 		
 		if(mixmode == 4) //bitwise XOR
 		{
-			return cyd_pulse(accumulator, pw) ^ cyd_triangle(accumulator) ^ cyd_sine(accumulator, cyd);
+			return cyd_pulse(accumulator, pw) ^ cyd_triangle(accumulator) ^ cyd_sine(accumulator, sine_acc_shift, cyd);
 		}
 		break;
 		
 		case CYD_CHN_ENABLE_SAW|CYD_CHN_ENABLE_PULSE|CYD_CHN_ENABLE_SINE:
 		if(mixmode == 0)
 		{
-			return cyd_saw(accumulator) & cyd_pulse(accumulator, pw) & cyd_sine(accumulator, cyd);
+			return cyd_saw(accumulator) & cyd_pulse(accumulator, pw) & cyd_sine(accumulator, sine_acc_shift, cyd);
 		}
 		
 		if(mixmode == 1)
 		{
-			return (cyd_saw(accumulator) + cyd_pulse(accumulator, pw) + cyd_sine(accumulator, cyd)) / 3;
+			return (cyd_saw(accumulator) + cyd_pulse(accumulator, pw) + cyd_sine(accumulator, sine_acc_shift, cyd)) / 3;
 		}
 		
 		if(mixmode == 2)
 		{
-			return cyd_saw(accumulator) | cyd_pulse(accumulator, pw) | cyd_sine(accumulator, cyd);
+			return cyd_saw(accumulator) | cyd_pulse(accumulator, pw) | cyd_sine(accumulator, sine_acc_shift, cyd);
 		}
 		
 		if(mixmode == 3)
 		{
-			return cyd->PulseSaw_8580[cyd_saw(accumulator) / 16] & cyd_sine(accumulator, cyd);
+			return cyd->PulseSaw_8580[cyd_saw(accumulator) / 16] & cyd_sine(accumulator, sine_acc_shift, cyd);
 		}
 		
 		if(mixmode == 4)
 		{
-			return cyd_saw(accumulator) ^ cyd_pulse(accumulator, pw) ^ cyd_sine(accumulator, cyd);
+			return cyd_saw(accumulator) ^ cyd_pulse(accumulator, pw) ^ cyd_sine(accumulator, sine_acc_shift, cyd);
 		}
 		break;
 		
 		case CYD_CHN_ENABLE_NOISE|CYD_CHN_ENABLE_PULSE|CYD_CHN_ENABLE_SINE:
 		if(mixmode == 0 || mixmode == 3)
 		{
-			return ((flags & CYD_CHN_ENABLE_1_BIT_NOISE) ? ((cyd_noise(random) >= ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 4) : (WAVE_AMP - 1) / 2)) ? ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 2) : (WAVE_AMP - 1)) : 0) : (cyd_noise(random))) & cyd_pulse(accumulator, pw) & cyd_sine(accumulator, cyd);
+			return ((flags & CYD_CHN_ENABLE_1_BIT_NOISE) ? ((cyd_noise(random) >= ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 4) : (WAVE_AMP - 1) / 2)) ? ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 2) : (WAVE_AMP - 1)) : 0) : (cyd_noise(random))) & cyd_pulse(accumulator, pw) & cyd_sine(accumulator, sine_acc_shift, cyd);
 		}
 		
 		if(mixmode == 1)
 		{
-			return (((flags & CYD_CHN_ENABLE_1_BIT_NOISE) ? ((cyd_noise(random) >= ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 4) : (WAVE_AMP - 1) / 2)) ? ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 2) : (WAVE_AMP - 1)) : 0) : (cyd_noise(random))) + cyd_pulse(accumulator, pw) + cyd_sine(accumulator, cyd)) / 3;
+			return (((flags & CYD_CHN_ENABLE_1_BIT_NOISE) ? ((cyd_noise(random) >= ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 4) : (WAVE_AMP - 1) / 2)) ? ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 2) : (WAVE_AMP - 1)) : 0) : (cyd_noise(random))) + cyd_pulse(accumulator, pw) + cyd_sine(accumulator, sine_acc_shift, cyd)) / 3;
 		}
 		
 		if(mixmode == 2)
 		{
-			return ((flags & CYD_CHN_ENABLE_1_BIT_NOISE) ? ((cyd_noise(random) >= ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 4) : (WAVE_AMP - 1) / 2)) ? ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 2) : (WAVE_AMP - 1)) : 0) : (cyd_noise(random))) | cyd_pulse(accumulator, pw) | cyd_sine(accumulator, cyd);
+			return ((flags & CYD_CHN_ENABLE_1_BIT_NOISE) ? ((cyd_noise(random) >= ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 4) : (WAVE_AMP - 1) / 2)) ? ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 2) : (WAVE_AMP - 1)) : 0) : (cyd_noise(random))) | cyd_pulse(accumulator, pw) | cyd_sine(accumulator, sine_acc_shift, cyd);
 		}
 		
 		if(mixmode == 4)
 		{
-			return ((flags & CYD_CHN_ENABLE_1_BIT_NOISE) ? ((cyd_noise(random) >= ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 4) : (WAVE_AMP - 1) / 2)) ? ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 2) : (WAVE_AMP - 1)) : 0) : (cyd_noise(random))) ^ cyd_pulse(accumulator, pw) ^ cyd_sine(accumulator, cyd);
+			return ((flags & CYD_CHN_ENABLE_1_BIT_NOISE) ? ((cyd_noise(random) >= ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 4) : (WAVE_AMP - 1) / 2)) ? ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 2) : (WAVE_AMP - 1)) : 0) : (cyd_noise(random))) ^ cyd_pulse(accumulator, pw) ^ cyd_sine(accumulator, sine_acc_shift, cyd);
 		}
 		break;
 		
 		case CYD_CHN_ENABLE_TRIANGLE|CYD_CHN_ENABLE_SAW|CYD_CHN_ENABLE_SINE:
 		if(mixmode == 0)
 		{
-			return cyd_triangle(accumulator) & cyd_saw(accumulator) & cyd_sine(accumulator, cyd);
+			return cyd_triangle(accumulator) & cyd_saw(accumulator) & cyd_sine(accumulator, sine_acc_shift, cyd);
 		}
 		
 		if(mixmode == 1)
 		{
-			return (cyd_triangle(accumulator) + cyd_saw(accumulator) + cyd_sine(accumulator, cyd)) / 3;
+			return (cyd_triangle(accumulator) + cyd_saw(accumulator) + cyd_sine(accumulator, sine_acc_shift, cyd)) / 3;
 		}
 		
 		if(mixmode == 2)
 		{
-			return cyd_triangle(accumulator) | cyd_saw(accumulator) | cyd_sine(accumulator, cyd);
+			return cyd_triangle(accumulator) | cyd_saw(accumulator) | cyd_sine(accumulator, sine_acc_shift, cyd);
 		}
 		
 		if(mixmode == 3)
 		{
-			return cyd->TriSaw_8580[cyd_saw(accumulator) / 16] & cyd_sine(accumulator, cyd);
+			return cyd->TriSaw_8580[cyd_saw(accumulator) / 16] & cyd_sine(accumulator, sine_acc_shift, cyd);
 		}
 		
 		if(mixmode == 4)
 		{
-			return cyd_triangle(accumulator) ^ cyd_saw(accumulator) ^ cyd_sine(accumulator, cyd);
+			return cyd_triangle(accumulator) ^ cyd_saw(accumulator) ^ cyd_sine(accumulator, sine_acc_shift, cyd);
 		}
 		break;
 		
 		case CYD_CHN_ENABLE_NOISE|CYD_CHN_ENABLE_SAW|CYD_CHN_ENABLE_SINE:
 		if(mixmode == 0 || mixmode == 3)
 		{
-			return ((flags & CYD_CHN_ENABLE_1_BIT_NOISE) ? ((cyd_noise(random) >= ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 4) : (WAVE_AMP - 1) / 2)) ? ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 2) : (WAVE_AMP - 1)) : 0) : (cyd_noise(random))) & cyd_saw(accumulator) & cyd_sine(accumulator, cyd);
+			return ((flags & CYD_CHN_ENABLE_1_BIT_NOISE) ? ((cyd_noise(random) >= ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 4) : (WAVE_AMP - 1) / 2)) ? ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 2) : (WAVE_AMP - 1)) : 0) : (cyd_noise(random))) & cyd_saw(accumulator) & cyd_sine(accumulator, sine_acc_shift, cyd);
 		}
 		
 		if(mixmode == 1)
 		{
-			return (((flags & CYD_CHN_ENABLE_1_BIT_NOISE) ? ((cyd_noise(random) >= ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 4) : (WAVE_AMP - 1) / 2)) ? ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 2) : (WAVE_AMP - 1)) : 0) : (cyd_noise(random))) + cyd_saw(accumulator) + cyd_sine(accumulator, cyd)) / 3;
+			return (((flags & CYD_CHN_ENABLE_1_BIT_NOISE) ? ((cyd_noise(random) >= ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 4) : (WAVE_AMP - 1) / 2)) ? ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 2) : (WAVE_AMP - 1)) : 0) : (cyd_noise(random))) + cyd_saw(accumulator) + cyd_sine(accumulator, sine_acc_shift, cyd)) / 3;
 		}
 		
 		if(mixmode == 2)
 		{
-			return ((flags & CYD_CHN_ENABLE_1_BIT_NOISE) ? ((cyd_noise(random) >= ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 4) : (WAVE_AMP - 1) / 2)) ? ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 2) : (WAVE_AMP - 1)) : 0) : (cyd_noise(random))) | cyd_saw(accumulator) | cyd_sine(accumulator, cyd);
+			return ((flags & CYD_CHN_ENABLE_1_BIT_NOISE) ? ((cyd_noise(random) >= ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 4) : (WAVE_AMP - 1) / 2)) ? ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 2) : (WAVE_AMP - 1)) : 0) : (cyd_noise(random))) | cyd_saw(accumulator) | cyd_sine(accumulator, sine_acc_shift, cyd);
 		}
 		
 		if(mixmode == 4)
 		{
-			return ((flags & CYD_CHN_ENABLE_1_BIT_NOISE) ? ((cyd_noise(random) >= ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 4) : (WAVE_AMP - 1) / 2)) ? ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 2) : (WAVE_AMP - 1)) : 0) : (cyd_noise(random))) ^ cyd_saw(accumulator) ^ cyd_sine(accumulator, cyd);
+			return ((flags & CYD_CHN_ENABLE_1_BIT_NOISE) ? ((cyd_noise(random) >= ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 4) : (WAVE_AMP - 1) / 2)) ? ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 2) : (WAVE_AMP - 1)) : 0) : (cyd_noise(random))) ^ cyd_saw(accumulator) ^ cyd_sine(accumulator, sine_acc_shift, cyd);
 		}
 		break;
 		
 		case CYD_CHN_ENABLE_NOISE|CYD_CHN_ENABLE_TRIANGLE|CYD_CHN_ENABLE_SINE:
 		if(mixmode == 0 || mixmode == 3)
 		{
-			return ((flags & CYD_CHN_ENABLE_1_BIT_NOISE) ? ((cyd_noise(random) >= ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 4) : (WAVE_AMP - 1) / 2)) ? ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 2) : (WAVE_AMP - 1)) : 0) : (cyd_noise(random))) & cyd_triangle(accumulator) & cyd_sine(accumulator, cyd);
+			return ((flags & CYD_CHN_ENABLE_1_BIT_NOISE) ? ((cyd_noise(random) >= ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 4) : (WAVE_AMP - 1) / 2)) ? ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 2) : (WAVE_AMP - 1)) : 0) : (cyd_noise(random))) & cyd_triangle(accumulator) & cyd_sine(accumulator, sine_acc_shift, cyd);
 		}
 		
 		if(mixmode == 1)
 		{
-			return (((flags & CYD_CHN_ENABLE_1_BIT_NOISE) ? ((cyd_noise(random) >= ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 4) : (WAVE_AMP - 1) / 2)) ? ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 2) : (WAVE_AMP - 1)) : 0) : (cyd_noise(random))) + cyd_triangle(accumulator) + cyd_sine(accumulator, cyd)) / 3;
+			return (((flags & CYD_CHN_ENABLE_1_BIT_NOISE) ? ((cyd_noise(random) >= ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 4) : (WAVE_AMP - 1) / 2)) ? ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 2) : (WAVE_AMP - 1)) : 0) : (cyd_noise(random))) + cyd_triangle(accumulator) + cyd_sine(accumulator, sine_acc_shift, cyd)) / 3;
 		}
 		
 		if(mixmode == 2)
 		{
-			return ((flags & CYD_CHN_ENABLE_1_BIT_NOISE) ? ((cyd_noise(random) >= ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 4) : (WAVE_AMP - 1) / 2)) ? ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 2) : (WAVE_AMP - 1)) : 0) : (cyd_noise(random))) | cyd_triangle(accumulator) | cyd_sine(accumulator, cyd);
+			return ((flags & CYD_CHN_ENABLE_1_BIT_NOISE) ? ((cyd_noise(random) >= ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 4) : (WAVE_AMP - 1) / 2)) ? ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 2) : (WAVE_AMP - 1)) : 0) : (cyd_noise(random))) | cyd_triangle(accumulator) | cyd_sine(accumulator, sine_acc_shift, cyd);
 		}
 		
 		if(mixmode == 4)
 		{
-			return ((flags & CYD_CHN_ENABLE_1_BIT_NOISE) ? ((cyd_noise(random) >= ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 4) : (WAVE_AMP - 1) / 2)) ? ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 2) : (WAVE_AMP - 1)) : 0) : (cyd_noise(random))) ^ cyd_triangle(accumulator) ^ cyd_sine(accumulator, cyd);
+			return ((flags & CYD_CHN_ENABLE_1_BIT_NOISE) ? ((cyd_noise(random) >= ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 4) : (WAVE_AMP - 1) / 2)) ? ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 2) : (WAVE_AMP - 1)) : 0) : (cyd_noise(random))) ^ cyd_triangle(accumulator) ^ cyd_sine(accumulator, sine_acc_shift, cyd);
 		}
 		break;
 		
 		case CYD_CHN_ENABLE_TRIANGLE|CYD_CHN_ENABLE_PULSE|CYD_CHN_ENABLE_SAW|CYD_CHN_ENABLE_SINE:
 		if(mixmode == 0)
 		{
-			return cyd_pulse(accumulator, pw) & cyd_triangle(accumulator) & cyd_saw(accumulator) & cyd_sine(accumulator, cyd);
+			return cyd_pulse(accumulator, pw) & cyd_triangle(accumulator) & cyd_saw(accumulator) & cyd_sine(accumulator, sine_acc_shift, cyd);
 		}
 		
 		if(mixmode == 1)
 		{
-			return (cyd_pulse(accumulator, pw) + cyd_triangle(accumulator) + cyd_saw(accumulator) + cyd_sine(accumulator, cyd)) / 4;
+			return (cyd_pulse(accumulator, pw) + cyd_triangle(accumulator) + cyd_saw(accumulator) + cyd_sine(accumulator, sine_acc_shift, cyd)) / 4;
 		}
 		
 		if(mixmode == 2)
 		{
-			return cyd_pulse(accumulator, pw) | cyd_triangle(accumulator) | cyd_saw(accumulator) | cyd_sine(accumulator, cyd);
+			return cyd_pulse(accumulator, pw) | cyd_triangle(accumulator) | cyd_saw(accumulator) | cyd_sine(accumulator, sine_acc_shift, cyd);
 		}
 		
 		if(mixmode == 3)
@@ -981,115 +980,115 @@ Sint32 cyd_osc(Uint32 flags, Uint32 accumulator, Uint32 pw, Uint32 random, Uint3
 		
 		if(mixmode == 4)
 		{
-			return cyd_pulse(accumulator, pw) ^ cyd_triangle(accumulator) ^ cyd_saw(accumulator) ^ cyd_sine(accumulator, cyd);
+			return cyd_pulse(accumulator, pw) ^ cyd_triangle(accumulator) ^ cyd_saw(accumulator) ^ cyd_sine(accumulator, sine_acc_shift, cyd);
 		}
 		break;
 		
 		case CYD_CHN_ENABLE_TRIANGLE|CYD_CHN_ENABLE_PULSE|CYD_CHN_ENABLE_NOISE|CYD_CHN_ENABLE_SINE:
 		if(mixmode == 0)
 		{
-			return cyd_pulse(accumulator, pw) & cyd_triangle(accumulator) & ((flags & CYD_CHN_ENABLE_1_BIT_NOISE) ? ((cyd_noise(random) >= ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 4) : (WAVE_AMP - 1) / 2)) ? ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 2) : (WAVE_AMP - 1)) : 0) : (cyd_noise(random))) & cyd_sine(accumulator, cyd);
+			return cyd_pulse(accumulator, pw) & cyd_triangle(accumulator) & ((flags & CYD_CHN_ENABLE_1_BIT_NOISE) ? ((cyd_noise(random) >= ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 4) : (WAVE_AMP - 1) / 2)) ? ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 2) : (WAVE_AMP - 1)) : 0) : (cyd_noise(random))) & cyd_sine(accumulator, sine_acc_shift, cyd);
 		}
 		
 		if(mixmode == 1)
 		{
-			return (cyd_pulse(accumulator, pw) + cyd_triangle(accumulator) + ((flags & CYD_CHN_ENABLE_1_BIT_NOISE) ? ((cyd_noise(random) >= ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 4) : (WAVE_AMP - 1) / 2)) ? ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 2) : (WAVE_AMP - 1)) : 0) : (cyd_noise(random))) + cyd_sine(accumulator, cyd)) / 4;
+			return (cyd_pulse(accumulator, pw) + cyd_triangle(accumulator) + ((flags & CYD_CHN_ENABLE_1_BIT_NOISE) ? ((cyd_noise(random) >= ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 4) : (WAVE_AMP - 1) / 2)) ? ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 2) : (WAVE_AMP - 1)) : 0) : (cyd_noise(random))) + cyd_sine(accumulator, sine_acc_shift, cyd)) / 4;
 		}
 		
 		if(mixmode == 2)
 		{
-			return cyd_pulse(accumulator, pw) | cyd_triangle(accumulator) | ((flags & CYD_CHN_ENABLE_1_BIT_NOISE) ? ((cyd_noise(random) >= ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 4) : (WAVE_AMP - 1) / 2)) ? ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 2) : (WAVE_AMP - 1)) : 0) : (cyd_noise(random))) | cyd_sine(accumulator, cyd);
+			return cyd_pulse(accumulator, pw) | cyd_triangle(accumulator) | ((flags & CYD_CHN_ENABLE_1_BIT_NOISE) ? ((cyd_noise(random) >= ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 4) : (WAVE_AMP - 1) / 2)) ? ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 2) : (WAVE_AMP - 1)) : 0) : (cyd_noise(random))) | cyd_sine(accumulator, sine_acc_shift, cyd);
 		}
 		
 		if(mixmode == 3)
 		{
-			return ((PulseTri_8580[cyd_saw(accumulator) / 8] & cyd_pulse(accumulator, pw))) & ((flags & CYD_CHN_ENABLE_1_BIT_NOISE) ? ((cyd_noise(random) >= ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 4) : (WAVE_AMP - 1) / 2)) ? ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 2) : (WAVE_AMP - 1)) : 0) : (cyd_noise(random))) & cyd_sine(accumulator, cyd);
+			return ((PulseTri_8580[cyd_saw(accumulator) / 8] & cyd_pulse(accumulator, pw))) & ((flags & CYD_CHN_ENABLE_1_BIT_NOISE) ? ((cyd_noise(random) >= ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 4) : (WAVE_AMP - 1) / 2)) ? ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 2) : (WAVE_AMP - 1)) : 0) : (cyd_noise(random))) & cyd_sine(accumulator, sine_acc_shift, cyd);
 		}
 		
 		if(mixmode == 4)
 		{
-			return cyd_pulse(accumulator, pw) ^ cyd_triangle(accumulator) ^ ((flags & CYD_CHN_ENABLE_1_BIT_NOISE) ? ((cyd_noise(random) >= ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 4) : (WAVE_AMP - 1) / 2)) ? ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 2) : (WAVE_AMP - 1)) : 0) : (cyd_noise(random))) ^ cyd_sine(accumulator, cyd);
+			return cyd_pulse(accumulator, pw) ^ cyd_triangle(accumulator) ^ ((flags & CYD_CHN_ENABLE_1_BIT_NOISE) ? ((cyd_noise(random) >= ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 4) : (WAVE_AMP - 1) / 2)) ? ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 2) : (WAVE_AMP - 1)) : 0) : (cyd_noise(random))) ^ cyd_sine(accumulator, sine_acc_shift, cyd);
 		}
 		break;
 		
 		case CYD_CHN_ENABLE_TRIANGLE|CYD_CHN_ENABLE_NOISE|CYD_CHN_ENABLE_SAW|CYD_CHN_ENABLE_SINE:
 		if(mixmode == 0)
 		{
-			return cyd_saw(accumulator) & cyd_triangle(accumulator) & ((flags & CYD_CHN_ENABLE_1_BIT_NOISE) ? ((cyd_noise(random) >= ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 4) : (WAVE_AMP - 1) / 2)) ? ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 2) : (WAVE_AMP - 1)) : 0) : (cyd_noise(random))) & cyd_sine(accumulator, cyd);
+			return cyd_saw(accumulator) & cyd_triangle(accumulator) & ((flags & CYD_CHN_ENABLE_1_BIT_NOISE) ? ((cyd_noise(random) >= ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 4) : (WAVE_AMP - 1) / 2)) ? ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 2) : (WAVE_AMP - 1)) : 0) : (cyd_noise(random))) & cyd_sine(accumulator, sine_acc_shift, cyd);
 		}
 		
 		if(mixmode == 1)
 		{
-			return (cyd_saw(accumulator) + cyd_triangle(accumulator) + ((flags & CYD_CHN_ENABLE_1_BIT_NOISE) ? ((cyd_noise(random) >= ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 4) : (WAVE_AMP - 1) / 2)) ? ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 2) : (WAVE_AMP - 1)) : 0) : (cyd_noise(random))) + cyd_sine(accumulator, cyd)) / 4;
+			return (cyd_saw(accumulator) + cyd_triangle(accumulator) + ((flags & CYD_CHN_ENABLE_1_BIT_NOISE) ? ((cyd_noise(random) >= ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 4) : (WAVE_AMP - 1) / 2)) ? ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 2) : (WAVE_AMP - 1)) : 0) : (cyd_noise(random))) + cyd_sine(accumulator, sine_acc_shift, cyd)) / 4;
 		}
 		
 		if(mixmode == 2)
 		{
-			return cyd_saw(accumulator) | cyd_triangle(accumulator) | ((flags & CYD_CHN_ENABLE_1_BIT_NOISE) ? ((cyd_noise(random) >= ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 4) : (WAVE_AMP - 1) / 2)) ? ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 2) : (WAVE_AMP - 1)) : 0) : (cyd_noise(random))) | cyd_sine(accumulator, cyd);
+			return cyd_saw(accumulator) | cyd_triangle(accumulator) | ((flags & CYD_CHN_ENABLE_1_BIT_NOISE) ? ((cyd_noise(random) >= ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 4) : (WAVE_AMP - 1) / 2)) ? ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 2) : (WAVE_AMP - 1)) : 0) : (cyd_noise(random))) | cyd_sine(accumulator, sine_acc_shift, cyd);
 		}
 		
 		if(mixmode == 3)
 		{
-			return (cyd->TriSaw_8580[cyd_saw(accumulator) / 16]) & ((flags & CYD_CHN_ENABLE_1_BIT_NOISE) ? ((cyd_noise(random) >= ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 4) : (WAVE_AMP - 1) / 2)) ? ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 2) : (WAVE_AMP - 1)) : 0) : (cyd_noise(random))) & cyd_sine(accumulator, cyd);
+			return (cyd->TriSaw_8580[cyd_saw(accumulator) / 16]) & ((flags & CYD_CHN_ENABLE_1_BIT_NOISE) ? ((cyd_noise(random) >= ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 4) : (WAVE_AMP - 1) / 2)) ? ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 2) : (WAVE_AMP - 1)) : 0) : (cyd_noise(random))) & cyd_sine(accumulator, sine_acc_shift, cyd);
 		}
 		
 		if(mixmode == 4)
 		{
-			return cyd_saw(accumulator) ^ cyd_triangle(accumulator) ^ ((flags & CYD_CHN_ENABLE_1_BIT_NOISE) ? ((cyd_noise(random) >= ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 4) : (WAVE_AMP - 1) / 2)) ? ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 2) : (WAVE_AMP - 1)) : 0) : (cyd_noise(random))) ^ cyd_sine(accumulator, cyd);
+			return cyd_saw(accumulator) ^ cyd_triangle(accumulator) ^ ((flags & CYD_CHN_ENABLE_1_BIT_NOISE) ? ((cyd_noise(random) >= ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 4) : (WAVE_AMP - 1) / 2)) ? ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 2) : (WAVE_AMP - 1)) : 0) : (cyd_noise(random))) ^ cyd_sine(accumulator, sine_acc_shift, cyd);
 		}
 		break;
 		
 		case CYD_CHN_ENABLE_PULSE|CYD_CHN_ENABLE_NOISE|CYD_CHN_ENABLE_SAW|CYD_CHN_ENABLE_SINE:
 		if(mixmode == 0)
 		{
-			return cyd_pulse(accumulator, pw) & cyd_saw(accumulator) & ((flags & CYD_CHN_ENABLE_1_BIT_NOISE) ? ((cyd_noise(random) >= ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 4) : (WAVE_AMP - 1) / 2)) ? ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 2) : (WAVE_AMP - 1)) : 0) : (cyd_noise(random))) & cyd_sine(accumulator, cyd);
+			return cyd_pulse(accumulator, pw) & cyd_saw(accumulator) & ((flags & CYD_CHN_ENABLE_1_BIT_NOISE) ? ((cyd_noise(random) >= ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 4) : (WAVE_AMP - 1) / 2)) ? ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 2) : (WAVE_AMP - 1)) : 0) : (cyd_noise(random))) & cyd_sine(accumulator, sine_acc_shift, cyd);
 		}
 		
 		if(mixmode == 1)
 		{
-			return (cyd_saw(accumulator) + cyd_pulse(accumulator, pw) + ((flags & CYD_CHN_ENABLE_1_BIT_NOISE) ? ((cyd_noise(random) >= ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 4) : (WAVE_AMP - 1) / 2)) ? ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 2) : (WAVE_AMP - 1)) : 0) : (cyd_noise(random))) + cyd_sine(accumulator, cyd)) / 4;
+			return (cyd_saw(accumulator) + cyd_pulse(accumulator, pw) + ((flags & CYD_CHN_ENABLE_1_BIT_NOISE) ? ((cyd_noise(random) >= ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 4) : (WAVE_AMP - 1) / 2)) ? ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 2) : (WAVE_AMP - 1)) : 0) : (cyd_noise(random))) + cyd_sine(accumulator, sine_acc_shift, cyd)) / 4;
 		}
 		
 		if(mixmode == 2)
 		{
-			return cyd_pulse(accumulator, pw) | cyd_saw(accumulator) | ((flags & CYD_CHN_ENABLE_1_BIT_NOISE) ? ((cyd_noise(random) >= ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 4) : (WAVE_AMP - 1) / 2)) ? ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 2) : (WAVE_AMP - 1)) : 0) : (cyd_noise(random))) | cyd_sine(accumulator, cyd);
+			return cyd_pulse(accumulator, pw) | cyd_saw(accumulator) | ((flags & CYD_CHN_ENABLE_1_BIT_NOISE) ? ((cyd_noise(random) >= ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 4) : (WAVE_AMP - 1) / 2)) ? ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 2) : (WAVE_AMP - 1)) : 0) : (cyd_noise(random))) | cyd_sine(accumulator, sine_acc_shift, cyd);
 		}
 		
 		if(mixmode == 3)
 		{
-			return (cyd->PulseSaw_8580[cyd_saw(accumulator) / 16]) & ((flags & CYD_CHN_ENABLE_1_BIT_NOISE) ? ((cyd_noise(random) >= ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 4) : (WAVE_AMP - 1) / 2)) ? ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 2) : (WAVE_AMP - 1)) : 0) : (cyd_noise(random))) & cyd_sine(accumulator, cyd);
+			return (cyd->PulseSaw_8580[cyd_saw(accumulator) / 16]) & ((flags & CYD_CHN_ENABLE_1_BIT_NOISE) ? ((cyd_noise(random) >= ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 4) : (WAVE_AMP - 1) / 2)) ? ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 2) : (WAVE_AMP - 1)) : 0) : (cyd_noise(random))) & cyd_sine(accumulator, sine_acc_shift, cyd);
 		}
 		
 		if(mixmode == 4)
 		{
-			return cyd_pulse(accumulator, pw) ^ cyd_saw(accumulator) ^ ((flags & CYD_CHN_ENABLE_1_BIT_NOISE) ? ((cyd_noise(random) >= ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 4) : (WAVE_AMP - 1) / 2)) ? ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 2) : (WAVE_AMP - 1)) : 0) : (cyd_noise(random))) ^ cyd_sine(accumulator, cyd);
+			return cyd_pulse(accumulator, pw) ^ cyd_saw(accumulator) ^ ((flags & CYD_CHN_ENABLE_1_BIT_NOISE) ? ((cyd_noise(random) >= ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 4) : (WAVE_AMP - 1) / 2)) ? ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 2) : (WAVE_AMP - 1)) : 0) : (cyd_noise(random))) ^ cyd_sine(accumulator, sine_acc_shift, cyd);
 		}
 		break;
 		
 		case CYD_CHN_ENABLE_NOISE|CYD_CHN_ENABLE_SAW|CYD_CHN_ENABLE_PULSE|CYD_CHN_ENABLE_TRIANGLE|CYD_CHN_ENABLE_SINE:
 		if(mixmode == 0)
 		{
-			return cyd_saw(accumulator) & cyd_pulse(accumulator, pw) & cyd_triangle(accumulator) & ((flags & CYD_CHN_ENABLE_1_BIT_NOISE) ? ((cyd_noise(random) >= ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 4) : (WAVE_AMP - 1) / 2)) ? ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 2) : (WAVE_AMP - 1)) : 0) : (cyd_noise(random))) & cyd_sine(accumulator, cyd);
+			return cyd_saw(accumulator) & cyd_pulse(accumulator, pw) & cyd_triangle(accumulator) & ((flags & CYD_CHN_ENABLE_1_BIT_NOISE) ? ((cyd_noise(random) >= ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 4) : (WAVE_AMP - 1) / 2)) ? ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 2) : (WAVE_AMP - 1)) : 0) : (cyd_noise(random))) & cyd_sine(accumulator, sine_acc_shift, cyd);
 		}
 		
 		if(mixmode == 1)
 		{
-			return (cyd_saw(accumulator) + cyd_pulse(accumulator, pw) + cyd_triangle(accumulator) + ((flags & CYD_CHN_ENABLE_1_BIT_NOISE) ? ((cyd_noise(random) >= ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 4) : (WAVE_AMP - 1) / 2)) ? ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 2) : (WAVE_AMP - 1)) : 0) : (cyd_noise(random))) + cyd_sine(accumulator, cyd)) / 5;
+			return (cyd_saw(accumulator) + cyd_pulse(accumulator, pw) + cyd_triangle(accumulator) + ((flags & CYD_CHN_ENABLE_1_BIT_NOISE) ? ((cyd_noise(random) >= ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 4) : (WAVE_AMP - 1) / 2)) ? ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 2) : (WAVE_AMP - 1)) : 0) : (cyd_noise(random))) + cyd_sine(accumulator, sine_acc_shift, cyd)) / 5;
 		}
 		
 		if(mixmode == 2)
 		{
-			return cyd_saw(accumulator) | cyd_pulse(accumulator, pw) | cyd_triangle(accumulator) | ((flags & CYD_CHN_ENABLE_1_BIT_NOISE) ? ((cyd_noise(random) >= ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 4) : (WAVE_AMP - 1) / 2)) ? ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 2) : (WAVE_AMP - 1)) : 0) : (cyd_noise(random))) | cyd_sine(accumulator, cyd);
+			return cyd_saw(accumulator) | cyd_pulse(accumulator, pw) | cyd_triangle(accumulator) | ((flags & CYD_CHN_ENABLE_1_BIT_NOISE) ? ((cyd_noise(random) >= ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 4) : (WAVE_AMP - 1) / 2)) ? ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 2) : (WAVE_AMP - 1)) : 0) : (cyd_noise(random))) | cyd_sine(accumulator, sine_acc_shift, cyd);
 		}
 		
 		if(mixmode == 3)
 		{
-			return (cyd->PulseTriSaw_8580[cyd_saw(accumulator) / 16]) & ((flags & CYD_CHN_ENABLE_1_BIT_NOISE) ? ((cyd_noise(random) >= ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 4) : (WAVE_AMP - 1) / 2)) ? ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 2) : (WAVE_AMP - 1)) : 0) : (cyd_noise(random))) & cyd_sine(accumulator, cyd);
+			return (cyd->PulseTriSaw_8580[cyd_saw(accumulator) / 16]) & ((flags & CYD_CHN_ENABLE_1_BIT_NOISE) ? ((cyd_noise(random) >= ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 4) : (WAVE_AMP - 1) / 2)) ? ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 2) : (WAVE_AMP - 1)) : 0) : (cyd_noise(random))) & cyd_sine(accumulator, sine_acc_shift, cyd);
 		}
 		
 		if(mixmode == 4)
 		{
-			return cyd_saw(accumulator) ^ cyd_pulse(accumulator, pw) ^ cyd_triangle(accumulator) ^ ((flags & CYD_CHN_ENABLE_1_BIT_NOISE) ? ((cyd_noise(random) >= ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 4) : (WAVE_AMP - 1) / 2)) ? ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 2) : (WAVE_AMP - 1)) : 0) : (cyd_noise(random))) ^ cyd_sine(accumulator, cyd);
+			return cyd_saw(accumulator) ^ cyd_pulse(accumulator, pw) ^ cyd_triangle(accumulator) ^ ((flags & CYD_CHN_ENABLE_1_BIT_NOISE) ? ((cyd_noise(random) >= ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 4) : (WAVE_AMP - 1) / 2)) ? ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 2) : (WAVE_AMP - 1)) : 0) : (cyd_noise(random))) ^ cyd_sine(accumulator, sine_acc_shift, cyd);
 		}
 		break;
 		
@@ -1098,392 +1097,392 @@ Sint32 cyd_osc(Uint32 flags, Uint32 accumulator, Uint32 pw, Uint32 random, Uint3
 		
 		if(mixmode == 0 || mixmode == 3)
 		{
-			return cyd_lfsr(lfsr_acc) & cyd_sine(accumulator, cyd);
+			return cyd_lfsr(lfsr_acc) & cyd_sine(accumulator, sine_acc_shift, cyd);
 		}
 		
 		if(mixmode == 1)
 		{
-			return (cyd_lfsr(lfsr_acc) + cyd_sine(accumulator, cyd)) / 2;
+			return (cyd_lfsr(lfsr_acc) + cyd_sine(accumulator, sine_acc_shift, cyd)) / 2;
 		}
 		
 		if(mixmode == 2)
 		{
-			return cyd_lfsr(lfsr_acc) | cyd_sine(accumulator, cyd);
+			return cyd_lfsr(lfsr_acc) | cyd_sine(accumulator, sine_acc_shift, cyd);
 		}
 		
 		if(mixmode == 4)
 		{
-			return cyd_lfsr(lfsr_acc) ^ cyd_sine(accumulator, cyd);
+			return cyd_lfsr(lfsr_acc) ^ cyd_sine(accumulator, sine_acc_shift, cyd);
 		}
 		break;
 		
 		case CYD_CHN_ENABLE_PULSE|CYD_CHN_ENABLE_LFSR|CYD_CHN_ENABLE_SINE:
 		if(mixmode == 0 || mixmode == 3)
 		{
-			return cyd_pulse(accumulator, pw) & cyd_lfsr(lfsr_acc) & cyd_sine(accumulator, cyd);
+			return cyd_pulse(accumulator, pw) & cyd_lfsr(lfsr_acc) & cyd_sine(accumulator, sine_acc_shift, cyd);
 		}
 		
 		if(mixmode == 1)
 		{
-			return (cyd_pulse(accumulator, pw) + cyd_lfsr(lfsr_acc) + cyd_sine(accumulator, cyd)) / 3;
+			return (cyd_pulse(accumulator, pw) + cyd_lfsr(lfsr_acc) + cyd_sine(accumulator, sine_acc_shift, cyd)) / 3;
 		}
 		
 		if(mixmode == 2)
 		{
-			return cyd_pulse(accumulator, pw) | cyd_lfsr(lfsr_acc) | cyd_sine(accumulator, cyd);
+			return cyd_pulse(accumulator, pw) | cyd_lfsr(lfsr_acc) | cyd_sine(accumulator, sine_acc_shift, cyd);
 		}
 		
 		if(mixmode == 4)
 		{
-			return cyd_pulse(accumulator, pw) ^ cyd_lfsr(lfsr_acc) ^ cyd_sine(accumulator, cyd);
+			return cyd_pulse(accumulator, pw) ^ cyd_lfsr(lfsr_acc) ^ cyd_sine(accumulator, sine_acc_shift, cyd);
 		}
 		break;
 		
 		case CYD_CHN_ENABLE_SAW|CYD_CHN_ENABLE_LFSR|CYD_CHN_ENABLE_SINE:
 		if(mixmode == 0 || mixmode == 3)
 		{
-			return cyd_saw(accumulator) & cyd_lfsr(lfsr_acc) & cyd_sine(accumulator, cyd);
+			return cyd_saw(accumulator) & cyd_lfsr(lfsr_acc) & cyd_sine(accumulator, sine_acc_shift, cyd);
 		}
 		
 		if(mixmode == 1)
 		{
-			return (cyd_saw(accumulator) + cyd_lfsr(lfsr_acc) + cyd_sine(accumulator, cyd)) / 3;
+			return (cyd_saw(accumulator) + cyd_lfsr(lfsr_acc) + cyd_sine(accumulator, sine_acc_shift, cyd)) / 3;
 		}
 		
 		if(mixmode == 2)
 		{
-			return cyd_saw(accumulator) | cyd_lfsr(lfsr_acc) | cyd_sine(accumulator, cyd);
+			return cyd_saw(accumulator) | cyd_lfsr(lfsr_acc) | cyd_sine(accumulator, sine_acc_shift, cyd);
 		}
 		
 		if(mixmode == 4)
 		{
-			return cyd_saw(accumulator) ^ cyd_lfsr(lfsr_acc) ^ cyd_sine(accumulator, cyd);
+			return cyd_saw(accumulator) ^ cyd_lfsr(lfsr_acc) ^ cyd_sine(accumulator, sine_acc_shift, cyd);
 		}
 		break;
 		
 		case CYD_CHN_ENABLE_TRIANGLE|CYD_CHN_ENABLE_LFSR|CYD_CHN_ENABLE_SINE:
 		if(mixmode == 0 || mixmode == 3)
 		{
-			return cyd_triangle(accumulator) & cyd_lfsr(lfsr_acc) & cyd_sine(accumulator, cyd);
+			return cyd_triangle(accumulator) & cyd_lfsr(lfsr_acc) & cyd_sine(accumulator, sine_acc_shift, cyd);
 		}
 		
 		if(mixmode == 1)
 		{
-			return (cyd_triangle(accumulator) + cyd_lfsr(lfsr_acc) + cyd_sine(accumulator, cyd)) / 3;
+			return (cyd_triangle(accumulator) + cyd_lfsr(lfsr_acc) + cyd_sine(accumulator, sine_acc_shift, cyd)) / 3;
 		}
 		
 		if(mixmode == 2)
 		{
-			return cyd_triangle(accumulator) | cyd_lfsr(lfsr_acc) | cyd_sine(accumulator, cyd);
+			return cyd_triangle(accumulator) | cyd_lfsr(lfsr_acc) | cyd_sine(accumulator, sine_acc_shift, cyd);
 		}
 		
 		if(mixmode == 4)
 		{
-			return cyd_triangle(accumulator) ^ cyd_lfsr(lfsr_acc) ^ cyd_sine(accumulator, cyd);
+			return cyd_triangle(accumulator) ^ cyd_lfsr(lfsr_acc) ^ cyd_sine(accumulator, sine_acc_shift, cyd);
 		}
 		break;
 		
 		case CYD_CHN_ENABLE_NOISE|CYD_CHN_ENABLE_LFSR|CYD_CHN_ENABLE_SINE:
 		if(mixmode == 0 || mixmode == 3)
 		{
-			return ((flags & CYD_CHN_ENABLE_1_BIT_NOISE) ? ((cyd_noise(random) >= ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 4) : (WAVE_AMP - 1) / 2)) ? ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 2) : (WAVE_AMP - 1)) : 0) : (cyd_noise(random))) & cyd_lfsr(lfsr_acc) & cyd_sine(accumulator, cyd);
+			return ((flags & CYD_CHN_ENABLE_1_BIT_NOISE) ? ((cyd_noise(random) >= ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 4) : (WAVE_AMP - 1) / 2)) ? ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 2) : (WAVE_AMP - 1)) : 0) : (cyd_noise(random))) & cyd_lfsr(lfsr_acc) & cyd_sine(accumulator, sine_acc_shift, cyd);
 		}
 		
 		if(mixmode == 1)
 		{
-			return (((flags & CYD_CHN_ENABLE_1_BIT_NOISE) ? ((cyd_noise(random) >= ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 4) : (WAVE_AMP - 1) / 2)) ? ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 2) : (WAVE_AMP - 1)) : 0) : (cyd_noise(random))) + cyd_lfsr(lfsr_acc) + cyd_sine(accumulator, cyd)) / 3;
+			return (((flags & CYD_CHN_ENABLE_1_BIT_NOISE) ? ((cyd_noise(random) >= ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 4) : (WAVE_AMP - 1) / 2)) ? ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 2) : (WAVE_AMP - 1)) : 0) : (cyd_noise(random))) + cyd_lfsr(lfsr_acc) + cyd_sine(accumulator, sine_acc_shift, cyd)) / 3;
 		}
 		
 		if(mixmode == 2)
 		{
-			return ((flags & CYD_CHN_ENABLE_1_BIT_NOISE) ? ((cyd_noise(random) >= ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 4) : (WAVE_AMP - 1) / 2)) ? ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 2) : (WAVE_AMP - 1)) : 0) : (cyd_noise(random))) | cyd_lfsr(lfsr_acc) | cyd_sine(accumulator, cyd);
+			return ((flags & CYD_CHN_ENABLE_1_BIT_NOISE) ? ((cyd_noise(random) >= ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 4) : (WAVE_AMP - 1) / 2)) ? ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 2) : (WAVE_AMP - 1)) : 0) : (cyd_noise(random))) | cyd_lfsr(lfsr_acc) | cyd_sine(accumulator, sine_acc_shift, cyd);
 		}
 		
 		if(mixmode == 4)
 		{
-			return ((flags & CYD_CHN_ENABLE_1_BIT_NOISE) ? ((cyd_noise(random) >= ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 4) : (WAVE_AMP - 1) / 2)) ? ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 2) : (WAVE_AMP - 1)) : 0) : (cyd_noise(random))) ^ cyd_lfsr(lfsr_acc) ^ cyd_sine(accumulator, cyd);
+			return ((flags & CYD_CHN_ENABLE_1_BIT_NOISE) ? ((cyd_noise(random) >= ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 4) : (WAVE_AMP - 1) / 2)) ? ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 2) : (WAVE_AMP - 1)) : 0) : (cyd_noise(random))) ^ cyd_lfsr(lfsr_acc) ^ cyd_sine(accumulator, sine_acc_shift, cyd);
 		}
 		break;
 		
 		case CYD_CHN_ENABLE_TRIANGLE|CYD_CHN_ENABLE_PULSE|CYD_CHN_ENABLE_LFSR|CYD_CHN_ENABLE_SINE:
 		if(mixmode == 0)
 		{
-			return cyd_pulse(accumulator, pw) & cyd_triangle(accumulator) & cyd_lfsr(lfsr_acc) & cyd_sine(accumulator, cyd);
+			return cyd_pulse(accumulator, pw) & cyd_triangle(accumulator) & cyd_lfsr(lfsr_acc) & cyd_sine(accumulator, sine_acc_shift, cyd);
 		}
 		
 		if(mixmode == 1)
 		{
-			return (cyd_pulse(accumulator, pw) + cyd_triangle(accumulator) + cyd_lfsr(lfsr_acc) + cyd_sine(accumulator, cyd)) / 4;
+			return (cyd_pulse(accumulator, pw) + cyd_triangle(accumulator) + cyd_lfsr(lfsr_acc) + cyd_sine(accumulator, sine_acc_shift, cyd)) / 4;
 		}
 		
 		if(mixmode == 2)
 		{
-			return cyd_pulse(accumulator, pw) | cyd_triangle(accumulator) | cyd_lfsr(lfsr_acc) | cyd_sine(accumulator, cyd);
+			return cyd_pulse(accumulator, pw) | cyd_triangle(accumulator) | cyd_lfsr(lfsr_acc) | cyd_sine(accumulator, sine_acc_shift, cyd);
 		}
 		
 		if(mixmode == 3)
 		{
-			return ((PulseTri_8580[cyd_saw(accumulator) / 8]) & cyd_pulse(accumulator, pw)) & cyd_lfsr(lfsr_acc) & cyd_sine(accumulator, cyd);
+			return ((PulseTri_8580[cyd_saw(accumulator) / 8]) & cyd_pulse(accumulator, pw)) & cyd_lfsr(lfsr_acc) & cyd_sine(accumulator, sine_acc_shift, cyd);
 		}
 		
 		if(mixmode == 4)
 		{
-			return cyd_pulse(accumulator, pw) ^ cyd_triangle(accumulator) ^ cyd_lfsr(lfsr_acc) ^ cyd_sine(accumulator, cyd);
+			return cyd_pulse(accumulator, pw) ^ cyd_triangle(accumulator) ^ cyd_lfsr(lfsr_acc) ^ cyd_sine(accumulator, sine_acc_shift, cyd);
 		}
 		break;
 		
 		case CYD_CHN_ENABLE_SAW|CYD_CHN_ENABLE_PULSE|CYD_CHN_ENABLE_LFSR|CYD_CHN_ENABLE_SINE:
 		if(mixmode == 0)
 		{
-			return cyd_pulse(accumulator, pw) & cyd_saw(accumulator) & cyd_lfsr(lfsr_acc) & cyd_sine(accumulator, cyd);
+			return cyd_pulse(accumulator, pw) & cyd_saw(accumulator) & cyd_lfsr(lfsr_acc) & cyd_sine(accumulator, sine_acc_shift, cyd);
 		}
 		
 		if(mixmode == 1)
 		{
-			return (cyd_pulse(accumulator, pw) + cyd_saw(accumulator) + cyd_lfsr(lfsr_acc) + cyd_sine(accumulator, cyd)) / 4;
+			return (cyd_pulse(accumulator, pw) + cyd_saw(accumulator) + cyd_lfsr(lfsr_acc) + cyd_sine(accumulator, sine_acc_shift, cyd)) / 4;
 		}
 		
 		if(mixmode == 2)
 		{
-			return cyd_pulse(accumulator, pw) | cyd_saw(accumulator) | cyd_lfsr(lfsr_acc) | cyd_sine(accumulator, cyd);
+			return cyd_pulse(accumulator, pw) | cyd_saw(accumulator) | cyd_lfsr(lfsr_acc) | cyd_sine(accumulator, sine_acc_shift, cyd);
 		}
 		
 		if(mixmode == 3)
 		{
-			return (cyd->PulseSaw_8580[cyd_saw(accumulator) / 16]) & cyd_lfsr(lfsr_acc) & cyd_sine(accumulator, cyd);
+			return (cyd->PulseSaw_8580[cyd_saw(accumulator) / 16]) & cyd_lfsr(lfsr_acc) & cyd_sine(accumulator, sine_acc_shift, cyd);
 		}
 		
 		if(mixmode == 4)
 		{
-			return cyd_pulse(accumulator, pw) ^ cyd_saw(accumulator) ^ cyd_lfsr(lfsr_acc) ^ cyd_sine(accumulator, cyd);
+			return cyd_pulse(accumulator, pw) ^ cyd_saw(accumulator) ^ cyd_lfsr(lfsr_acc) ^ cyd_sine(accumulator, sine_acc_shift, cyd);
 		}
 		break;
 		
 		case CYD_CHN_ENABLE_NOISE|CYD_CHN_ENABLE_PULSE|CYD_CHN_ENABLE_LFSR|CYD_CHN_ENABLE_SINE:
 		if(mixmode == 0 || mixmode == 3)
 		{
-			return cyd_pulse(accumulator, pw) & ((flags & CYD_CHN_ENABLE_1_BIT_NOISE) ? ((cyd_noise(random) >= ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 4) : (WAVE_AMP - 1) / 2)) ? ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 2) : (WAVE_AMP - 1)) : 0) : (cyd_noise(random))) & cyd_lfsr(lfsr_acc) & cyd_sine(accumulator, cyd);
+			return cyd_pulse(accumulator, pw) & ((flags & CYD_CHN_ENABLE_1_BIT_NOISE) ? ((cyd_noise(random) >= ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 4) : (WAVE_AMP - 1) / 2)) ? ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 2) : (WAVE_AMP - 1)) : 0) : (cyd_noise(random))) & cyd_lfsr(lfsr_acc) & cyd_sine(accumulator, sine_acc_shift, cyd);
 		}
 		
 		if(mixmode == 1)
 		{
-			return (cyd_pulse(accumulator, pw) + ((flags & CYD_CHN_ENABLE_1_BIT_NOISE) ? ((cyd_noise(random) >= ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 4) : (WAVE_AMP - 1) / 2)) ? ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 2) : (WAVE_AMP - 1)) : 0) : (cyd_noise(random))) + cyd_lfsr(lfsr_acc) + cyd_sine(accumulator, cyd)) / 4;
+			return (cyd_pulse(accumulator, pw) + ((flags & CYD_CHN_ENABLE_1_BIT_NOISE) ? ((cyd_noise(random) >= ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 4) : (WAVE_AMP - 1) / 2)) ? ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 2) : (WAVE_AMP - 1)) : 0) : (cyd_noise(random))) + cyd_lfsr(lfsr_acc) + cyd_sine(accumulator, sine_acc_shift, cyd)) / 4;
 		}
 		
 		if(mixmode == 2)
 		{
-			return cyd_pulse(accumulator, pw) | ((flags & CYD_CHN_ENABLE_1_BIT_NOISE) ? ((cyd_noise(random) >= ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 4) : (WAVE_AMP - 1) / 2)) ? ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 2) : (WAVE_AMP - 1)) : 0) : (cyd_noise(random))) | cyd_lfsr(lfsr_acc) | cyd_sine(accumulator, cyd);
+			return cyd_pulse(accumulator, pw) | ((flags & CYD_CHN_ENABLE_1_BIT_NOISE) ? ((cyd_noise(random) >= ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 4) : (WAVE_AMP - 1) / 2)) ? ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 2) : (WAVE_AMP - 1)) : 0) : (cyd_noise(random))) | cyd_lfsr(lfsr_acc) | cyd_sine(accumulator, sine_acc_shift, cyd);
 		}
 		
 		if(mixmode == 4)
 		{
-			return cyd_pulse(accumulator, pw) ^ ((flags & CYD_CHN_ENABLE_1_BIT_NOISE) ? ((cyd_noise(random) >= ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 4) : (WAVE_AMP - 1) / 2)) ? ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 2) : (WAVE_AMP - 1)) : 0) : (cyd_noise(random))) ^ cyd_lfsr(lfsr_acc) ^ cyd_sine(accumulator, cyd);
+			return cyd_pulse(accumulator, pw) ^ ((flags & CYD_CHN_ENABLE_1_BIT_NOISE) ? ((cyd_noise(random) >= ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 4) : (WAVE_AMP - 1) / 2)) ? ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 2) : (WAVE_AMP - 1)) : 0) : (cyd_noise(random))) ^ cyd_lfsr(lfsr_acc) ^ cyd_sine(accumulator, sine_acc_shift, cyd);
 		}
 		break;
 		
 		case CYD_CHN_ENABLE_TRIANGLE|CYD_CHN_ENABLE_SAW|CYD_CHN_ENABLE_LFSR|CYD_CHN_ENABLE_SINE:
 		if(mixmode == 0)
 		{
-			return cyd_triangle(accumulator) & cyd_saw(accumulator) & cyd_lfsr(lfsr_acc) & cyd_sine(accumulator, cyd);
+			return cyd_triangle(accumulator) & cyd_saw(accumulator) & cyd_lfsr(lfsr_acc) & cyd_sine(accumulator, sine_acc_shift, cyd);
 		}
 		
 		if(mixmode == 1)
 		{
-			return (cyd_triangle(accumulator) + cyd_saw(accumulator) + cyd_lfsr(lfsr_acc) + cyd_sine(accumulator, cyd)) / 4;
+			return (cyd_triangle(accumulator) + cyd_saw(accumulator) + cyd_lfsr(lfsr_acc) + cyd_sine(accumulator, sine_acc_shift, cyd)) / 4;
 		}
 		
 		if(mixmode == 2)
 		{
-			return cyd_triangle(accumulator) | cyd_saw(accumulator) | cyd_lfsr(lfsr_acc) | cyd_sine(accumulator, cyd);
+			return cyd_triangle(accumulator) | cyd_saw(accumulator) | cyd_lfsr(lfsr_acc) | cyd_sine(accumulator, sine_acc_shift, cyd);
 		}
 		
 		if(mixmode == 3)
 		{
-			return (cyd->TriSaw_8580[cyd_saw(accumulator) / 16]) & cyd_lfsr(lfsr_acc) & cyd_sine(accumulator, cyd);
+			return (cyd->TriSaw_8580[cyd_saw(accumulator) / 16]) & cyd_lfsr(lfsr_acc) & cyd_sine(accumulator, sine_acc_shift, cyd);
 		}
 		
 		if(mixmode == 4)
 		{
-			return cyd_triangle(accumulator) ^ cyd_saw(accumulator) ^ cyd_lfsr(lfsr_acc) ^ cyd_sine(accumulator, cyd);
+			return cyd_triangle(accumulator) ^ cyd_saw(accumulator) ^ cyd_lfsr(lfsr_acc) ^ cyd_sine(accumulator, sine_acc_shift, cyd);
 		}
 		break;
 		
 		case CYD_CHN_ENABLE_NOISE|CYD_CHN_ENABLE_SAW|CYD_CHN_ENABLE_LFSR|CYD_CHN_ENABLE_SINE:
 		if(mixmode == 0 || mixmode == 3)
 		{
-			return ((flags & CYD_CHN_ENABLE_1_BIT_NOISE) ? ((cyd_noise(random) >= ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 4) : (WAVE_AMP - 1) / 2)) ? ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 2) : (WAVE_AMP - 1)) : 0) : (cyd_noise(random))) & cyd_saw(accumulator) & cyd_lfsr(lfsr_acc) & cyd_sine(accumulator, cyd);
+			return ((flags & CYD_CHN_ENABLE_1_BIT_NOISE) ? ((cyd_noise(random) >= ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 4) : (WAVE_AMP - 1) / 2)) ? ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 2) : (WAVE_AMP - 1)) : 0) : (cyd_noise(random))) & cyd_saw(accumulator) & cyd_lfsr(lfsr_acc) & cyd_sine(accumulator, sine_acc_shift, cyd);
 		}
 		
 		if(mixmode == 1)
 		{
-			return (((flags & CYD_CHN_ENABLE_1_BIT_NOISE) ? ((cyd_noise(random) >= ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 4) : (WAVE_AMP - 1) / 2)) ? ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 2) : (WAVE_AMP - 1)) : 0) : (cyd_noise(random))) + cyd_saw(accumulator) + cyd_lfsr(lfsr_acc) + cyd_sine(accumulator, cyd)) / 4;
+			return (((flags & CYD_CHN_ENABLE_1_BIT_NOISE) ? ((cyd_noise(random) >= ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 4) : (WAVE_AMP - 1) / 2)) ? ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 2) : (WAVE_AMP - 1)) : 0) : (cyd_noise(random))) + cyd_saw(accumulator) + cyd_lfsr(lfsr_acc) + cyd_sine(accumulator, sine_acc_shift, cyd)) / 4;
 		}
 		
 		if(mixmode == 2)
 		{
-			return ((flags & CYD_CHN_ENABLE_1_BIT_NOISE) ? ((cyd_noise(random) >= ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 4) : (WAVE_AMP - 1) / 2)) ? ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 2) : (WAVE_AMP - 1)) : 0) : (cyd_noise(random))) | cyd_saw(accumulator) | cyd_lfsr(lfsr_acc) | cyd_sine(accumulator, cyd);
+			return ((flags & CYD_CHN_ENABLE_1_BIT_NOISE) ? ((cyd_noise(random) >= ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 4) : (WAVE_AMP - 1) / 2)) ? ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 2) : (WAVE_AMP - 1)) : 0) : (cyd_noise(random))) | cyd_saw(accumulator) | cyd_lfsr(lfsr_acc) | cyd_sine(accumulator, sine_acc_shift, cyd);
 		}
 		
 		if(mixmode == 4)
 		{
-			return ((flags & CYD_CHN_ENABLE_1_BIT_NOISE) ? ((cyd_noise(random) >= ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 4) : (WAVE_AMP - 1) / 2)) ? ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 2) : (WAVE_AMP - 1)) : 0) : (cyd_noise(random))) ^ cyd_saw(accumulator) ^ cyd_lfsr(lfsr_acc) ^ cyd_sine(accumulator, cyd);
+			return ((flags & CYD_CHN_ENABLE_1_BIT_NOISE) ? ((cyd_noise(random) >= ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 4) : (WAVE_AMP - 1) / 2)) ? ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 2) : (WAVE_AMP - 1)) : 0) : (cyd_noise(random))) ^ cyd_saw(accumulator) ^ cyd_lfsr(lfsr_acc) ^ cyd_sine(accumulator, sine_acc_shift, cyd);
 		}
 		break;
 		
 		case CYD_CHN_ENABLE_NOISE|CYD_CHN_ENABLE_TRIANGLE|CYD_CHN_ENABLE_LFSR|CYD_CHN_ENABLE_SINE:
 		if(mixmode == 0 || mixmode == 3)
 		{
-			return ((flags & CYD_CHN_ENABLE_1_BIT_NOISE) ? ((cyd_noise(random) >= ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 4) : (WAVE_AMP - 1) / 2)) ? ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 2) : (WAVE_AMP - 1)) : 0) : (cyd_noise(random))) & cyd_triangle(accumulator) & cyd_lfsr(lfsr_acc) & cyd_sine(accumulator, cyd);
+			return ((flags & CYD_CHN_ENABLE_1_BIT_NOISE) ? ((cyd_noise(random) >= ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 4) : (WAVE_AMP - 1) / 2)) ? ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 2) : (WAVE_AMP - 1)) : 0) : (cyd_noise(random))) & cyd_triangle(accumulator) & cyd_lfsr(lfsr_acc) & cyd_sine(accumulator, sine_acc_shift, cyd);
 		}
 		
 		if(mixmode == 1)
 		{
-			return (((flags & CYD_CHN_ENABLE_1_BIT_NOISE) ? ((cyd_noise(random) >= ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 4) : (WAVE_AMP - 1) / 2)) ? ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 2) : (WAVE_AMP - 1)) : 0) : (cyd_noise(random))) + cyd_triangle(accumulator) + cyd_lfsr(lfsr_acc) + cyd_sine(accumulator, cyd)) / 4;
+			return (((flags & CYD_CHN_ENABLE_1_BIT_NOISE) ? ((cyd_noise(random) >= ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 4) : (WAVE_AMP - 1) / 2)) ? ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 2) : (WAVE_AMP - 1)) : 0) : (cyd_noise(random))) + cyd_triangle(accumulator) + cyd_lfsr(lfsr_acc) + cyd_sine(accumulator, sine_acc_shift, cyd)) / 4;
 		}
 		
 		if(mixmode == 2)
 		{
-			return ((flags & CYD_CHN_ENABLE_1_BIT_NOISE) ? ((cyd_noise(random) >= ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 4) : (WAVE_AMP - 1) / 2)) ? ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 2) : (WAVE_AMP - 1)) : 0) : (cyd_noise(random))) | cyd_triangle(accumulator) | cyd_lfsr(lfsr_acc) | cyd_sine(accumulator, cyd);
+			return ((flags & CYD_CHN_ENABLE_1_BIT_NOISE) ? ((cyd_noise(random) >= ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 4) : (WAVE_AMP - 1) / 2)) ? ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 2) : (WAVE_AMP - 1)) : 0) : (cyd_noise(random))) | cyd_triangle(accumulator) | cyd_lfsr(lfsr_acc) | cyd_sine(accumulator, sine_acc_shift, cyd);
 		}
 		
 		if(mixmode == 4)
 		{
-			return ((flags & CYD_CHN_ENABLE_1_BIT_NOISE) ? ((cyd_noise(random) >= ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 4) : (WAVE_AMP - 1) / 2)) ? ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 2) : (WAVE_AMP - 1)) : 0) : (cyd_noise(random))) ^ cyd_triangle(accumulator) ^ cyd_lfsr(lfsr_acc) ^ cyd_sine(accumulator, cyd);
+			return ((flags & CYD_CHN_ENABLE_1_BIT_NOISE) ? ((cyd_noise(random) >= ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 4) : (WAVE_AMP - 1) / 2)) ? ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 2) : (WAVE_AMP - 1)) : 0) : (cyd_noise(random))) ^ cyd_triangle(accumulator) ^ cyd_lfsr(lfsr_acc) ^ cyd_sine(accumulator, sine_acc_shift, cyd);
 		}
 		break;
 		
 		case CYD_CHN_ENABLE_TRIANGLE|CYD_CHN_ENABLE_PULSE|CYD_CHN_ENABLE_SAW|CYD_CHN_ENABLE_LFSR|CYD_CHN_ENABLE_SINE:
 		if(mixmode == 0)
 		{
-			return cyd_pulse(accumulator, pw) & cyd_triangle(accumulator) & cyd_saw(accumulator) & cyd_lfsr(lfsr_acc) & cyd_sine(accumulator, cyd);
+			return cyd_pulse(accumulator, pw) & cyd_triangle(accumulator) & cyd_saw(accumulator) & cyd_lfsr(lfsr_acc) & cyd_sine(accumulator, sine_acc_shift, cyd);
 		}
 		
 		if(mixmode == 1)
 		{
-			return (cyd_pulse(accumulator, pw) + cyd_triangle(accumulator) + cyd_saw(accumulator) + cyd_lfsr(lfsr_acc) + cyd_sine(accumulator, cyd)) / 5;
+			return (cyd_pulse(accumulator, pw) + cyd_triangle(accumulator) + cyd_saw(accumulator) + cyd_lfsr(lfsr_acc) + cyd_sine(accumulator, sine_acc_shift, cyd)) / 5;
 		}
 		
 		if(mixmode == 2)
 		{
-			return cyd_pulse(accumulator, pw) | cyd_triangle(accumulator) | cyd_saw(accumulator) | cyd_lfsr(lfsr_acc) | cyd_sine(accumulator, cyd);
+			return cyd_pulse(accumulator, pw) | cyd_triangle(accumulator) | cyd_saw(accumulator) | cyd_lfsr(lfsr_acc) | cyd_sine(accumulator, sine_acc_shift, cyd);
 		}
 		
 		if(mixmode == 3)
 		{
-			return (cyd->PulseTriSaw_8580[cyd_saw(accumulator) / 16]) & cyd_lfsr(lfsr_acc) & cyd_sine(accumulator, cyd);
+			return (cyd->PulseTriSaw_8580[cyd_saw(accumulator) / 16]) & cyd_lfsr(lfsr_acc) & cyd_sine(accumulator, sine_acc_shift, cyd);
 		}
 		
 		if(mixmode == 4)
 		{
-			return cyd_pulse(accumulator, pw) ^ cyd_triangle(accumulator) ^ cyd_saw(accumulator) ^ cyd_lfsr(lfsr_acc) ^ cyd_sine(accumulator, cyd);
+			return cyd_pulse(accumulator, pw) ^ cyd_triangle(accumulator) ^ cyd_saw(accumulator) ^ cyd_lfsr(lfsr_acc) ^ cyd_sine(accumulator, sine_acc_shift, cyd);
 		}
 		break;
 		
 		case CYD_CHN_ENABLE_TRIANGLE|CYD_CHN_ENABLE_PULSE|CYD_CHN_ENABLE_NOISE|CYD_CHN_ENABLE_LFSR|CYD_CHN_ENABLE_SINE:
 		if(mixmode == 0)
 		{
-			return cyd_pulse(accumulator, pw) & cyd_triangle(accumulator) & ((flags & CYD_CHN_ENABLE_1_BIT_NOISE) ? ((cyd_noise(random) >= ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 4) : (WAVE_AMP - 1) / 2)) ? ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 2) : (WAVE_AMP - 1)) : 0) : (cyd_noise(random))) & cyd_lfsr(lfsr_acc) & cyd_sine(accumulator, cyd);
+			return cyd_pulse(accumulator, pw) & cyd_triangle(accumulator) & ((flags & CYD_CHN_ENABLE_1_BIT_NOISE) ? ((cyd_noise(random) >= ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 4) : (WAVE_AMP - 1) / 2)) ? ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 2) : (WAVE_AMP - 1)) : 0) : (cyd_noise(random))) & cyd_lfsr(lfsr_acc) & cyd_sine(accumulator, sine_acc_shift, cyd);
 		}
 		
 		if(mixmode == 1)
 		{
-			return (cyd_pulse(accumulator, pw) + cyd_triangle(accumulator) + ((flags & CYD_CHN_ENABLE_1_BIT_NOISE) ? ((cyd_noise(random) >= ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 4) : (WAVE_AMP - 1) / 2)) ? ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 2) : (WAVE_AMP - 1)) : 0) : (cyd_noise(random))) + cyd_lfsr(lfsr_acc) + cyd_sine(accumulator, cyd)) / 5;
+			return (cyd_pulse(accumulator, pw) + cyd_triangle(accumulator) + ((flags & CYD_CHN_ENABLE_1_BIT_NOISE) ? ((cyd_noise(random) >= ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 4) : (WAVE_AMP - 1) / 2)) ? ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 2) : (WAVE_AMP - 1)) : 0) : (cyd_noise(random))) + cyd_lfsr(lfsr_acc) + cyd_sine(accumulator, sine_acc_shift, cyd)) / 5;
 		}
 		
 		if(mixmode == 2)
 		{
-			return cyd_pulse(accumulator, pw) | cyd_triangle(accumulator) | ((flags & CYD_CHN_ENABLE_1_BIT_NOISE) ? ((cyd_noise(random) >= ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 4) : (WAVE_AMP - 1) / 2)) ? ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 2) : (WAVE_AMP - 1)) : 0) : (cyd_noise(random))) | cyd_lfsr(lfsr_acc) | cyd_sine(accumulator, cyd);
+			return cyd_pulse(accumulator, pw) | cyd_triangle(accumulator) | ((flags & CYD_CHN_ENABLE_1_BIT_NOISE) ? ((cyd_noise(random) >= ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 4) : (WAVE_AMP - 1) / 2)) ? ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 2) : (WAVE_AMP - 1)) : 0) : (cyd_noise(random))) | cyd_lfsr(lfsr_acc) | cyd_sine(accumulator, sine_acc_shift, cyd);
 		}
 		
 		if(mixmode == 3)
 		{
-			return ((PulseTri_8580[cyd_saw(accumulator) / 8]) & cyd_pulse(accumulator, pw)) & cyd_lfsr(lfsr_acc) & ((flags & CYD_CHN_ENABLE_1_BIT_NOISE) ? ((cyd_noise(random) >= ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 4) : (WAVE_AMP - 1) / 2)) ? ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 2) : (WAVE_AMP - 1)) : 0) : (cyd_noise(random))) & cyd_sine(accumulator, cyd);
+			return ((PulseTri_8580[cyd_saw(accumulator) / 8]) & cyd_pulse(accumulator, pw)) & cyd_lfsr(lfsr_acc) & ((flags & CYD_CHN_ENABLE_1_BIT_NOISE) ? ((cyd_noise(random) >= ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 4) : (WAVE_AMP - 1) / 2)) ? ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 2) : (WAVE_AMP - 1)) : 0) : (cyd_noise(random))) & cyd_sine(accumulator, sine_acc_shift, cyd);
 		}
 		
 		if(mixmode == 4)
 		{
-			return cyd_pulse(accumulator, pw) ^ cyd_triangle(accumulator) ^ ((flags & CYD_CHN_ENABLE_1_BIT_NOISE) ? ((cyd_noise(random) >= ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 4) : (WAVE_AMP - 1) / 2)) ? ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 2) : (WAVE_AMP - 1)) : 0) : (cyd_noise(random))) ^ cyd_lfsr(lfsr_acc) ^ cyd_sine(accumulator, cyd);
+			return cyd_pulse(accumulator, pw) ^ cyd_triangle(accumulator) ^ ((flags & CYD_CHN_ENABLE_1_BIT_NOISE) ? ((cyd_noise(random) >= ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 4) : (WAVE_AMP - 1) / 2)) ? ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 2) : (WAVE_AMP - 1)) : 0) : (cyd_noise(random))) ^ cyd_lfsr(lfsr_acc) ^ cyd_sine(accumulator, sine_acc_shift, cyd);
 		}
 		break;
 		
 		case CYD_CHN_ENABLE_TRIANGLE|CYD_CHN_ENABLE_NOISE|CYD_CHN_ENABLE_SAW|CYD_CHN_ENABLE_LFSR|CYD_CHN_ENABLE_SINE:
 		if(mixmode == 0)
 		{
-			return cyd_saw(accumulator) & cyd_triangle(accumulator) & ((flags & CYD_CHN_ENABLE_1_BIT_NOISE) ? ((cyd_noise(random) >= ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 4) : (WAVE_AMP - 1) / 2)) ? ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 2) : (WAVE_AMP - 1)) : 0) : (cyd_noise(random))) & cyd_lfsr(lfsr_acc) & cyd_sine(accumulator, cyd);
+			return cyd_saw(accumulator) & cyd_triangle(accumulator) & ((flags & CYD_CHN_ENABLE_1_BIT_NOISE) ? ((cyd_noise(random) >= ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 4) : (WAVE_AMP - 1) / 2)) ? ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 2) : (WAVE_AMP - 1)) : 0) : (cyd_noise(random))) & cyd_lfsr(lfsr_acc) & cyd_sine(accumulator, sine_acc_shift, cyd);
 		}
 		
 		if(mixmode == 1)
 		{
-			return (cyd_saw(accumulator) + cyd_triangle(accumulator) + ((flags & CYD_CHN_ENABLE_1_BIT_NOISE) ? ((cyd_noise(random) >= ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 4) : (WAVE_AMP - 1) / 2)) ? ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 2) : (WAVE_AMP - 1)) : 0) : (cyd_noise(random))) + cyd_lfsr(lfsr_acc) + cyd_sine(accumulator, cyd)) / 5;
+			return (cyd_saw(accumulator) + cyd_triangle(accumulator) + ((flags & CYD_CHN_ENABLE_1_BIT_NOISE) ? ((cyd_noise(random) >= ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 4) : (WAVE_AMP - 1) / 2)) ? ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 2) : (WAVE_AMP - 1)) : 0) : (cyd_noise(random))) + cyd_lfsr(lfsr_acc) + cyd_sine(accumulator, sine_acc_shift, cyd)) / 5;
 		}
 		
 		if(mixmode == 2)
 		{
-			return cyd_saw(accumulator) | cyd_triangle(accumulator) | ((flags & CYD_CHN_ENABLE_1_BIT_NOISE) ? ((cyd_noise(random) >= ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 4) : (WAVE_AMP - 1) / 2)) ? ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 2) : (WAVE_AMP - 1)) : 0) : (cyd_noise(random))) | cyd_lfsr(lfsr_acc) | cyd_sine(accumulator, cyd);
+			return cyd_saw(accumulator) | cyd_triangle(accumulator) | ((flags & CYD_CHN_ENABLE_1_BIT_NOISE) ? ((cyd_noise(random) >= ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 4) : (WAVE_AMP - 1) / 2)) ? ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 2) : (WAVE_AMP - 1)) : 0) : (cyd_noise(random))) | cyd_lfsr(lfsr_acc) | cyd_sine(accumulator, sine_acc_shift, cyd);
 		}
 		
 		if(mixmode == 3)
 		{
-			return cyd->TriSaw_8580[cyd_saw(accumulator) / 16] & cyd_lfsr(lfsr_acc) & ((flags & CYD_CHN_ENABLE_1_BIT_NOISE) ? ((cyd_noise(random) >= ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 4) : (WAVE_AMP - 1) / 2)) ? ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 2) : (WAVE_AMP - 1)) : 0) : (cyd_noise(random))) & cyd_sine(accumulator, cyd);
+			return cyd->TriSaw_8580[cyd_saw(accumulator) / 16] & cyd_lfsr(lfsr_acc) & ((flags & CYD_CHN_ENABLE_1_BIT_NOISE) ? ((cyd_noise(random) >= ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 4) : (WAVE_AMP - 1) / 2)) ? ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 2) : (WAVE_AMP - 1)) : 0) : (cyd_noise(random))) & cyd_sine(accumulator, sine_acc_shift, cyd);
 		}
 		
 		if(mixmode == 4)
 		{
-			return cyd_saw(accumulator) ^ cyd_triangle(accumulator) ^ ((flags & CYD_CHN_ENABLE_1_BIT_NOISE) ? ((cyd_noise(random) >= ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 4) : (WAVE_AMP - 1) / 2)) ? ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 2) : (WAVE_AMP - 1)) : 0) : (cyd_noise(random))) ^ cyd_lfsr(lfsr_acc) ^ cyd_sine(accumulator, cyd);
+			return cyd_saw(accumulator) ^ cyd_triangle(accumulator) ^ ((flags & CYD_CHN_ENABLE_1_BIT_NOISE) ? ((cyd_noise(random) >= ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 4) : (WAVE_AMP - 1) / 2)) ? ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 2) : (WAVE_AMP - 1)) : 0) : (cyd_noise(random))) ^ cyd_lfsr(lfsr_acc) ^ cyd_sine(accumulator, sine_acc_shift, cyd);
 		}
 		break;
 		
 		case CYD_CHN_ENABLE_PULSE|CYD_CHN_ENABLE_NOISE|CYD_CHN_ENABLE_SAW|CYD_CHN_ENABLE_LFSR|CYD_CHN_ENABLE_SINE:
 		if(mixmode == 0)
 		{
-			return cyd_pulse(accumulator, pw) & cyd_saw(accumulator) & ((flags & CYD_CHN_ENABLE_1_BIT_NOISE) ? ((cyd_noise(random) >= ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 4) : (WAVE_AMP - 1) / 2)) ? ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 2) : (WAVE_AMP - 1)) : 0) : (cyd_noise(random))) & cyd_lfsr(lfsr_acc) & cyd_sine(accumulator, cyd);
+			return cyd_pulse(accumulator, pw) & cyd_saw(accumulator) & ((flags & CYD_CHN_ENABLE_1_BIT_NOISE) ? ((cyd_noise(random) >= ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 4) : (WAVE_AMP - 1) / 2)) ? ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 2) : (WAVE_AMP - 1)) : 0) : (cyd_noise(random))) & cyd_lfsr(lfsr_acc) & cyd_sine(accumulator, sine_acc_shift, cyd);
 		}
 		
 		if(mixmode == 1)
 		{
-			return (cyd_pulse(accumulator, pw) + cyd_saw(accumulator) + ((flags & CYD_CHN_ENABLE_1_BIT_NOISE) ? ((cyd_noise(random) >= ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 4) : (WAVE_AMP - 1) / 2)) ? ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 2) : (WAVE_AMP - 1)) : 0) : (cyd_noise(random))) + cyd_lfsr(lfsr_acc) + cyd_sine(accumulator, cyd)) / 5;
+			return (cyd_pulse(accumulator, pw) + cyd_saw(accumulator) + ((flags & CYD_CHN_ENABLE_1_BIT_NOISE) ? ((cyd_noise(random) >= ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 4) : (WAVE_AMP - 1) / 2)) ? ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 2) : (WAVE_AMP - 1)) : 0) : (cyd_noise(random))) + cyd_lfsr(lfsr_acc) + cyd_sine(accumulator, sine_acc_shift, cyd)) / 5;
 		}
 		
 		if(mixmode == 2)
 		{
-			return cyd_pulse(accumulator, pw) | cyd_saw(accumulator) | ((flags & CYD_CHN_ENABLE_1_BIT_NOISE) ? ((cyd_noise(random) >= ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 4) : (WAVE_AMP - 1) / 2)) ? ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 2) : (WAVE_AMP - 1)) : 0) : (cyd_noise(random))) | cyd_lfsr(lfsr_acc) | cyd_sine(accumulator, cyd);
+			return cyd_pulse(accumulator, pw) | cyd_saw(accumulator) | ((flags & CYD_CHN_ENABLE_1_BIT_NOISE) ? ((cyd_noise(random) >= ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 4) : (WAVE_AMP - 1) / 2)) ? ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 2) : (WAVE_AMP - 1)) : 0) : (cyd_noise(random))) | cyd_lfsr(lfsr_acc) | cyd_sine(accumulator, sine_acc_shift, cyd);
 		}
 		
 		if(mixmode == 3)
 		{
-			return (cyd->PulseSaw_8580[cyd_saw(accumulator) / 16]) & cyd_lfsr(lfsr_acc) & ((flags & CYD_CHN_ENABLE_1_BIT_NOISE) ? ((cyd_noise(random) >= ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 4) : (WAVE_AMP - 1) / 2)) ? ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 2) : (WAVE_AMP - 1)) : 0) : (cyd_noise(random))) & cyd_sine(accumulator, cyd);
+			return (cyd->PulseSaw_8580[cyd_saw(accumulator) / 16]) & cyd_lfsr(lfsr_acc) & ((flags & CYD_CHN_ENABLE_1_BIT_NOISE) ? ((cyd_noise(random) >= ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 4) : (WAVE_AMP - 1) / 2)) ? ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 2) : (WAVE_AMP - 1)) : 0) : (cyd_noise(random))) & cyd_sine(accumulator, sine_acc_shift, cyd);
 		}
 		
 		if(mixmode == 4)
 		{
-			return cyd_pulse(accumulator, pw) ^ cyd_saw(accumulator) ^ ((flags & CYD_CHN_ENABLE_1_BIT_NOISE) ? ((cyd_noise(random) >= ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 4) : (WAVE_AMP - 1) / 2)) ? ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 2) : (WAVE_AMP - 1)) : 0) : (cyd_noise(random))) ^ cyd_lfsr(lfsr_acc) ^ cyd_sine(accumulator, cyd);
+			return cyd_pulse(accumulator, pw) ^ cyd_saw(accumulator) ^ ((flags & CYD_CHN_ENABLE_1_BIT_NOISE) ? ((cyd_noise(random) >= ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 4) : (WAVE_AMP - 1) / 2)) ? ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 2) : (WAVE_AMP - 1)) : 0) : (cyd_noise(random))) ^ cyd_lfsr(lfsr_acc) ^ cyd_sine(accumulator, sine_acc_shift, cyd);
 		}
 		break;
 		
 		case CYD_CHN_ENABLE_NOISE|CYD_CHN_ENABLE_SAW|CYD_CHN_ENABLE_PULSE|CYD_CHN_ENABLE_TRIANGLE|CYD_CHN_ENABLE_LFSR|CYD_CHN_ENABLE_SINE:
 		if(mixmode == 0)
 		{
-			return cyd_saw(accumulator) & cyd_pulse(accumulator, pw) & cyd_triangle(accumulator) & ((flags & CYD_CHN_ENABLE_1_BIT_NOISE) ? ((cyd_noise(random) >= ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 4) : (WAVE_AMP - 1) / 2)) ? ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 2) : (WAVE_AMP - 1)) : 0) : (cyd_noise(random))) & cyd_lfsr(lfsr_acc) & cyd_sine(accumulator, cyd);
+			return cyd_saw(accumulator) & cyd_pulse(accumulator, pw) & cyd_triangle(accumulator) & ((flags & CYD_CHN_ENABLE_1_BIT_NOISE) ? ((cyd_noise(random) >= ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 4) : (WAVE_AMP - 1) / 2)) ? ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 2) : (WAVE_AMP - 1)) : 0) : (cyd_noise(random))) & cyd_lfsr(lfsr_acc) & cyd_sine(accumulator, sine_acc_shift, cyd);
 		}
 		
 		if(mixmode == 1)
 		{
-			return (cyd_saw(accumulator) + cyd_pulse(accumulator, pw) + cyd_triangle(accumulator) + ((flags & CYD_CHN_ENABLE_1_BIT_NOISE) ? ((cyd_noise(random) >= ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 4) : (WAVE_AMP - 1) / 2)) ? ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 2) : (WAVE_AMP - 1)) : 0) : (cyd_noise(random))) + cyd_lfsr(lfsr_acc) + cyd_sine(accumulator, cyd)) / 6;
+			return (cyd_saw(accumulator) + cyd_pulse(accumulator, pw) + cyd_triangle(accumulator) + ((flags & CYD_CHN_ENABLE_1_BIT_NOISE) ? ((cyd_noise(random) >= ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 4) : (WAVE_AMP - 1) / 2)) ? ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 2) : (WAVE_AMP - 1)) : 0) : (cyd_noise(random))) + cyd_lfsr(lfsr_acc) + cyd_sine(accumulator, sine_acc_shift, cyd)) / 6;
 		}
 		
 		if(mixmode == 2)
 		{
-			return cyd_saw(accumulator) | cyd_pulse(accumulator, pw) | cyd_triangle(accumulator) | ((flags & CYD_CHN_ENABLE_1_BIT_NOISE) ? ((cyd_noise(random) >= ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 4) : (WAVE_AMP - 1) / 2)) ? ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 2) : (WAVE_AMP - 1)) : 0) : (cyd_noise(random))) | cyd_lfsr(lfsr_acc) | cyd_sine(accumulator, cyd);
+			return cyd_saw(accumulator) | cyd_pulse(accumulator, pw) | cyd_triangle(accumulator) | ((flags & CYD_CHN_ENABLE_1_BIT_NOISE) ? ((cyd_noise(random) >= ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 4) : (WAVE_AMP - 1) / 2)) ? ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 2) : (WAVE_AMP - 1)) : 0) : (cyd_noise(random))) | cyd_lfsr(lfsr_acc) | cyd_sine(accumulator, sine_acc_shift, cyd);
 		}
 		
 		if(mixmode == 3)
 		{
-			return (cyd->PulseTriSaw_8580[cyd_saw(accumulator) / 16]) & cyd_lfsr(lfsr_acc) & ((flags & CYD_CHN_ENABLE_1_BIT_NOISE) ? ((cyd_noise(random) >= ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 4) : (WAVE_AMP - 1) / 2)) ? ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 2) : (WAVE_AMP - 1)) : 0) : (cyd_noise(random))) & cyd_sine(accumulator, cyd);
+			return (cyd->PulseTriSaw_8580[cyd_saw(accumulator) / 16]) & cyd_lfsr(lfsr_acc) & ((flags & CYD_CHN_ENABLE_1_BIT_NOISE) ? ((cyd_noise(random) >= ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 4) : (WAVE_AMP - 1) / 2)) ? ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 2) : (WAVE_AMP - 1)) : 0) : (cyd_noise(random))) & cyd_sine(accumulator, sine_acc_shift, cyd);
 		}
 		
 		if(mixmode == 4)
 		{
-			return cyd_saw(accumulator) ^ cyd_pulse(accumulator, pw) ^ cyd_triangle(accumulator) ^ ((flags & CYD_CHN_ENABLE_1_BIT_NOISE) ? ((cyd_noise(random) >= ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 4) : (WAVE_AMP - 1) / 2)) ? ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 2) : (WAVE_AMP - 1)) : 0) : (cyd_noise(random))) ^ cyd_lfsr(lfsr_acc) ^ cyd_sine(accumulator, cyd);
+			return cyd_saw(accumulator) ^ cyd_pulse(accumulator, pw) ^ cyd_triangle(accumulator) ^ ((flags & CYD_CHN_ENABLE_1_BIT_NOISE) ? ((cyd_noise(random) >= ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 4) : (WAVE_AMP - 1) / 2)) ? ((flags & CYD_CHN_ENABLE_METAL) ? ((WAVE_AMP - 1) / 2) : (WAVE_AMP - 1)) : 0) : (cyd_noise(random))) ^ cyd_lfsr(lfsr_acc) ^ cyd_sine(accumulator, sine_acc_shift, cyd);
 		}
 		break;
 #endif

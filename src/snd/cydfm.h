@@ -77,6 +77,8 @@ typedef struct //wasn't there
 	
 	Sint32 trigger_delay;
 	
+	Uint8 sine_acc_shift; //0-F
+	
 	Sint32 mod[CYD_SUB_OSCS], noise_mod[CYD_SUB_OSCS], wave_mod[CYD_SUB_OSCS];
 	//Uint32 mod, noise_mod, wave_mod;
 } CydFmOp;

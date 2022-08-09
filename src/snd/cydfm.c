@@ -53,7 +53,7 @@ Uint32 get_modulator(const CydEngine *cyd, CydFm *fm) //static Uint32 get_modula
 	{
 		Uint64 acc = fm->accumulator;
 		if (fm->feedback) acc += ((Uint64)(fm->fb1 + fm->fb2) / 2 * (ACC_LENGTH * 4 / fbtab[fm->feedback]) / MODULATOR_MAX);
-		return (Uint64)cyd_osc(CYD_CHN_ENABLE_TRIANGLE, acc & (ACC_LENGTH - 1), 0, 0, 0, 0, cyd) * fm->env_output * (fm->fm_curr_tremolo + 512) / 512 * fm->fm_vol_ksl_mult / WAVE_AMP + WAVE_AMP / 2; //was return (Uint64)cyd_osc(CYD_CHN_ENABLE_TRIANGLE, acc % ACC_LENGTH, 0, 0, 0) * fm->env_output / WAVE_AMP + WAVE_AMP / 2;
+		return (Uint64)cyd_osc(CYD_CHN_ENABLE_TRIANGLE, acc & (ACC_LENGTH - 1), 0, 0, 0, 0, 0, cyd) * fm->env_output * (fm->fm_curr_tremolo + 512) / 512 * fm->fm_vol_ksl_mult / WAVE_AMP + WAVE_AMP / 2; //was return (Uint64)cyd_osc(CYD_CHN_ENABLE_TRIANGLE, acc % ACC_LENGTH, 0, 0, 0) * fm->env_output / WAVE_AMP + WAVE_AMP / 2;
 	}
 }
 

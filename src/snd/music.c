@@ -2746,7 +2746,7 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 				}
 				break;
 				
-				case MUS_FX_SET_NOISE_MODE: //wasn't there
+				case MUS_FX_EXT_SET_NOISE_MODE: //wasn't there
 				{
 					switch(ops_index)
 					{
@@ -2949,7 +2949,7 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 				}
 				break;
 				
-				case MUS_FX_OSC_MIX: //wasn't there
+				case MUS_FX_EXT_OSC_MIX: //wasn't there
 				{
 					switch(ops_index)
 					{
@@ -2995,6 +2995,36 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 
 				switch (inst & 0xfff0)
 				{
+					case MUS_FX_EXT_SINE_ACC_SHIFT:
+					{
+						switch(ops_index)
+						{
+							case 0:
+							case 0xFF:
+							{
+								cydchn->sine_acc_shift = inst & 0xF;
+								
+								if(ops_index == 0xFF)
+								{
+									for(int i = 0; i < CYD_FM_NUM_OPS; ++i)
+									{
+										cydchn->fm.ops[i].sine_acc_shift = inst & 0xF;
+									}
+								}
+								
+								break;
+							}
+							
+							default:
+							{
+								cydchn->fm.ops[ops_index - 1].sine_acc_shift = inst & 0xF;
+								
+								break;
+							}
+						}
+					}
+					break;
+					
 					case MUS_FX_EXT_FADE_VOLUME_DN:
 					{
 						switch(ops_index)

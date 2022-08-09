@@ -91,6 +91,8 @@ typedef struct
 	Uint8 base_note;
 	Sint8 finetune;
 	
+	Uint8 sine_acc_shift; //0-F
+	
 	Uint64 counter; //for general debug purposes
 } CydChannel;
 
