@@ -419,6 +419,11 @@ void mus_set_fm_op_note(MusEngine* mus, int chan, CydFm* fm, Uint32 note, int i 
 				}
 				
 				frequency = get_freq(final);
+				
+				if(s == 0)
+				{
+					mus->cyd->channel[chan].fm.ops[i].freq_for_ksl = final;
+				}
 			}
 		}
 		
@@ -5051,7 +5056,7 @@ void mus_trigger_fm_op_internal(CydFm* fm, MusInstrument* ins, CydChannel* cydch
 		//debug("last note after, %d op %d", chn->ops[i].last_note, i);
 	}
 	
-	fm->ops[i].freq_for_ksl = (Uint64)(ACC_LENGTH) / 64 * (Uint64)get_freq(chn->ops[i].last_note) / (Uint64)mus->cyd->sample_rate;
+	fm->ops[i].freq_for_ksl = get_freq(chn->ops[i].last_note);
 	//fm->ops[i].freq_for_ksl = get_freq(chn->ops[i].last_note);
 	
 	chn->ops[i].arpeggio_note = 0;
@@ -6889,29 +6894,6 @@ int mus_load_instrument_RW(Uint8 version, RWops *ctx, MusInstrument *inst, CydWa
 	
 	if(version < 32) //to account for extended command range
 	{
-		/*for(int i = 0; i < progsteps; i++)
-		{
-			if((inst->program[i] & 0xff00) == MUS_FX_JUMP)
-			{
-				if(i < 2)
-				{
-					if((inst->program[i] & 0x00ff) != i - 1)
-					{
-						inst->program_unite_bits[(i - 1) / 8] |= (1 << ((i - 1) & 7)); //wasn't there
-					}
-				}
-				
-				else
-				{
-					if(((inst->program[i] & 0x00ff) != i - 1) && !(inst->program[i - 2] & 0x8000))
-					{
-						inst->program_unite_bits[(i - 1) / 8] |= (1 << ((i - 1) & 7)); //wasn't there
-					}
-				}
-				//chn->instrument->program_unite_bits[(tick - 1) / 8] |= (1 << ((tick - 1) % 8)); //wasn't there	
-			}
-		}*/
-		
 		for(int i = 0; i < progsteps; i++)
 		{
 			if((inst->program[i] & 0xff00) != 0xfc00 && (inst->program[i] & 0xff00) != MUS_FX_LABEL && (inst->program[i] & 0xff00) != MUS_FX_LOOP && (inst->program[i] & 0xff00) != MUS_FX_JUMP)
@@ -6967,8 +6949,6 @@ int mus_load_instrument_RW(Uint8 version, RWops *ctx, MusInstrument *inst, CydWa
 				|| ((inst->program[i] & (version < 32 ? 0x7f00 : 0xff00)) == MUS_FX_PAN_RIGHT)) 
 				//to account for extended panning range
 			{
-				//debug("yay");
-				
 				Uint8 temp = inst->program[i] & 0xff;
 				inst->program[i] &= 0xff00;
 				inst->program[i] += my_min(temp * 2, 255);

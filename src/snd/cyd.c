@@ -958,16 +958,18 @@ static Sint32 cyd_output_fm_ops(CydEngine *cyd, CydChannel *chn, int chan_num, /
 		
 		Uint64 acc, noise_acc, wave_acc[CYD_SUB_OSCS];
 		
+		chn->fm.ops[i].vol_ksl_mult = chn->fm.ops[i].env_ksl_mult = 1.0;
+		
 		if((chn->fm.ops[i].flags & CYD_FM_OP_ENABLE_VOLUME_KEY_SCALING) || (chn->fm.ops[i].flags & CYD_FM_OP_ENABLE_ENVELOPE_KEY_SCALING))
 		{
 			Sint16 vol_ksl_level_final = (chn->fm.ops[i].flags & CYD_FM_OP_ENABLE_VOLUME_KEY_SCALING) ? chn->fm.ops[i].vol_ksl_level : -1;
 			
-			chn->fm.ops[i].vol_ksl_mult = (vol_ksl_level_final == -1) ? 1.0 : (pow(((Uint64)get_freq((chn->fm.ops[i].base_note << 8) + chn->fm.ops[i].finetune + chn->fm.ops[i].detune * DETUNE + coarse_detune_table[chn->fm.ops[i].coarse_detune]) * (Uint64)(ACC_LENGTH) / (Uint64)1024 / (Uint64)cyd->sample_rate + 1.0) / (chn->fm.ops[i].true_freq + 1.0), (vol_ksl_level_final == 0 ? 0 : (vol_ksl_level_final / 127.0))));
+			chn->fm.ops[i].vol_ksl_mult = (vol_ksl_level_final == -1) ? 1.0 : (pow(((Uint64)get_freq((chn->fm.ops[i].base_note << 8) + chn->fm.ops[i].finetune + chn->fm.ops[i].detune * DETUNE + coarse_detune_table[chn->fm.ops[i].coarse_detune]) / (get_freq(chn->fm.ops[i].freq_for_ksl) + 1.0)), (vol_ksl_level_final == 0 ? 0 : (vol_ksl_level_final / 127.0))));
 			//chn->fm.ops[i].vol_ksl_mult = (vol_ksl_level_final == -1) ? 1.0 : (pow((get_freq((chn->fm.ops[i].base_note << 8) + chn->fm.ops[i].finetune + chn->fm.ops[i].detune * 8 + chn->fm.ops[i].coarse_detune * 128) + 1.0) / (get_freq(chn->fm.ops[i].freq_for_ksl) + 1.0), (vol_ksl_level_final == 0 ? 0 : (vol_ksl_level_final / 127.0))));
 			
 			Sint16 env_ksl_level_final = (chn->fm.ops[i].flags & CYD_FM_OP_ENABLE_ENVELOPE_KEY_SCALING) ? chn->fm.ops[i].env_ksl_level : -1;
 			
-			chn->fm.ops[i].env_ksl_mult = (env_ksl_level_final == -1) ? 1.0 : (pow(((Uint64)get_freq((chn->fm.ops[i].base_note << 8) + chn->fm.ops[i].finetune + chn->fm.ops[i].detune * DETUNE + coarse_detune_table[chn->fm.ops[i].coarse_detune]) * (Uint64)(ACC_LENGTH) / (Uint64)1024 / (Uint64)cyd->sample_rate + 1.0) / (chn->fm.ops[i].true_freq + 1.0), (env_ksl_level_final == 0 ? 0 : (env_ksl_level_final / 127.0))));
+			chn->fm.ops[i].env_ksl_mult = (env_ksl_level_final == -1) ? 1.0 : (pow(((Uint64)get_freq((chn->fm.ops[i].base_note << 8) + chn->fm.ops[i].finetune + chn->fm.ops[i].detune * DETUNE + coarse_detune_table[chn->fm.ops[i].coarse_detune]) / (get_freq(chn->fm.ops[i].freq_for_ksl) + 1.0)), (env_ksl_level_final == 0 ? 0 : (env_ksl_level_final / 127.0))));
 			//chn->fm.ops[i].env_ksl_mult = (env_ksl_level_final == -1) ? 1.0 : (pow((get_freq((chn->fm.ops[i].base_note << 8) + chn->fm.ops[i].finetune + chn->fm.ops[i].detune * 8 + chn->fm.ops[i].coarse_detune * 128) + 1.0) / (get_freq(chn->fm.ops[i].freq_for_ksl) + 1.0), (env_ksl_level_final == 0 ? 0 : (env_ksl_level_final / 127.0))));
 			chn->fm.ops[i].env_ksl_mult = 1.0 / chn->fm.ops[i].env_ksl_mult;
 		}
@@ -1067,9 +1069,12 @@ static Sint32 cyd_output_fm_ops(CydEngine *cyd, CydChannel *chn, int chan_num, /
 						}
 					}
 				}
-				
-				ovr[sub] >>= cyd->oversample;
 			}
+		}
+		
+		for (int sub = 0; sub < CYD_SUB_OSCS; ++sub)
+		{
+			ovr[sub] >>= cyd->oversample;
 		}
 		
 		if ((chn->fm.ops[i].flags & CYD_FM_OP_ENABLE_WAVE) && chn->fm.ops[i].wave_entry->data != NULL && !(chn->fm.ops[i].flags & CYD_FM_OP_WAVE_OVERRIDE_ENV))
@@ -1081,24 +1086,19 @@ static Sint32 cyd_output_fm_ops(CydEngine *cyd, CydChannel *chn, int chan_num, /
 					cyd_wave_cycle(&chn->fm.ops[i].subosc[sub].wave, chn->fm.ops[i].wave_entry); //this works
 					
 					ovr[sub] += cyd_wave_get_sample(&chn->fm.ops[i].subosc[sub].wave, chn->fm.ops[i].wave_entry, (wave_acc[sub]) % ((chn->fm.ops[i].wave_entry->loop_end - chn->fm.ops[i].wave_entry->loop_begin) * WAVETABLE_RESOLUTION)); //this works
-					//chn->fm.ops[i].osc.wave.acc &= ACC_LENGTH - 1;
-					
-					//CydWaveAcc accumulator = chn->fm.ops[i].osc.wave.acc;
-					//ovr += cyd_wave_get_sample(&chn->fm.ops[i].osc.wave, chn->fm.ops[i].wave_entry, wave_acc);
 				}
 			}
 		}
 		
-		//chn->fm.ops[i].flags = cyd_cycle_adsr(cyd, chn->fm.ops[i].flags, 0, &chn->fm.ops[i].adsr, chn->fm.ops[i].env_ksl_mult);
 		chn->fm.ops[i].flags = cyd_cycle_fm_op_adsr(cyd, chn->fm.ops[i].flags, 0, &chn->fm.ops[i].adsr, chn->fm.ops[i].env_ksl_mult, chn->fm.ops[i].ssg_eg_type | (((chn->fm.ops[i].flags & CYD_FM_OP_ENABLE_SSG_EG) ? 1 : 0) << 3));
 		
 		for (int sub = 0; sub < CYD_SUB_OSCS; ++sub)
 		{
-			o[i][sub] = (Sint32)cyd_fm_op_env_output(cyd, chn->fm.ops[i].flags & ~(CYD_CHN_ENABLE_AY8930_BUZZ_MODE | CYD_CHN_ENABLE_YM_ENV), &chn->fm.ops[i].adsr, ovr[sub]) * (chn->fm.ops[i].curr_tremolo + 512) / 512 * ((chn->fm.ops[i].flags & CYD_FM_OP_ENABLE_VOLUME_KEY_SCALING) ? chn->fm.ops[i].vol_ksl_mult : 1);
+			o[i][sub] = (Sint32)cyd_fm_op_env_output(cyd, chn->fm.ops[i].flags & ~(CYD_CHN_ENABLE_AY8930_BUZZ_MODE | CYD_CHN_ENABLE_YM_ENV), &chn->fm.ops[i].adsr, ovr[sub]) * (chn->fm.ops[i].curr_tremolo + 512) / 512;
 			
 			if (chn->fm.ops[i].flags & CYD_FM_OP_ENABLE_RING_MODULATION)
 			{
-				o[i][sub] = cyd_fm_op_env_output(cyd, chn->fm.ops[i].flags & ~(CYD_CHN_ENABLE_AY8930_BUZZ_MODE | CYD_CHN_ENABLE_YM_ENV), &chn->fm.ops[i].adsr, ovr[sub] * (s[chn->fm.ops[i].ring_mod] + (WAVE_AMP / 2)) / WAVE_AMP) * (chn->fm.ops[i].curr_tremolo + 512) / 512 * ((chn->fm.ops[i].flags & CYD_FM_OP_ENABLE_VOLUME_KEY_SCALING) ? chn->fm.ops[i].vol_ksl_mult : 1);
+				o[i][sub] = cyd_fm_op_env_output(cyd, chn->fm.ops[i].flags & ~(CYD_CHN_ENABLE_AY8930_BUZZ_MODE | CYD_CHN_ENABLE_YM_ENV), &chn->fm.ops[i].adsr, ovr[sub] * (s[chn->fm.ops[i].ring_mod] + (WAVE_AMP / 2)) / WAVE_AMP) * (chn->fm.ops[i].curr_tremolo + 512) / 512;
 			}
 			
 			if(chn->fm.ops[i].flags & CYD_FM_OP_ENABLE_EXPONENTIAL_VOLUME)
@@ -1144,7 +1144,7 @@ static Sint32 cyd_output_fm_ops(CydEngine *cyd, CydChannel *chn, int chan_num, /
 		case 1:
 		default:
 		{
-			out = o[0][0] + o[0][1] + o[0][2];
+			out = (o[0][0] + o[0][1] + o[0][2]) * ((chn->fm.ops[0].flags & CYD_FM_OP_ENABLE_VOLUME_KEY_SCALING) ? chn->fm.ops[0].vol_ksl_mult : 1);
 			
 			for (int sub = 0; sub < CYD_SUB_OSCS; ++sub)
 			{
@@ -1178,7 +1178,7 @@ static Sint32 cyd_output_fm_ops(CydEngine *cyd, CydChannel *chn, int chan_num, /
 		
 		case 2:
 		{
-			out = o[0][0] + o[0][1] + o[0][2];
+			out = (o[0][0] + o[0][1] + o[0][2]) * ((chn->fm.ops[0].flags & CYD_FM_OP_ENABLE_VOLUME_KEY_SCALING) ? chn->fm.ops[0].vol_ksl_mult : 1);
 			
 			for (int sub = 0; sub < CYD_SUB_OSCS; ++sub)
 			{
@@ -1204,7 +1204,7 @@ static Sint32 cyd_output_fm_ops(CydEngine *cyd, CydChannel *chn, int chan_num, /
 		
 		case 3:
 		{
-			out = o[0][0] + o[0][1] + o[0][2];
+			out = (o[0][0] + o[0][1] + o[0][2]) * ((chn->fm.ops[0].flags & CYD_FM_OP_ENABLE_VOLUME_KEY_SCALING) ? chn->fm.ops[0].vol_ksl_mult : 1);
 			
 			for (int sub = 0; sub < CYD_SUB_OSCS; ++sub)
 			{
@@ -1230,7 +1230,7 @@ static Sint32 cyd_output_fm_ops(CydEngine *cyd, CydChannel *chn, int chan_num, /
 		
 		case 4:
 		{
-			out = o[0][0] + o[0][1] + o[0][2] + o[1][0] + o[1][1] + o[1][2];
+			out = (o[0][0] + o[0][1] + o[0][2]) * ((chn->fm.ops[0].flags & CYD_FM_OP_ENABLE_VOLUME_KEY_SCALING) ? chn->fm.ops[0].vol_ksl_mult : 1) + (o[1][0] + o[1][1] + o[1][2]) * ((chn->fm.ops[1].flags & CYD_FM_OP_ENABLE_VOLUME_KEY_SCALING) ? chn->fm.ops[1].vol_ksl_mult : 1);
 			
 			for (int sub = 0; sub < CYD_SUB_OSCS; ++sub)
 			{
@@ -1256,7 +1256,7 @@ static Sint32 cyd_output_fm_ops(CydEngine *cyd, CydChannel *chn, int chan_num, /
 		
 		case 5:
 		{
-			out = o[0][0] + o[0][1] + o[0][2] + o[1][0] + o[1][1] + o[1][2];
+			out = (o[0][0] + o[0][1] + o[0][2]) * ((chn->fm.ops[0].flags & CYD_FM_OP_ENABLE_VOLUME_KEY_SCALING) ? chn->fm.ops[0].vol_ksl_mult : 1) + (o[1][0] + o[1][1] + o[1][2]) * ((chn->fm.ops[1].flags & CYD_FM_OP_ENABLE_VOLUME_KEY_SCALING) ? chn->fm.ops[1].vol_ksl_mult : 1);
 			
 			for (int sub = 0; sub < CYD_SUB_OSCS; ++sub)
 			{
@@ -1290,7 +1290,7 @@ static Sint32 cyd_output_fm_ops(CydEngine *cyd, CydChannel *chn, int chan_num, /
 		
 		case 6:
 		{
-			out = o[0][0] + o[0][1] + o[0][2] + o[2][0] + o[2][1] + o[2][2];
+			out = (o[0][0] + o[0][1] + o[0][2]) * ((chn->fm.ops[0].flags & CYD_FM_OP_ENABLE_VOLUME_KEY_SCALING) ? chn->fm.ops[0].vol_ksl_mult : 1) + (o[2][0] + o[2][1] + o[2][2]) * ((chn->fm.ops[1].flags & CYD_FM_OP_ENABLE_VOLUME_KEY_SCALING) ? chn->fm.ops[1].vol_ksl_mult : 1);
 			
 			for (int sub = 0; sub < CYD_SUB_OSCS; ++sub)
 			{

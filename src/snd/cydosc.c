@@ -29,7 +29,7 @@ static inline Uint32 cyd_noise(Uint32 acc)
 
 static inline Uint32 cyd_sine(Uint32 acc, CydEngine* cyd) 
 {
-	return cyd->sine_table[65535 - cyd_saw(acc)];
+	return cyd->sine_table[cyd_saw(acc)];
 }
 
 #ifndef CYD_DISABLE_LFSR
