@@ -41,7 +41,7 @@ OTHER DEALINGS IN THE SOFTWARE.
 
 #define MUS_MAX_CHANNELS CYD_MAX_CHANNELS
 
-#define MUS_VERSION 35
+#define MUS_VERSION 36
 
 #define MUS_SONG_TITLE_LEN 255
 #define MUS_INSTRUMENT_NAME_LEN 255
@@ -86,7 +86,7 @@ typedef struct //wasn't there
 	Uint8 env_offset, program_offset; //<-----
 	
     Uint8 prog_period; 
-    Uint8 slide_speed;
+    Uint16 slide_speed;
     Uint8 tremolo_speed, tremolo_delay, tremolo_shape, tremolo_depth;
     Uint8 vibrato_speed, vibrato_delay, vibrato_shape, vibrato_depth;
     Uint8 pwm_speed, pwm_delay, pwm_shape, pwm_depth;
@@ -104,6 +104,8 @@ typedef struct //wasn't there
 	Uint8 slope;
     Uint8 flttype;
 	Uint8 trigger_delay; //how many ticks to wait after general trigger to trigger specific operator, can be very creative
+	
+	Uint8 sine_acc_shift; //0-F
 
 } MusFmOp;
 
@@ -126,7 +128,8 @@ typedef struct
 	Uint8 program_unite_bits[MUS_PROG_LEN / 8 + 1];
 	
 	Uint8 prog_period; 
-	Uint8 vibrato_speed, vibrato_depth, slide_speed, pwm_speed, pwm_depth;
+	Uint8 vibrato_speed, vibrato_depth, pwm_speed, pwm_depth;
+	Uint16 slide_speed;
 	
 	Uint8 tremolo_speed, tremolo_delay, tremolo_shape, tremolo_depth; //wasn't there
 	Uint8 pwm_delay;
@@ -169,6 +172,8 @@ typedef struct
 	Uint8 alg; //algorithm
 	
 	Uint8 fm_4op_vol; //4-op module master volume
+	
+	Uint8 sine_acc_shift; //0-F
 
 } MusInstrument;
 
@@ -337,7 +342,7 @@ typedef struct
 	Uint8 tremolo_speed, tremolo_depth; //wasn't there
 	Uint8 vibrato_speed, vibrato_depth;
 	Uint8 pwm_speed, pwm_depth; //wasn't there
-	Uint8 slide_speed;
+	Uint16 slide_speed;
 	Uint16 pw;
 } MusFmOpTrackStatus;
 

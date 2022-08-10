@@ -4954,6 +4954,7 @@ void mus_trigger_fm_op_internal(CydFm* fm, MusInstrument* ins, CydChannel* cydch
 	fm->ops[i].env_ksl_level = ins->ops[i].env_ksl_level;
 	
 	fm->ops[i].mixmode = ins->ops[i].mixmode; //wasn't there
+	fm->ops[i].sine_acc_shift = ins->ops[i].sine_acc_shift; //wasn't there
 	fm->ops[i].flt_slope = ins->ops[i].slope;
 	
 	fm->ops[i].curr_tremolo = 0;
@@ -5323,6 +5324,7 @@ int mus_trigger_instrument_internal(MusEngine* mus, int chan, MusInstrument *ins
 	cydchn->env_ksl_level = ins->env_ksl_level;
 	
 	cydchn->mixmode = ins->mixmode; //wasn't there
+	cydchn->sine_acc_shift = ins->sine_acc_shift; //wasn't there
 	cydchn->flt_slope = ins->slope;
 	
 	cydchn->curr_tremolo = 0;
@@ -6293,13 +6295,15 @@ int mus_advance_tick(void* udata)
 									if ((track_status->pattern->step[track_status->pattern_step].command[i1] & 0xff00) == MUS_FX_SLIDE)
 									{
 										ctrl |= MUS_CTRL_SLIDE | MUS_CTRL_LEGATO;
-										speed = (track_status->pattern->step[track_status->pattern_step].command[i1] & 0xff);
+										speed &= 0xf00;
+										speed |= (track_status->pattern->step[track_status->pattern_step].command[i1] & 0xff);
 										
 										if(pinst->fm_flags & CYD_FM_ENABLE_4OP)
 										{
 											for(int j = 0; j < CYD_FM_NUM_OPS; ++j)
 											{
-												speed_ops[j] = (track_status->pattern->step[track_status->pattern_step].command[i1] & 0xff);
+												speed_ops[j] &= 0xf00;
+												speed_ops[j] |= (track_status->pattern->step[track_status->pattern_step].command[i1] & 0xff);
 											}
 										}
 									}
@@ -7022,7 +7026,19 @@ int mus_load_instrument_RW(Uint8 version, RWops *ctx, MusInstrument *inst, CydWa
 		VER_READ(version, 30, 0xff, &inst->tremolo_delay, 0); //wasn't there
 	}
 	
-	_VER_READ(&inst->slide_speed, 0);
+	if(version > 35)
+	{
+		_VER_READ(&inst->slide_speed, 0);
+	}
+	
+	else
+	{
+		Uint8 temp_sl_sp = 0;
+		VER_READ(version, 1, 0xff, &temp_sl_sp, 0);
+		
+		inst->slide_speed = temp_sl_sp;
+	}
+	
 	_VER_READ(&inst->base_note, 0);
 	
 	if(version < 35)
@@ -7177,7 +7193,19 @@ int mus_load_instrument_RW(Uint8 version, RWops *ctx, MusInstrument *inst, CydWa
 			{
 				VER_READ(version, 34, 0xff, &inst->ops[i].flags, 0);
 				VER_READ(version, 34, 0xff, &inst->ops[i].cydflags, 0);
-				VER_READ(version, 34, 0xff, &inst->ops[i].slide_speed, 0);
+				
+				if(version > 35)
+				{
+					VER_READ(version, 34, 0xff, &inst->ops[i].slide_speed, 0);
+				}
+				
+				else
+				{
+					Uint8 temp_sl_sp = 0;
+					VER_READ(version, 34, 0xff, &temp_sl_sp, 0);
+					
+					inst->ops[i].slide_speed = temp_sl_sp;
+				}
 				
 				if(inst->fm_flags & CYD_FM_ENABLE_3CH_EXP_MODE)
 				{
@@ -7389,6 +7417,11 @@ int mus_load_instrument_RW(Uint8 version, RWops *ctx, MusInstrument *inst, CydWa
 	FIX_ENDIAN(inst->flags);
 	FIX_ENDIAN(inst->cydflags);
 	FIX_ENDIAN(inst->pw);
+	FIX_ENDIAN(inst->slide_speed);
+	
+	inst->sine_acc_shift = (inst->slide_speed & 0xf000) >> 12;
+	inst->slide_speed &= 0xfff;
+	
 	FIX_ENDIAN(inst->cutoff);
 	FIX_ENDIAN(inst->buzz_offset);
 
@@ -7406,6 +7439,11 @@ int mus_load_instrument_RW(Uint8 version, RWops *ctx, MusInstrument *inst, CydWa
 			FIX_ENDIAN(inst->ops[i].flags);
 			FIX_ENDIAN(inst->ops[i].cydflags);
 			FIX_ENDIAN(inst->ops[i].pw);
+			FIX_ENDIAN(inst->ops[i].slide_speed);
+			
+			inst->ops[i].sine_acc_shift = (inst->ops[i].slide_speed & 0xf000) >> 12;
+			inst->ops[i].slide_speed &= 0xfff;
+			
 			FIX_ENDIAN(inst->ops[i].cutoff);
 			
 			for (int j = 0; j < progsteps; ++j)
