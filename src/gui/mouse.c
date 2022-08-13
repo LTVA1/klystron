@@ -79,6 +79,36 @@ int check_event(const SDL_Event *event, const SDL_Rect *rect, void (*action)(voi
 	switch (event->type) 
 	{
 		case SDL_MOUSEBUTTONDOWN:
+		//case SDL_MOUSEBUTTONUP:
+		{
+			if (event->button.button == SDL_BUTTON_LEFT)
+			{
+				if ((event->button.x >= rect->x) && (event->button.y >= rect->y) 
+					&& (event->button.x < rect->x + rect->w) && (event->button.y < rect->y + rect->h))
+				{
+					if (action) 
+					{	
+						event_hit = 1;
+						set_repeat_timer(event);
+						action(param1, param2, param3);
+					}
+					return 1;
+				}
+			}
+		}
+		break;
+	}
+	
+	return 0;
+}
+
+
+int check_event_mousebuttonup(const SDL_Event *event, const SDL_Rect *rect, void (*action)(void*,void*,void*), void *param1, void *param2, void *param3)
+{
+	switch (event->type) 
+	{
+		//case SDL_MOUSEBUTTONDOWN:
+		case SDL_MOUSEBUTTONUP:
 		{
 			if (event->button.button == SDL_BUTTON_LEFT)
 			{
