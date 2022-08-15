@@ -549,6 +549,34 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 	
 	switch (inst & 0xfff0)
 	{
+		case MUS_FX_FM_4OP_MASTER_FADE_VOLUME_UP:
+		{
+			if(track_status->fm_4op_vol + (inst & 0xf) > 0xff)
+			{
+				track_status->fm_4op_vol = 0xff;
+			}
+			
+			else
+			{
+				track_status->fm_4op_vol += (inst & 0xf);
+			}
+		}
+		break;
+		
+		case MUS_FX_FM_4OP_MASTER_FADE_VOLUME_DOWN:
+		{
+			if((int)track_status->fm_4op_vol - (int)(inst & 0xf) < 0)
+			{
+				track_status->fm_4op_vol = 0;
+			}
+			
+			else
+			{
+				track_status->fm_4op_vol -= (inst & 0xf);
+			}
+		}
+		break;
+		
 		case MUS_FX_FM_WAVETABLE_OFFSET_UP_FINE:
 		{
 			if(ops_index == 0 || ops_index == 0xFF)
