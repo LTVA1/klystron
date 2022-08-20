@@ -41,7 +41,7 @@ OTHER DEALINGS IN THE SOFTWARE.
 
 #define MUS_MAX_CHANNELS CYD_MAX_CHANNELS
 
-#define MUS_VERSION 36
+#define MUS_VERSION 37
 
 #define MUS_SONG_TITLE_LEN 255
 #define MUS_INSTRUMENT_NAME_LEN 255
@@ -106,6 +106,8 @@ typedef struct //wasn't there
 	Uint8 trigger_delay; //how many ticks to wait after general trigger to trigger specific operator, can be very creative
 	
 	Uint8 sine_acc_shift; //0-F
+	
+	Uint8 num_of_macros; //how many macros operator has, 1 by default
 
 } MusFmOp;
 
@@ -174,6 +176,8 @@ typedef struct
 	Uint8 fm_4op_vol; //4-op module master volume
 	
 	Uint8 sine_acc_shift; //0-F
+	
+	Uint8 num_of_macros; //how many macros instrument has, 1 by default
 
 } MusInstrument;
 
@@ -195,6 +199,8 @@ enum
 	
 	MUS_INST_SAVE_LFO_SETTINGS = 4096,
 	MUS_INST_INVERT_TREMOLO_BIT = 8192,
+	
+	MUS_INST_SEVERAL_MACROS = 16384, //if instrument has more than 1 macro
 };
 
 enum

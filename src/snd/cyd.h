@@ -224,6 +224,7 @@ enum
 	MUS_FM_OP_INVERT_TREMOLO_BIT = 512,
 	MUS_FM_OP_DRUM = 1024,
 	MUS_FM_OP_QUARTER_FREQ = 2048,
+	MUS_FM_OP_SEVERAL_MACROS = 4096, //if operator has more than 1 macro
 };
 
 enum {

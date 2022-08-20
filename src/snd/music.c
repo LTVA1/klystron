@@ -2367,17 +2367,24 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 					
 					if(ops_index == 0xFF)
 					{
-						for(int i = 0; i < CYD_FM_NUM_OPS; ++i)
+						if(track_status->fm_4op_vol + ((inst >> 4) & 0xf) > 0xff)
 						{
-							if (!(chn->ops[i].flags & MUS_FM_OP_DISABLED))
-							{
-								track_status->ops_status[i].volume -= inst & 0xf;
-								if (track_status->ops_status[i].volume > MAX_VOLUME) track_status->ops_status[i].volume = 0;
-								track_status->ops_status[i].volume += (inst >> 4) & 0xf;
-								if (track_status->ops_status[i].volume > MAX_VOLUME) track_status->ops_status[i].volume = MAX_VOLUME;
-								
-								update_fm_op_volume(mus, track_status, chn, cydchn, track_status->ops_status[i].volume, i);
-							}
+							track_status->fm_4op_vol = 0xff;
+						}
+						
+						else
+						{
+							track_status->fm_4op_vol += ((inst >> 4) & 0xf);
+						}
+						
+						if((int)track_status->fm_4op_vol - (int)(inst & 0xf) < 0)
+						{
+							track_status->fm_4op_vol = 0;
+						}
+						
+						else
+						{
+							track_status->fm_4op_vol -= (inst & 0xf);
 						}
 					}
 					
@@ -3070,14 +3077,16 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 								
 								if(ops_index == 0xFF)
 								{
-									for(int i = 0; i < CYD_FM_NUM_OPS; ++i)
+									if(ops_index == 0xFF)
 									{
-										if (!(chn->ops[i].flags & MUS_FM_OP_DISABLED))
+										if((int)track_status->fm_4op_vol + (int)(inst & 0xf) < 0)
 										{
-											track_status->ops_status[i].volume -= inst & 0xf;
-											if (track_status->ops_status[i].volume > MAX_VOLUME) track_status->ops_status[i].volume = 0;
-											
-											update_fm_op_volume(mus, track_status, chn, cydchn, track_status->ops_status[i].volume, i);
+											track_status->fm_4op_vol = 0;
+										}
+										
+										else
+										{
+											track_status->fm_4op_vol -= (inst & 0xf);
 										}
 									}
 								}
@@ -3103,14 +3112,6 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 
 					case MUS_FX_EXT_FADE_VOLUME_UP:
 					{
-						if (!(chn->flags & MUS_CHN_DISABLED))
-						{
-							track_status->volume += inst & 0xf;
-							if (track_status->volume > MAX_VOLUME) track_status->volume = MAX_VOLUME;
-
-							update_volumes(mus, track_status, chn, cydchn, track_status->volume);
-						}
-						
 						switch(ops_index)
 						{
 							case 0:
@@ -3126,15 +3127,14 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 								
 								if(ops_index == 0xFF)
 								{
-									for(int i = 0; i < CYD_FM_NUM_OPS; ++i)
+									if(track_status->fm_4op_vol + (inst & 0xf) > 0xff)
 									{
-										if (!(chn->ops[i].flags & MUS_FM_OP_DISABLED))
-										{
-											track_status->ops_status[i].volume += inst & 0xf;
-											if (track_status->ops_status[i].volume > MAX_VOLUME) track_status->ops_status[i].volume = MAX_VOLUME;
-											
-											update_fm_op_volume(mus, track_status, chn, cydchn, track_status->ops_status[i].volume, i);
-										}
+										track_status->fm_4op_vol = 0xff;
+									}
+									
+									else
+									{
+										track_status->fm_4op_vol += (inst & 0xf);
 									}
 								}
 								
@@ -7409,31 +7409,114 @@ int mus_load_instrument_RW(Uint8 version, RWops *ctx, MusInstrument *inst, CydWa
 #ifndef CYD_DISABLE_WAVETABLE
 	if (wavetable_entries)
 	{
-		if (inst->wavetable_entry == 0xff)
+		if(version < 37)
 		{
-			inst->wavetable_entry = find_and_load_wavetable(version, ctx, wavetable_entries);
-		}
-
-		if (version >= 23)
-		{
-			if (inst->fm_wave == 0xff)
+			if (inst->wavetable_entry == 0xff)
 			{
-				inst->fm_wave = find_and_load_wavetable(version, ctx, wavetable_entries);
+				inst->wavetable_entry = find_and_load_wavetable(version, ctx, wavetable_entries);
 			}
-			
-			else if (inst->fm_wave == 0xfe)
+
+			if (version >= 23)
 			{
-				inst->fm_wave = inst->wavetable_entry;
+				if (inst->fm_wave == 0xff)
+				{
+					debug("here fm");
+					inst->fm_wave = find_and_load_wavetable(version, ctx, wavetable_entries);
+				}
+				
+				else if (inst->fm_wave == 0xfe)
+				{
+					inst->fm_wave = inst->wavetable_entry;
+				}
 			}
 		}
 		
-		if((inst->fm_flags & CYD_FM_ENABLE_4OP) && version > 33)
+		else
 		{
-			for(int i = 0; i < CYD_FM_NUM_OPS; ++i)
+			if ((inst->wavetable_entry == 0xff) && ((inst->cydflags & CYD_CHN_ENABLE_WAVE) || ((inst->fm_flags & CYD_FM_ENABLE_WAVE) && (inst->wavetable_entry == inst->fm_wave))))
 			{
-				if ((inst->ops[i].cydflags & CYD_FM_OP_ENABLE_WAVE) && inst->ops[i].wavetable_entry == 0xff)
+				inst->wavetable_entry = find_and_load_wavetable(version, ctx, wavetable_entries);
+			}
+
+			if (version >= 23)
+			{
+				if ((inst->fm_wave == 0xff) && (inst->wavetable_entry != inst->fm_wave && (inst->fm_flags & CYD_FM_ENABLE_WAVE)))
 				{
-					inst->ops[i].wavetable_entry = find_and_load_wavetable(version, ctx, wavetable_entries);
+					inst->fm_wave = find_and_load_wavetable(version, ctx, wavetable_entries);
+				}
+				
+				else if (inst->fm_wave == 0xfe)
+				{
+					inst->fm_wave = inst->wavetable_entry;
+				}
+			}
+			
+			if(inst->wavetable_entry > 0xfd)
+			{
+				inst->wavetable_entry = 0;
+			}
+			
+			if(inst->fm_wave > 0xfd)
+			{
+				inst->fm_wave = 0;
+			}
+		}
+		
+		if(version < 37)
+		{
+			if((inst->fm_flags & CYD_FM_ENABLE_4OP) && version > 33)
+			{
+				for(int i = 0; i < CYD_FM_NUM_OPS; ++i)
+				{
+					if ((inst->ops[i].cydflags & CYD_FM_OP_ENABLE_WAVE) && inst->ops[i].wavetable_entry == 0xff)
+					{
+						inst->ops[i].wavetable_entry = find_and_load_wavetable(version, ctx, wavetable_entries);
+					}
+				}
+			}
+		}
+		
+		else
+		{
+			if(inst->fm_flags & CYD_FM_ENABLE_4OP)
+			{
+				Uint8 wave_entries[CYD_FM_NUM_OPS] = { 0xFF };
+				
+				for(int i = 0; i < CYD_FM_NUM_OPS; ++i)
+				{
+					if(inst->ops[i].cydflags & CYD_FM_OP_ENABLE_WAVE)
+					{
+						wave_entries[i] = inst->ops[i].wavetable_entry;
+					}
+				}
+				
+				for(int i = 0; i < CYD_FM_NUM_OPS; ++i)
+				{
+					if (inst->ops[i].cydflags & CYD_FM_OP_ENABLE_WAVE)
+					{
+						bool need_load_wave = true;
+						
+						if(i >= 1)
+						{
+							for(int j = 0; j < i; ++j)
+							{
+								if(wave_entries[j] == wave_entries[i] && wave_entries[i] != 0xff && wave_entries[j] != 0xff && (inst->ops[j].cydflags & CYD_FM_OP_ENABLE_WAVE))
+								{
+									need_load_wave = false;
+									inst->ops[i].wavetable_entry = inst->ops[j].wavetable_entry;
+									goto end;
+								}
+							}
+						}
+						
+						end:;
+						
+						if(need_load_wave)
+						{
+							debug("here");
+							inst->ops[i].wavetable_entry = find_and_load_wavetable(version, ctx, wavetable_entries);
+						}
+					}
 				}
 			}
 		}
@@ -7445,10 +7528,14 @@ int mus_load_instrument_RW(Uint8 version, RWops *ctx, MusInstrument *inst, CydWa
 	FIX_ENDIAN(inst->flags);
 	FIX_ENDIAN(inst->cydflags);
 	FIX_ENDIAN(inst->pw);
-	FIX_ENDIAN(inst->slide_speed);
 	
-	inst->sine_acc_shift = (inst->slide_speed & 0xf000) >> 12;
-	inst->slide_speed &= 0xfff;
+	if(version >= 36)
+	{
+		FIX_ENDIAN(inst->slide_speed);
+		
+		inst->sine_acc_shift = (inst->slide_speed & 0xf000) >> 12;
+		inst->slide_speed &= 0xfff;
+	}
 	
 	FIX_ENDIAN(inst->cutoff);
 	FIX_ENDIAN(inst->buzz_offset);
@@ -7467,10 +7554,14 @@ int mus_load_instrument_RW(Uint8 version, RWops *ctx, MusInstrument *inst, CydWa
 			FIX_ENDIAN(inst->ops[i].flags);
 			FIX_ENDIAN(inst->ops[i].cydflags);
 			FIX_ENDIAN(inst->ops[i].pw);
-			FIX_ENDIAN(inst->ops[i].slide_speed);
 			
-			inst->ops[i].sine_acc_shift = (inst->ops[i].slide_speed & 0xf000) >> 12;
-			inst->ops[i].slide_speed &= 0xfff;
+			if(version >= 36)
+			{
+				FIX_ENDIAN(inst->ops[i].slide_speed);
+				
+				inst->ops[i].sine_acc_shift = (inst->ops[i].slide_speed & 0xf000) >> 12;
+				inst->ops[i].slide_speed &= 0xfff;
+			}
 			
 			FIX_ENDIAN(inst->ops[i].cutoff);
 			
@@ -8655,6 +8746,9 @@ int mus_load_song_RW(RWops *ctx, MusSong *song, CydWavetableEntry *wavetable_ent
 				}
 			}
 		}
+#ifndef STANDALONE_COMPILE
+		//optimize_duplicate_patterns(song, false);
+#endif
 
 		return 1;
 	}
