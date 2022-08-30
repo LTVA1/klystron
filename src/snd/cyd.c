@@ -314,6 +314,7 @@ void cyd_reset_wavetable(CydEngine *cyd)
 #endif
 }
 
+//from jsSID emulator
 void createCombinedWF(Uint16 wfarray[], float bitmul, float bitstrength, float treshold)
 { //I found out how the combined waveform works (neighboring bits affect each other recursively)
 	for (int i = 0; i < 4096; i++)
@@ -1787,7 +1788,7 @@ static Sint32 cyd_output(CydEngine *cyd)
 				}
 			}
 			
-			if(cyd->channel[i].fm.flags & CYD_FM_ENABLE_4OP)
+			if((cyd->channel[i].fm.flags & CYD_FM_ENABLE_4OP) && !(cyd->channel[i].fm.flags & CYD_FM_FOUROP_BYPASS_MAIN_INST_FILTER))
 			{
 				o += cyd_output_fm_ops(cyd, chn, i, s) * (int)cyd->channel[i].fm.fm_4op_vol / MAX_VOLUME;
 			}
@@ -1839,6 +1840,11 @@ static Sint32 cyd_output(CydEngine *cyd)
 				}
 			}
 #endif
+			
+			if((cyd->channel[i].fm.flags & CYD_FM_ENABLE_4OP) && (cyd->channel[i].fm.flags & CYD_FM_FOUROP_BYPASS_MAIN_INST_FILTER))
+			{
+				o += cyd_output_fm_ops(cyd, chn, i, s) * (int)cyd->channel[i].fm.fm_4op_vol / MAX_VOLUME;
+			}
 			
 #ifdef STEREOOUTPUT
 			Sint32 ol = o * chn->gain_left / CYD_STEREO_GAIN, or = o * chn->gain_right / CYD_STEREO_GAIN;
