@@ -21,6 +21,6 @@ typedef struct
 	Uint8 envelope_state;
 	Uint8 a, d, s, r; // s 0-32, adr 0-63
 	
-	Uint8 passes; //for SSG-EG
+	Uint32 passes; //for SSG-EG
 	bool direction; //envelope direction for SSG-EG; 0 means normal, 1 means inverted
 } CydFmOpAdsr;

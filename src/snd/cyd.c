@@ -113,6 +113,7 @@ static void cyd_init_channel(CydEngine *cyd, CydChannel *chn)
 		chn->subosc[s].reg4 = chn->subosc[s].reg5 = chn->subosc[s].reg9 = 1;
 	}
 	
+#ifndef CYD_DISABLE_FM	
 	if(chn->fm.flags & CYD_FM_ENABLE_4OP)
 	{
 		for (int i = 0; i < CYD_FM_NUM_OPS; ++i)
@@ -125,8 +126,7 @@ static void cyd_init_channel(CydEngine *cyd, CydChannel *chn)
 			chn->fm.ops[i].pw = 0x400;
 		}
 	}
-	
-#ifndef CYD_DISABLE_FM
+
 	cydfm_init(&chn->fm);
 #endif
 }
@@ -526,32 +526,137 @@ Uint32 cyd_cycle_fm_op_adsr(const CydEngine *eng, Uint32 flags, Uint32 ym_env_sh
 		switch (adsr->envelope_state)
 		{
 			case SUSTAIN:
-			case DONE: return flags; break;
-			
-			case ATTACK:
-			
-			if(adsr->envelope < 0xff0000)
 			{
-				adsr->envelope += adsr->env_speed;
-			}
-			
-			if (adsr->envelope >= 0xff0000) 
-			{
-				adsr->envelope_state = DECAY;
-				adsr->envelope = 0xff0000;
-
-				adsr->env_speed = envspd(eng, adsr->d);
-				
-				if(env_ksl_mult != 0.0 || env_ksl_mult != 1.0)
+				if(ssg_eg & SSG_EG_ENABLED)
 				{
-					adsr->env_speed = (int)((double)envspd(eng, adsr->d) * env_ksl_mult);
+					if(!(ssg_eg & SSG_EG_HLD))
+					{
+						if(ssg_eg & SSG_EG_ALT)
+						{
+							adsr->envelope_state = DECAY;
+							adsr->env_speed = envspd(eng, adsr->d) * SSG_EG_SPEED_MULT;
+							
+							if(env_ksl_mult != 0.0 || env_ksl_mult != 1.0)
+							{
+								adsr->env_speed = (int)((double)envspd(eng, adsr->d) * env_ksl_mult) * SSG_EG_SPEED_MULT;
+							}
+						}
+						
+						else
+						{
+							adsr->envelope_state = DECAY;
+							adsr->env_speed = envspd(eng, adsr->d) * SSG_EG_SPEED_MULT;
+							adsr->envelope = 0xff0000;
+							
+							if(env_ksl_mult != 0.0 || env_ksl_mult != 1.0)
+							{
+								adsr->env_speed = (int)((double)envspd(eng, adsr->d) * env_ksl_mult) * SSG_EG_SPEED_MULT;
+							}
+						}
+					}
+					
+					else
+					{
+						if(adsr->passes < 2)
+						{
+							adsr->envelope_state = DECAY;
+							adsr->env_speed = envspd(eng, adsr->d) * SSG_EG_SPEED_MULT;
+						}
+						
+						else
+						{
+							return flags; break;
+						}
+					}
+					
+					//if(adsr->passes < 4)
+					//{
+						adsr->passes++;
+					//}
+					
+					break;
+				}
+				
+				else
+				{
+					return flags; break;
 				}
 			}
 			
+			case DONE: return flags; break;
+			
+			case ATTACK:
+			if(ssg_eg & SSG_EG_ENABLED)
+			{
+				if(adsr->envelope < 0xff0000)
+				{
+					adsr->envelope += adsr->env_speed;
+				}
+				
+				if (adsr->envelope >= 0xff0000) 
+				{
+					adsr->envelope_state = DECAY;
+					adsr->envelope = 0xff0000;
+
+					adsr->env_speed = envspd(eng, adsr->d) * SSG_EG_SPEED_MULT;
+					
+					if(env_ksl_mult != 0.0 || env_ksl_mult != 1.0)
+					{
+						adsr->env_speed = (int)((double)envspd(eng, adsr->d) * env_ksl_mult) * SSG_EG_SPEED_MULT;
+					}
+				}
+			}
+			
+			else
+			{
+				if(adsr->envelope < 0xff0000)
+				{
+					adsr->envelope += adsr->env_speed;
+				}
+				
+				if (adsr->envelope >= 0xff0000) 
+				{
+					adsr->envelope_state = DECAY;
+					adsr->envelope = 0xff0000;
+
+					adsr->env_speed = envspd(eng, adsr->d);
+					
+					if(env_ksl_mult != 0.0 || env_ksl_mult != 1.0)
+					{
+						adsr->env_speed = (int)((double)envspd(eng, adsr->d) * env_ksl_mult);
+					}
+				}
+			}
 			break;
 			
 			case DECAY:
-
+			if(ssg_eg & SSG_EG_ENABLED)
+			{
+				if (adsr->envelope >= ((Uint32)adsr->s << 19) + adsr->env_speed)
+				//if (adsr->envelope > ((Uint32)adsr->s << 19) + adsr->env_speed)
+				{
+					adsr->envelope -= adsr->env_speed;
+				}
+				
+				else
+				{
+					adsr->envelope = (Uint32)adsr->s << 19;
+					adsr->envelope_state = SUSTAIN;
+					
+					if(env_ksl_mult == 0.0 || env_ksl_mult == 1.0)
+					{
+						adsr->env_speed = envspd(eng, adsr->r);
+					}
+					
+					else
+					{
+						adsr->env_speed = (int)((double)envspd(eng, adsr->r) * env_ksl_mult);
+					}
+				}
+			}
+			
+			else
+			{
 				if (adsr->envelope >= ((Uint32)adsr->s << 19) + adsr->env_speed)
 				//if (adsr->envelope > ((Uint32)adsr->s << 19) + adsr->env_speed)
 				{
@@ -573,7 +678,7 @@ Uint32 cyd_cycle_fm_op_adsr(const CydEngine *eng, Uint32 flags, Uint32 ym_env_sh
 						adsr->env_speed = (int)((double)envspd(eng, adsr->r) * env_ksl_mult);
 					}
 				}
-			
+			}
 			break;
 			
 			case RELEASE:
