@@ -516,12 +516,22 @@ void cyd_reset(CydEngine *cyd)
 Uint32 cyd_cycle_fm_op_adsr(const CydEngine *eng, Uint32 flags, Uint32 ym_env_shape, CydFmOpAdsr *adsr, double env_ksl_mult, Uint8 ssg_eg) //SSG-EG variable bits go like this: 0 0 0 0 EN INV ALT HLD
 { //EN means that SSG-EG is enabled; INV means start executing envelope the other way around (start from sustain level, the inversed decay then inversed attack); ALT means that every cycle you
 //change direction of envelope execution (normal is atk -> dec -> sus, inverted is sus -> dec -> atk), also means that if there was only one cycle and the bit is 1 you hold the adsr volume not on
-//sustain level, but on (MAX_SUSTAIN - sustain) level; HLD means hold, when it is 0 envelope jerk goes forever, when it is 1 you have only one pass
+//0, but on MAX_SUSTAIN level; HLD means hold, when it is 0 envelope jerk goes forever, when it is 1 you have only one pass
 
 //remember that in SSG-EG mode envelope decay should be executed 6 times faster than in normal mode (http://gendev.spritesmind.net/forum/viewtopic.php?p=5716#5716)
 //while attack speed would stay unaffected
 #ifndef CYD_DISABLE_ENVELOPE
 		// SID style ADSR envelope
+		
+		if(adsr->passes == 0 && adsr->envelope_state == ATTACK)
+		{
+			if((ssg_eg & SSG_EG_ENABLED) && (ssg_eg & SSG_EG_INV))
+			{
+				adsr->envelope_state = DECAY;
+				adsr->env_speed = envspd(eng, adsr->d) * SSG_EG_SPEED_MULT;
+				adsr->envelope = (1 << 19);
+			}
+		}
 
 		switch (adsr->envelope_state)
 		{
@@ -529,35 +539,46 @@ Uint32 cyd_cycle_fm_op_adsr(const CydEngine *eng, Uint32 flags, Uint32 ym_env_sh
 			{
 				if(ssg_eg & SSG_EG_ENABLED)
 				{
+					adsr->passes++;
+					
 					if(!(ssg_eg & SSG_EG_HLD))
 					{
-						if(ssg_eg & SSG_EG_ALT)
+						if(!(ssg_eg & SSG_EG_INV))
 						{
-							adsr->envelope_state = DECAY;
-							adsr->env_speed = envspd(eng, adsr->d) * SSG_EG_SPEED_MULT;
-							
-							if(env_ksl_mult != 0.0 || env_ksl_mult != 1.0)
+							if(ssg_eg & SSG_EG_ALT)
 							{
-								adsr->env_speed = (int)((double)envspd(eng, adsr->d) * env_ksl_mult) * SSG_EG_SPEED_MULT;
+								adsr->envelope_state = DECAY;
+								adsr->env_speed = envspd(eng, adsr->d) * SSG_EG_SPEED_MULT;
+							}
+							
+							else
+							{
+								adsr->envelope_state = DECAY;
+								adsr->env_speed = envspd(eng, adsr->d) * SSG_EG_SPEED_MULT;
+								adsr->envelope = 0xff0000;
 							}
 						}
 						
 						else
 						{
-							adsr->envelope_state = DECAY;
-							adsr->env_speed = envspd(eng, adsr->d) * SSG_EG_SPEED_MULT;
-							adsr->envelope = 0xff0000;
-							
-							if(env_ksl_mult != 0.0 || env_ksl_mult != 1.0)
+							if(ssg_eg & SSG_EG_ALT)
 							{
-								adsr->env_speed = (int)((double)envspd(eng, adsr->d) * env_ksl_mult) * SSG_EG_SPEED_MULT;
+								adsr->envelope_state = DECAY;
+								adsr->env_speed = envspd(eng, adsr->d) * SSG_EG_SPEED_MULT;
+							}
+							
+							else
+							{
+								adsr->envelope_state = DECAY;
+								adsr->env_speed = envspd(eng, adsr->d) * SSG_EG_SPEED_MULT;
+								adsr->envelope = ((Uint32)1 << 19);
 							}
 						}
 					}
 					
 					else
 					{
-						if(adsr->passes < 2)
+						if(adsr->passes < 1)
 						{
 							adsr->envelope_state = DECAY;
 							adsr->env_speed = envspd(eng, adsr->d) * SSG_EG_SPEED_MULT;
@@ -565,14 +586,17 @@ Uint32 cyd_cycle_fm_op_adsr(const CydEngine *eng, Uint32 flags, Uint32 ym_env_sh
 						
 						else
 						{
-							return flags; break;
+							if(ssg_eg & SSG_EG_ALT)
+							{
+								adsr->envelope = (ssg_eg & SSG_EG_INV) ? (1 << 19) : (0x1f << 19); return flags; break;
+							}
+							
+							else
+							{
+								return flags; break;
+							}
 						}
 					}
-					
-					//if(adsr->passes < 4)
-					//{
-						adsr->passes++;
-					//}
 					
 					break;
 				}
@@ -632,25 +656,65 @@ Uint32 cyd_cycle_fm_op_adsr(const CydEngine *eng, Uint32 flags, Uint32 ym_env_sh
 			case DECAY:
 			if(ssg_eg & SSG_EG_ENABLED)
 			{
-				if (adsr->envelope >= ((Uint32)adsr->s << 19) + adsr->env_speed)
-				//if (adsr->envelope > ((Uint32)adsr->s << 19) + adsr->env_speed)
+				if(!(ssg_eg & SSG_EG_INV))
 				{
-					adsr->envelope -= adsr->env_speed;
-				}
-				
-				else
-				{
-					adsr->envelope = (Uint32)adsr->s << 19;
-					adsr->envelope_state = SUSTAIN;
-					
-					if(env_ksl_mult == 0.0 || env_ksl_mult == 1.0)
+					if(!(adsr->passes & 1))
 					{
-						adsr->env_speed = envspd(eng, adsr->r);
+						if (adsr->envelope >= (1 << 19) + adsr->env_speed)
+						{
+							adsr->envelope -= adsr->env_speed;
+						}
+						
+						else
+						{
+							adsr->envelope = (1 << 19);
+							adsr->envelope_state = SUSTAIN;
+						}
 					}
 					
 					else
 					{
-						adsr->env_speed = (int)((double)envspd(eng, adsr->r) * env_ksl_mult);
+						if (adsr->envelope <= 0xff0000 + adsr->env_speed)
+						{
+							adsr->envelope += adsr->env_speed;
+						}
+						
+						else
+						{
+							adsr->envelope = 0xff0000;
+							adsr->envelope_state = SUSTAIN;
+						}
+					}
+				}
+				
+				else
+				{
+					if(!(adsr->passes & 1))
+					{
+						if (adsr->envelope <= 0xff0000 + adsr->env_speed)
+						{
+							adsr->envelope += adsr->env_speed;
+						}
+						
+						else
+						{
+							adsr->envelope = 0xff0000;
+							adsr->envelope_state = SUSTAIN;
+						}
+					}
+					
+					else
+					{
+						if (adsr->envelope >= (1 << 19) + adsr->env_speed)
+						{
+							adsr->envelope -= adsr->env_speed;
+						}
+						
+						else
+						{
+							adsr->envelope = (1 << 19);
+							adsr->envelope_state = SUSTAIN;
+						}
 					}
 				}
 			}
