@@ -623,11 +623,6 @@ Uint32 cyd_cycle_fm_op_adsr(const CydEngine *eng, Uint32 flags, Uint32 ym_env_sh
 					adsr->envelope = 0xff0000;
 
 					adsr->env_speed = envspd(eng, adsr->d) * SSG_EG_SPEED_MULT;
-					
-					if(env_ksl_mult != 0.0 || env_ksl_mult != 1.0)
-					{
-						adsr->env_speed = (int)((double)envspd(eng, adsr->d) * env_ksl_mult) * SSG_EG_SPEED_MULT;
-					}
 				}
 			}
 			
@@ -647,7 +642,7 @@ Uint32 cyd_cycle_fm_op_adsr(const CydEngine *eng, Uint32 flags, Uint32 ym_env_sh
 					
 					if(env_ksl_mult != 0.0 || env_ksl_mult != 1.0)
 					{
-						adsr->env_speed = (int)((double)envspd(eng, adsr->d) * env_ksl_mult);
+						adsr->env_speed = (int)((double)envspd(eng, adsr->d) * env_ksl_mult) * SSG_EG_SPEED_MULT;
 					}
 				}
 			}
@@ -674,7 +669,7 @@ Uint32 cyd_cycle_fm_op_adsr(const CydEngine *eng, Uint32 flags, Uint32 ym_env_sh
 					
 					else
 					{
-						if (adsr->envelope <= 0xff0000 + adsr->env_speed)
+						if (adsr->envelope <= 0xff0000 - adsr->env_speed)
 						{
 							adsr->envelope += adsr->env_speed;
 						}
@@ -691,7 +686,7 @@ Uint32 cyd_cycle_fm_op_adsr(const CydEngine *eng, Uint32 flags, Uint32 ym_env_sh
 				{
 					if(!(adsr->passes & 1))
 					{
-						if (adsr->envelope <= 0xff0000 + adsr->env_speed)
+						if (adsr->envelope <= 0xff0000 - adsr->env_speed)
 						{
 							adsr->envelope += adsr->env_speed;
 						}
@@ -754,6 +749,7 @@ Uint32 cyd_cycle_fm_op_adsr(const CydEngine *eng, Uint32 flags, Uint32 ym_env_sh
 				else 
 				{
 					adsr->envelope_state = DONE;
+					adsr->passes = 0;
 					if ((flags & (CYD_CHN_ENABLE_WAVE | CYD_CHN_WAVE_OVERRIDE_ENV)) != (CYD_CHN_ENABLE_WAVE | CYD_CHN_WAVE_OVERRIDE_ENV)) flags &= ~CYD_CHN_ENABLE_GATE;
 					adsr->envelope = 0;
 				}
