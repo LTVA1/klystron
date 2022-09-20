@@ -727,7 +727,7 @@ Uint32 cyd_cycle_fm_op_adsr(const CydEngine *eng, Uint32 flags, Uint32 ym_env_sh
 					adsr->envelope = (Uint32)adsr->s << 19;
 					adsr->envelope_state = (adsr->s == 0) ? RELEASE : SUSTAIN;
 					
-					if(env_ksl_mult == 0.0 && env_ksl_mult == 1.0)
+					if(env_ksl_mult == 0.0 || env_ksl_mult == 1.0)
 					{
 						adsr->env_speed = envspd(eng, adsr->r);
 					}
@@ -750,7 +750,7 @@ Uint32 cyd_cycle_fm_op_adsr(const CydEngine *eng, Uint32 flags, Uint32 ym_env_sh
 				{
 					adsr->envelope_state = DONE;
 					adsr->passes = 0;
-					if ((flags & (CYD_CHN_ENABLE_WAVE | CYD_CHN_WAVE_OVERRIDE_ENV)) != (CYD_CHN_ENABLE_WAVE | CYD_CHN_WAVE_OVERRIDE_ENV)) flags &= ~CYD_CHN_ENABLE_GATE;
+					if ((flags & (CYD_FM_OP_ENABLE_WAVE | CYD_FM_OP_WAVE_OVERRIDE_ENV)) != (CYD_FM_OP_ENABLE_WAVE | CYD_FM_OP_WAVE_OVERRIDE_ENV) && !(flags & CYD_FM_OP_ENABLE_CSM_TIMER)) flags &= ~CYD_CHN_ENABLE_GATE;
 					adsr->envelope = 0;
 				}
 				break;
@@ -1929,7 +1929,7 @@ static Sint32 cyd_output(CydEngine *cyd)
 		Sint32 o = 0;
 		
 #ifndef CYD_DISABLE_FM
-		if ((chn->flags & CYD_CHN_ENABLE_GATE) || ((cyd->channel[i].flags & CYD_CHN_ENABLE_FM) && cyd->channel[i].fm.adsr.envelope > 0) || ((cyd->channel[i].fm.flags & CYD_FM_ENABLE_4OP) && (cyd->channel[i].fm.ops[0].adsr.envelope > 0 || cyd->channel[i].fm.ops[1].adsr.envelope > 0 || cyd->channel[i].fm.ops[2].adsr.envelope > 0 || cyd->channel[i].fm.ops[3].adsr.envelope > 0)))// || (cyd->channel[i].fm.flags & CYD_FM_ENABLE_GATE)) //now no flag for fm gate
+		if ((chn->flags & CYD_CHN_ENABLE_GATE) || ((cyd->channel[i].flags & CYD_CHN_ENABLE_FM) && cyd->channel[i].fm.adsr.envelope > 0) || ((cyd->channel[i].fm.flags & CYD_FM_ENABLE_4OP) && (cyd->channel[i].fm.ops[0].adsr.envelope > 0 || cyd->channel[i].fm.ops[1].adsr.envelope > 0 || cyd->channel[i].fm.ops[2].adsr.envelope > 0 || cyd->channel[i].fm.ops[3].adsr.envelope > 0 || (cyd->channel[i].fm.ops[0].flags & CYD_FM_OP_ENABLE_GATE) || (cyd->channel[i].fm.ops[1].flags & CYD_FM_OP_ENABLE_GATE) || (cyd->channel[i].fm.ops[2].flags & CYD_FM_OP_ENABLE_GATE) || (cyd->channel[i].fm.ops[3].flags & CYD_FM_OP_ENABLE_GATE))))// || (cyd->channel[i].fm.flags & CYD_FM_ENABLE_GATE)) //now no flag for fm gate
 #else
 		if (chn->flags & CYD_CHN_ENABLE_GATE)
 #endif
@@ -1982,7 +1982,7 @@ static Sint32 cyd_output(CydEngine *cyd)
 			
 			if((cyd->channel[i].fm.flags & CYD_FM_ENABLE_4OP) && !(cyd->channel[i].fm.flags & CYD_FM_FOUROP_BYPASS_MAIN_INST_FILTER))
 			{
-				o += cyd_output_fm_ops(cyd, chn, i, s) * (int)cyd->channel[i].fm.fm_4op_vol / MAX_VOLUME;
+				o += cyd_output_fm_ops(cyd, chn, i, s) * (Sint32)cyd->channel[i].fm.fm_4op_vol / MAX_VOLUME;
 			}
 #endif
 
