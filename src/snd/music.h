@@ -108,6 +108,9 @@ typedef struct //wasn't there
 	Uint8 sine_acc_shift; //0-F
 	
 	Uint8 num_of_macros; //how many macros operator has, 1 by default
+	
+	Uint8 CSM_timer_note;
+	Sint8 CSM_timer_finetune;
 
 } MusFmOp;
 
@@ -235,6 +238,8 @@ typedef struct
 	Sint16 trigger_delay; //how many ticks to wait after general trigger to trigger specific operator, can be very creative
 	
 	Uint16 triggered_note; //note at which the op was triggered
+	
+	Uint16 CSM_timer_note;
 	
 } MusFmOpChannel;
 

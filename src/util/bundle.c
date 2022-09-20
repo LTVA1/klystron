@@ -214,6 +214,7 @@ SDL_RWops *SDL_RWFromBundle(Bundle *bundle, const char *filename)
 		
 		rwops->seek(rwops, 0, SEEK_SET);
 	}
+	
 	else
 	{
 		free(b);

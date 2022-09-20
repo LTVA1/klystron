@@ -877,6 +877,9 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 					
 					cydchn->fm.ops[op].flags &= ~CYD_FM_OP_WAVE_OVERRIDE_ENV;
 					cydchn->fm.ops[op].adsr.envelope_state = RELEASE;
+					
+					cydchn->fm.ops[op].flags &= ~CYD_FM_OP_ENABLE_GATE;
+					
 					cydchn->fm.ops[op].adsr.env_speed = envspd(cyd, cydchn->fm.ops[op].adsr.r);
 					
 					if(cydchn->fm.ops[op].env_ksl_mult != 0.0 && cydchn->fm.ops[op].env_ksl_mult != 1.0)
@@ -2220,6 +2223,9 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 				{
 					cydchn->fm.ops[ops_index - 1].flags &= ~CYD_FM_OP_WAVE_OVERRIDE_ENV;
 					cydchn->fm.ops[ops_index - 1].adsr.envelope_state = RELEASE;
+					
+					cydchn->fm.ops[ops_index - 1].flags &= ~CYD_FM_OP_ENABLE_GATE;
+					
 					cydchn->fm.ops[ops_index - 1].adsr.env_speed = envspd(cyd, cydchn->fm.ops[ops_index - 1].adsr.r);
 					
 					if(cydchn->fm.ops[ops_index - 1].env_ksl_mult != 0.0 && cydchn->fm.ops[ops_index - 1].env_ksl_mult != 1.0)
@@ -5253,6 +5259,19 @@ void mus_trigger_fm_op_internal(CydFm* fm, MusInstrument* ins, CydChannel* cydch
 	
 	mus_set_fm_op_note(mus, chan, fm, chn->ops[i].last_note, i /*op number*/, 1, 1, ins);
 	
+	if(ins->ops[i].cydflags & CYD_FM_OP_ENABLE_CSM_TIMER)
+	{
+		chn->ops[i].CSM_timer_note = ((Uint16)ins->ops[i].CSM_timer_note << 8) + ins->ops[i].CSM_timer_finetune;
+		Uint32 frequency = get_freq(chn->ops[i].CSM_timer_note);
+		
+		fm->ops[i].csm.frequency = (Uint64)(ACC_LENGTH) / (Uint64)1024 * (Uint64)(frequency) / (Uint64)mus->cyd->sample_rate;
+	}
+	
+	else
+	{
+		fm->ops[i].csm.frequency = 0;
+	}
+	
 	for (int s = 0; s < CYD_SUB_OSCS; ++s)
 	{
 		fm->ops[i].subosc[s].wave.end_offset = 0xffff;
@@ -7369,6 +7388,12 @@ int mus_load_instrument_RW(Uint8 version, RWops *ctx, MusInstrument *inst, CydWa
 				
 				VER_READ(version, 34, 0xff, &inst->ops[i].trigger_delay, 0);
 				
+				if(inst->ops[i].cydflags & CYD_FM_OP_ENABLE_CSM_TIMER)
+				{
+					VER_READ(version, 37, 0xff, &inst->ops[i].CSM_timer_note, 0);
+					VER_READ(version, 37, 0xff, &inst->ops[i].CSM_timer_finetune, 0);
+				}
+				
 				if(inst->ops[i].cydflags & CYD_FM_OP_ENABLE_FILTER)
 				{
 					VER_READ(version, 34, 0xff, &inst->ops[i].cutoff, 0);
@@ -7693,6 +7718,9 @@ void mus_get_default_instrument(MusInstrument *inst)
 		inst->ops[i].vibrato_depth = 0x20;
 		inst->ops[i].vibrato_shape = MUS_SHAPE_SINE;
 		inst->ops[i].vibrato_delay = 0;
+		
+		inst->ops[i].CSM_timer_note = MIDDLE_C;
+		inst->ops[i].CSM_timer_finetune = 0;
 		
 		for (int p = 0; p < MUS_PROG_LEN; ++p)
 		{

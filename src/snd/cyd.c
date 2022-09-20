@@ -640,9 +640,9 @@ Uint32 cyd_cycle_fm_op_adsr(const CydEngine *eng, Uint32 flags, Uint32 ym_env_sh
 
 					adsr->env_speed = envspd(eng, adsr->d);
 					
-					if(env_ksl_mult != 0.0 || env_ksl_mult != 1.0)
+					if(env_ksl_mult != 0.0 && env_ksl_mult != 1.0)
 					{
-						adsr->env_speed = (int)((double)envspd(eng, adsr->d) * env_ksl_mult) * SSG_EG_SPEED_MULT;
+						adsr->env_speed = (int)((double)envspd(eng, adsr->d) * env_ksl_mult);
 					}
 				}
 			}
@@ -727,7 +727,7 @@ Uint32 cyd_cycle_fm_op_adsr(const CydEngine *eng, Uint32 flags, Uint32 ym_env_sh
 					adsr->envelope = (Uint32)adsr->s << 19;
 					adsr->envelope_state = (adsr->s == 0) ? RELEASE : SUSTAIN;
 					
-					if(env_ksl_mult == 0.0 || env_ksl_mult == 1.0)
+					if(env_ksl_mult == 0.0 && env_ksl_mult == 1.0)
 					{
 						adsr->env_speed = envspd(eng, adsr->r);
 					}
@@ -1254,6 +1254,33 @@ static Sint32 cyd_output_fm_ops(CydEngine *cyd, CydChannel *chn, int chan_num, /
 					ovr[sub] += cyd_wave_get_sample(&chn->fm.ops[i].subosc[sub].wave, chn->fm.ops[i].wave_entry, (wave_acc[sub]) % ((chn->fm.ops[i].wave_entry->loop_end - chn->fm.ops[i].wave_entry->loop_begin) * WAVETABLE_RESOLUTION)); //this works
 				}
 			}
+		}
+		
+		if((chn->fm.ops[i].flags & CYD_FM_OP_ENABLE_CSM_TIMER) && chn->fm.ops[i].csm.frequency != 0 && (chn->fm.ops[i].flags & CYD_FM_OP_ENABLE_GATE)) //so when you trigger release it actually stops
+		{
+			chn->fm.ops[i].csm.accumulator += chn->fm.ops[i].csm.frequency;
+			
+			if(chn->fm.ops[i].csm.accumulator & ACC_LENGTH) //on every cycle:
+			{
+				for (int sub = 0; sub < CYD_SUB_OSCS; ++sub) //reset all accumulators
+				{
+					chn->fm.ops[i].subosc[sub].accumulator = 0;
+					chn->fm.ops[i].subosc[sub].noise_accumulator = 0;
+					chn->fm.ops[i].subosc[sub].wave.acc = 0;
+				}
+				
+				chn->fm.ops[i].adsr.envelope = 0xff0000; //force envelope into release state, no matter what sustain level is we start from max volume
+				chn->fm.ops[i].adsr.envelope_state = RELEASE;
+				
+				chn->fm.ops[i].adsr.env_speed = envspd(cyd, chn->fm.ops[i].adsr.r);
+				
+				if(chn->fm.ops[i].env_ksl_mult != 0.0 && chn->fm.ops[i].env_ksl_mult != 1.0)
+				{
+					chn->fm.ops[i].adsr.env_speed = (int)((double)envspd(cyd, chn->fm.ops[i].adsr.r) * chn->fm.ops[i].env_ksl_mult);
+				}
+			}
+			
+			chn->fm.ops[i].csm.accumulator &= ACC_LENGTH - 1;
 		}
 		
 		chn->fm.ops[i].flags = cyd_cycle_fm_op_adsr(cyd, chn->fm.ops[i].flags, 0, &chn->fm.ops[i].adsr, chn->fm.ops[i].env_ksl_mult, chn->fm.ops[i].ssg_eg_type | (((chn->fm.ops[i].flags & CYD_FM_OP_ENABLE_SSG_EG) ? 1 : 0) << 3));
@@ -2500,6 +2527,9 @@ void cyd_enable_gate(CydEngine *cyd, CydChannel *chn, Uint8 enable)
 			{
 				chn->fm.ops[i].flags &= ~CYD_FM_OP_WAVE_OVERRIDE_ENV;
 				chn->fm.ops[i].adsr.envelope_state = RELEASE;
+				
+				chn->fm.ops[i].flags &= ~CYD_FM_OP_ENABLE_GATE;
+				
 				chn->fm.ops[i].adsr.env_speed = envspd(cyd, chn->fm.ops[i].adsr.r);
 				
 				if(chn->fm.ops[i].env_ksl_mult != 0.0 && chn->fm.ops[i].env_ksl_mult != 1.0)

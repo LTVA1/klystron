@@ -15,6 +15,13 @@ const static Uint32 coarse_detune_table[] = { 0, 256 * 6 + 30, 256 * 8 - 40, 256
 
 typedef struct //wasn't there
 {
+	Uint32 accumulator;
+	Uint32 frequency;
+
+} Cyd_CSM_timer;
+
+typedef struct //wasn't there
+{
 	Sint32 input, output;
 
 	Uint8 harmonic; //freq mult
@@ -76,6 +83,8 @@ typedef struct //wasn't there
 	Uint8 coarse_detune; //OPM DT2, 0..3
 	
 	Sint32 trigger_delay;
+	
+	Cyd_CSM_timer csm; //each time acc overflows (each cycle) oscillator phase is rest, and envelope is put into release state starting from max sustain level (so ADSR doesn't give you volume control, only volume param does)
 	
 	Uint8 sine_acc_shift; //0-F
 	
