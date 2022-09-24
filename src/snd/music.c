@@ -6137,6 +6137,19 @@ static void mus_advance_channel(MusEngine* mus, int chan)
 			//mus_set_note(mus, chan, note, 0, ins->flags & MUS_INST_QUARTER_FREQ ? 4 : 1);
 			mus_set_fm_op_note(mus, chan, &cydchn->fm, note_ops, i, 0, 1, ins);
 			
+			if(chn->instrument)
+			{
+				if((chn->instrument->ops[i].flags & MUS_FM_OP_LINK_CSM_TIMER_NOTE) && (cydchn->fm.ops[i].flags & CYD_FM_OP_ENABLE_CSM_TIMER))
+				{
+					debug("ff");
+					mus->channel[chan].ops[i].CSM_timer_note = ((chn->instrument->ops[i].CSM_timer_note << 8) + chn->instrument->ops[i].CSM_timer_finetune) + note_ops - ((cydchn->fm.flags & CYD_FM_ENABLE_3CH_EXP_MODE) ? ((chn->instrument->ops[i].base_note << 8) + chn->instrument->ops[i].finetune) : ((chn->instrument->base_note << 8) + chn->instrument->finetune));
+					
+					Uint32 frequency = get_freq(chn->ops[i].CSM_timer_note);
+					
+					cydchn->fm.ops[i].csm.frequency = (Uint64)(ACC_LENGTH) / (Uint64)1024 * (Uint64)(frequency) / (Uint64)mus->cyd->sample_rate;
+				}
+			}
+			
 			if(track_status->ops_status[i].tremolo_delay == 0)
 			{
 				cydchn->fm.ops[i].prev_tremolo = cydchn->fm.ops[i].tremolo;
