@@ -6141,7 +6141,7 @@ static void mus_advance_channel(MusEngine* mus, int chan)
 			{
 				if((chn->instrument->ops[i].flags & MUS_FM_OP_LINK_CSM_TIMER_NOTE) && (cydchn->fm.ops[i].flags & CYD_FM_OP_ENABLE_CSM_TIMER))
 				{
-					debug("ff");
+					//debug("ff");
 					mus->channel[chan].ops[i].CSM_timer_note = ((chn->instrument->ops[i].CSM_timer_note << 8) + chn->instrument->ops[i].CSM_timer_finetune) + note_ops - ((cydchn->fm.flags & CYD_FM_ENABLE_3CH_EXP_MODE) ? ((chn->instrument->ops[i].base_note << 8) + chn->instrument->ops[i].finetune) : ((chn->instrument->base_note << 8) + chn->instrument->finetune));
 					
 					Uint32 frequency = get_freq(chn->ops[i].CSM_timer_note);
