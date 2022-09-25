@@ -864,6 +864,90 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 
 	switch (inst & 0xff00)
 	{
+		case MUS_FX_CSM_TIMER_PORTA_UP:
+		{
+			if(ops_index == 0xFF || ops_index == 0)
+			{
+				if(ops_index == 0xFF)
+				{
+					for(int i = 0; i < CYD_FM_NUM_OPS; ++i)
+					{
+						if(cydchn->fm.ops[i].flags & CYD_FM_OP_ENABLE_CSM_TIMER)
+						{
+							if((Uint32)chn->ops[i].CSM_timer_note + (inst & 0xff) <= (FREQ_TAB_SIZE << 8))
+							{
+								chn->ops[i].CSM_timer_note += (inst & 0xff);
+							}
+							
+							else
+							{
+								chn->ops[i].CSM_timer_note = (FREQ_TAB_SIZE << 8);
+							}
+						}
+					}
+				}
+			}
+			
+			else
+			{
+				if(cydchn->fm.ops[ops_index - 1].flags & CYD_FM_OP_ENABLE_CSM_TIMER)
+				{
+					if((Uint32)chn->ops[ops_index - 1].CSM_timer_note + (inst & 0xff) <= (FREQ_TAB_SIZE << 8))
+					{
+						chn->ops[ops_index - 1].CSM_timer_note += (inst & 0xff);
+					}
+					
+					else
+					{
+						chn->ops[ops_index - 1].CSM_timer_note = (FREQ_TAB_SIZE << 8);
+					}
+				}
+			}
+		}
+		break;
+		
+		case MUS_FX_CSM_TIMER_PORTA_DN:
+		{
+			if(ops_index == 0xFF || ops_index == 0)
+			{
+				if(ops_index == 0xFF)
+				{
+					for(int i = 0; i < CYD_FM_NUM_OPS; ++i)
+					{
+						if(cydchn->fm.ops[i].flags & CYD_FM_OP_ENABLE_CSM_TIMER)
+						{
+							if((Sint32)chn->ops[i].CSM_timer_note - (inst & 0xff) > 0)
+							{
+								chn->ops[i].CSM_timer_note -= (inst & 0xff);
+							}
+							
+							else
+							{
+								chn->ops[i].CSM_timer_note = 0;
+							}
+						}
+					}
+				}
+			}
+			
+			else
+			{
+				if(cydchn->fm.ops[ops_index - 1].flags & CYD_FM_OP_ENABLE_CSM_TIMER)
+				{
+					if((Sint32)chn->ops[ops_index - 1].CSM_timer_note - (inst & 0xff) > 0)
+					{
+						chn->ops[ops_index - 1].CSM_timer_note -= (inst & 0xff);
+					}
+					
+					else
+					{
+						chn->ops[ops_index - 1].CSM_timer_note = 0;
+					}
+				}
+			}
+		}
+		break;
+		
 		case MUS_FX_FM_TRIGGER_OP1_RELEASE:
 		case MUS_FX_FM_TRIGGER_OP2_RELEASE:
 		case MUS_FX_FM_TRIGGER_OP3_RELEASE:
@@ -1797,7 +1881,7 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 				{
 					Uint32 prev = chn->note;
 					chn->note += ((inst & 0xff) << 2);
-					if (prev > chn->note) chn->note = 0xfffff;
+					if (prev > chn->note) chn->note = 0xffff;
 
 					mus_set_slide(mus, chan, chn->note);
 					
@@ -1807,7 +1891,7 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 						{
 							Uint32 prev = chn->ops[i].note;
 							chn->ops[i].note += ((inst & 0xff) << 2);
-							if (prev > chn->ops[i].note) chn->ops[i].note = 0xfffff;
+							if (prev > chn->ops[i].note) chn->ops[i].note = 0xffff;
 							
 							chn->ops[i].target_note = chn->ops[i].note;
 						}
@@ -1820,7 +1904,7 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 				{
 					Uint32 prev = chn->ops[ops_index - 1].note;
 					chn->ops[ops_index - 1].note += ((inst & 0xff) << 2);
-					if (prev > chn->ops[ops_index - 1].note) chn->ops[ops_index - 1].note = 0xfffff;
+					if (prev > chn->ops[ops_index - 1].note) chn->ops[ops_index - 1].note = 0xffff;
 					
 					chn->ops[ops_index - 1].target_note = chn->ops[ops_index - 1].note;
 					
@@ -1881,7 +1965,7 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 				{
 					Uint32 prev = chn->note;
 					chn->note += my_max(1, ((Uint64)frequency_table[MIDDLE_C] * (Uint64)(inst & 0xff) / (Uint64)get_freq(chn->note)));
-					if (prev > chn->note) chn->note = 0xfffff;
+					if (prev > chn->note) chn->note = 0xffff;
 					
 					mus_set_slide(mus, chan, chn->note);
 					
@@ -1891,7 +1975,7 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 						{
 							Uint32 prev = chn->ops[i].note;
 							chn->ops[i].note += my_max(1, ((Uint64)frequency_table[MIDDLE_C] * (Uint64)(inst & 0xff) / (Uint64)get_freq(chn->ops[i].note)));
-							if (prev > chn->ops[i].note) chn->ops[i].note = 0xfffff;
+							if (prev > chn->ops[i].note) chn->ops[i].note = 0xffff;
 							
 							chn->ops[i].target_note = chn->ops[i].note;
 						}
@@ -1904,7 +1988,7 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 				{
 					Uint32 prev = chn->ops[ops_index - 1].note;
 					chn->ops[ops_index - 1].note += my_max(1, ((Uint64)frequency_table[MIDDLE_C] * (Uint64)(inst & 0xff) / (Uint64)get_freq(chn->ops[ops_index - 1].note)));
-					if (prev > chn->ops[ops_index - 1].note) chn->ops[ops_index - 1].note = 0xfffff;
+					if (prev > chn->ops[ops_index - 1].note) chn->ops[ops_index - 1].note = 0xffff;
 					
 					chn->ops[ops_index - 1].target_note = chn->ops[ops_index - 1].note;
 					
@@ -3172,7 +3256,7 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 							{
 								Uint32 prev = chn->note;
 								chn->note += (inst & 0xf);
-								if (prev > chn->note) chn->note = 0xfffff;
+								if (prev > chn->note) chn->note = 0xffff;
 
 								mus_set_slide(mus, chan, chn->note);
 								
@@ -3182,7 +3266,7 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 									{
 										Uint32 prev = chn->ops[i].note;
 										chn->ops[i].note += (inst & 0xf);
-										if (prev > chn->ops[i].note) chn->ops[i].note = 0xfffff;
+										if (prev > chn->ops[i].note) chn->ops[i].note = 0xffff;
 										
 										chn->ops[i].target_note = chn->ops[i].note;
 									}
@@ -3195,7 +3279,7 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 							{
 								Uint32 prev = chn->ops[ops_index - 1].note;
 								chn->ops[ops_index - 1].note += (inst & 0xf);
-								if (prev > chn->ops[ops_index - 1].note) chn->ops[ops_index - 1].note = 0xfffff;
+								if (prev > chn->ops[ops_index - 1].note) chn->ops[ops_index - 1].note = 0xffff;
 								
 								chn->ops[ops_index - 1].target_note = chn->ops[ops_index - 1].note;
 								
@@ -3399,6 +3483,46 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 
 			switch (inst & 0xff00)
 			{
+				case MUS_FX_SET_CSM_TIMER_NOTE:
+				{
+					if(ops_index == 0xFF || ops_index == 0)
+					{
+						if(ops_index == 0xFF)
+						{
+							for(int i = 0; i < CYD_FM_NUM_OPS; ++i)
+							{
+								chn->ops[i].CSM_timer_note = (chn->ops[i].CSM_timer_note & 0x00ff) | ((inst & 0xff) << 8);
+							}
+						}
+					}
+					
+					else
+					{
+						chn->ops[ops_index - 1].CSM_timer_note = (chn->ops[ops_index - 1].CSM_timer_note & 0x00ff) | ((inst & 0xff) << 8);
+					}
+				}
+				break;
+				
+				case MUS_FX_SET_CSM_TIMER_FINETUNE:
+				{
+					if(ops_index == 0xFF || ops_index == 0)
+					{
+						if(ops_index == 0xFF)
+						{
+							for(int i = 0; i < CYD_FM_NUM_OPS; ++i)
+							{
+								chn->ops[i].CSM_timer_note = (chn->ops[i].CSM_timer_note & 0xff00) | (inst & 0xff);
+							}
+						}
+					}
+					
+					else
+					{
+						chn->ops[ops_index - 1].CSM_timer_note = (chn->ops[ops_index - 1].CSM_timer_note & 0x00ff) | (inst & 0xff);
+					}
+				}
+				break;
+				
 				case MUS_FX_FM_SET_4OP_ALGORITHM:
 				{
 					if(ops_index == 0xFF || ops_index == 0)
@@ -5267,7 +5391,16 @@ void mus_trigger_fm_op_internal(CydFm* fm, MusInstrument* ins, CydChannel* cydch
 		fm->ops[i].csm.frequency = (Uint64)(ACC_LENGTH) / (Uint64)1024 * (Uint64)(frequency) / (Uint64)mus->cyd->sample_rate;
 	}
 	
-	else
+	if((ins->ops[i].flags & MUS_FM_OP_LINK_CSM_TIMER_NOTE) && (ins->ops[i].cydflags & CYD_FM_OP_ENABLE_CSM_TIMER))
+	{
+		chn->ops[i].CSM_timer_note = ((ins->ops[i].CSM_timer_note << 8) + ins->ops[i].CSM_timer_finetune) + chn->ops[i].note - ((cydchn->fm.flags & CYD_FM_ENABLE_3CH_EXP_MODE) ? ((ins->ops[i].base_note << 8) + ins->ops[i].finetune) : ((ins->base_note << 8) + ins->finetune));
+		
+		Uint32 frequency = get_freq(chn->ops[i].CSM_timer_note);
+		
+		cydchn->fm.ops[i].csm.frequency = (Uint64)(ACC_LENGTH) / (Uint64)1024 * (Uint64)(frequency) / (Uint64)mus->cyd->sample_rate;
+	}
+	
+	if(!(ins->ops[i].cydflags & CYD_FM_OP_ENABLE_CSM_TIMER))
 	{
 		fm->ops[i].csm.frequency = 0;
 	}
@@ -6137,17 +6270,11 @@ static void mus_advance_channel(MusEngine* mus, int chan)
 			//mus_set_note(mus, chan, note, 0, ins->flags & MUS_INST_QUARTER_FREQ ? 4 : 1);
 			mus_set_fm_op_note(mus, chan, &cydchn->fm, note_ops, i, 0, 1, ins);
 			
-			if(chn->instrument)
+			if(cydchn->fm.ops[i].flags & CYD_FM_OP_ENABLE_CSM_TIMER)
 			{
-				if((chn->instrument->ops[i].flags & MUS_FM_OP_LINK_CSM_TIMER_NOTE) && (cydchn->fm.ops[i].flags & CYD_FM_OP_ENABLE_CSM_TIMER))
-				{
-					//debug("ff");
-					mus->channel[chan].ops[i].CSM_timer_note = ((chn->instrument->ops[i].CSM_timer_note << 8) + chn->instrument->ops[i].CSM_timer_finetune) + note_ops - ((cydchn->fm.flags & CYD_FM_ENABLE_3CH_EXP_MODE) ? ((chn->instrument->ops[i].base_note << 8) + chn->instrument->ops[i].finetune) : ((chn->instrument->base_note << 8) + chn->instrument->finetune));
-					
-					Uint32 frequency = get_freq(chn->ops[i].CSM_timer_note);
-					
-					cydchn->fm.ops[i].csm.frequency = (Uint64)(ACC_LENGTH) / (Uint64)1024 * (Uint64)(frequency) / (Uint64)mus->cyd->sample_rate;
-				}
+				Uint32 frequency = get_freq(chn->ops[i].CSM_timer_note);
+
+				cydchn->fm.ops[i].csm.frequency = (Uint64)(ACC_LENGTH) / (Uint64)1024 * (Uint64)(frequency) / (Uint64)mus->cyd->sample_rate;
 			}
 			
 			if(track_status->ops_status[i].tremolo_delay == 0)
