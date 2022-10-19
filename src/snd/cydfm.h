@@ -22,8 +22,6 @@ typedef struct //wasn't there
 
 typedef struct //wasn't there
 {
-	Sint32 input, output;
-
 	Uint8 harmonic; //freq mult
     
     Uint32 flags;

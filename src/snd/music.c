@@ -3483,6 +3483,59 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 
 			switch (inst & 0xff00)
 			{
+				/*case MUS_FX_SET_FREQUENCY_LOWER_BYTE:
+				{
+					debug("ff");
+					
+					if(ops_index == 0xFF || ops_index == 0)
+					{
+						debug("freq before %d", cydchn->subosc[0].frequency);
+						
+						Uint32 frequency = (Uint64)cydchn->subosc[0].frequency / (Uint64)(ACC_LENGTH >> (cyd->oversample)) * (Uint64)1024 * (Uint64)cyd->sample_rate;
+						frequency = (frequency & 0xffff00) | (inst & 0xff);
+						
+						for(int s = 0; s < CYD_SUB_OSCS; ++s)
+						{
+							//cyd_set_frequency(cyd, cydchn, s, frequency);
+							cydchn->subosc[s].frequency = (Uint64)(ACC_LENGTH >> (cyd->oversample)) / (Uint64)1024 * (Uint64)(frequency) / (Uint64)cyd->sample_rate;
+							
+							//chn->subosc[s].frequency = (Uint64)(ACC_LENGTH >> (cyd->oversample)) / (Uint64)1024 * (Uint64)(frequency) / (Uint64)cyd->sample_rate;
+							
+							if(cydchn->flags & CYD_CHN_ENABLE_WAVE)
+							{
+								cyd_set_wavetable_frequency(cyd, cydchn, s, frequency);
+							}
+						}
+						
+						debug("freq after %d", cydchn->subosc[0].frequency);
+					}
+					
+					else
+					{
+						Uint32 frequency = (Uint64)cydchn->fm.ops[ops_index - 1].subosc[0].frequency / (ACC_LENGTH >> (cyd->oversample)) * (Uint64)1024 * (Uint64)cyd->sample_rate;
+						frequency = (frequency & 0xffff00) | (inst & 0xff);
+						
+						for(int s = 0; s < CYD_SUB_OSCS; ++s)
+						{
+							cydchn->fm.ops[ops_index - 1].subosc[s].frequency = (Uint64)(ACC_LENGTH >> (cyd->oversample)) / (Uint64)1024 * (Uint64)(frequency) / (Uint64)cyd->sample_rate;
+							
+							if((cydchn->fm.ops[ops_index - 1].flags & CYD_FM_OP_ENABLE_WAVE) && cydchn->fm.ops[ops_index - 1].wave_entry && chn->instrument)
+							{
+								if(cydchn->fm.fm_freq_LUT == 0)
+								{
+									cydchn->fm.ops[ops_index - 1].subosc[s].wave.frequency = (Uint64)WAVETABLE_RESOLUTION * (Uint64)cydchn->fm.ops[ops_index - 1].wave_entry->sample_rate / (Uint64)mus->cyd->sample_rate * (Uint64)frequency / (Uint64)get_freq(cydchn->fm.ops[ops_index - 1].wave_entry->base_note) * (Uint64)harmonic1[cydchn->fm.ops[ops_index - 1].harmonic & 15] / (Uint64)harmonic1[cydchn->fm.ops[ops_index - 1].harmonic >> 4] / (((chn->instrument->fm_flags & CYD_FM_ENABLE_3CH_EXP_MODE) ? (chn->instrument->ops[ops_index - 1].flags & MUS_FM_OP_QUARTER_FREQ) : (chn->instrument->flags & MUS_INST_QUARTER_FREQ)) ? 4 : 1);
+								}
+								
+								else
+								{
+									cydchn->fm.ops[ops_index - 1].subosc[s].wave.frequency = (Uint64)WAVETABLE_RESOLUTION * (Uint64)cydchn->fm.ops[ops_index - 1].wave_entry->sample_rate / (Uint64)mus->cyd->sample_rate * (Uint64)frequency / (Uint64)get_freq(cydchn->fm.ops[ops_index - 1].wave_entry->base_note) * (Uint64)harmonicOPN1[cydchn->fm.ops[ops_index - 1].harmonic & 15] / (Uint64)harmonicOPN1[cydchn->fm.ops[ops_index - 1].harmonic >> 4] / (((chn->instrument->fm_flags & CYD_FM_ENABLE_3CH_EXP_MODE) ? (chn->instrument->ops[ops_index - 1].flags & MUS_FM_OP_QUARTER_FREQ) : (chn->instrument->flags & MUS_INST_QUARTER_FREQ)) ? 4 : 1);
+								}
+							}
+						}
+					}
+				}
+				break;*/
+				
 				case MUS_FX_SET_CSM_TIMER_NOTE:
 				{
 					if(ops_index == 0xFF || ops_index == 0)
