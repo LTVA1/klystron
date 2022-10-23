@@ -1327,7 +1327,7 @@ static Sint32 cyd_output_fm_ops(CydEngine *cyd, CydChannel *chn, int chan_num, /
 			for (int sub = 0; sub < CYD_SUB_OSCS; ++sub)
 			{
 				chn->fm.ops[i].prev2[sub] = chn->fm.ops[i].prev[sub];
-				chn->fm.ops[i].prev[sub] = o[i][sub] + WAVE_AMP / 2;
+				chn->fm.ops[i].prev[sub] = o[i][sub] + (WAVE_AMP);
 			}
 		}
 	}
@@ -1337,6 +1337,9 @@ static Sint32 cyd_output_fm_ops(CydEngine *cyd, CydChannel *chn, int chan_num, /
 		case 1:
 		default:
 		{
+			// F  F  F  F
+			// 4--3--2--1--(OUT)
+			
 			out = (o[0][0] + o[0][1] + o[0][2]) * ((chn->fm.ops[0].flags & CYD_FM_OP_ENABLE_VOLUME_KEY_SCALING) ? chn->fm.ops[0].vol_ksl_mult : 1);
 			
 			for (int sub = 0; sub < CYD_SUB_OSCS; ++sub)
@@ -1371,6 +1374,12 @@ static Sint32 cyd_output_fm_ops(CydEngine *cyd, CydChannel *chn, int chan_num, /
 		
 		case 2:
 		{
+			// F
+			// 4--| F  F
+			//    |--2--1--(OUT)
+			// F  |
+			// 3--|
+			
 			out = (o[0][0] + o[0][1] + o[0][2]) * ((chn->fm.ops[0].flags & CYD_FM_OP_ENABLE_VOLUME_KEY_SCALING) ? chn->fm.ops[0].vol_ksl_mult : 1);
 			
 			for (int sub = 0; sub < CYD_SUB_OSCS; ++sub)
@@ -1397,6 +1406,12 @@ static Sint32 cyd_output_fm_ops(CydEngine *cyd, CydChannel *chn, int chan_num, /
 		
 		case 3:
 		{
+			//    F
+			//    4--|  F
+			//       |--1--(OUT)
+			// F  F  |
+			// 3--2--|
+			
 			out = (o[0][0] + o[0][1] + o[0][2]) * ((chn->fm.ops[0].flags & CYD_FM_OP_ENABLE_VOLUME_KEY_SCALING) ? chn->fm.ops[0].vol_ksl_mult : 1);
 			
 			for (int sub = 0; sub < CYD_SUB_OSCS; ++sub)
@@ -1423,6 +1438,12 @@ static Sint32 cyd_output_fm_ops(CydEngine *cyd, CydChannel *chn, int chan_num, /
 		
 		case 4:
 		{
+			//       F
+			//       1--|
+			//          |
+			// F  F  F  |--(OUT)
+			// 4--3--2--|
+			
 			out = (o[0][0] + o[0][1] + o[0][2]) * ((chn->fm.ops[0].flags & CYD_FM_OP_ENABLE_VOLUME_KEY_SCALING) ? chn->fm.ops[0].vol_ksl_mult : 1) + (o[1][0] + o[1][1] + o[1][2]) * ((chn->fm.ops[1].flags & CYD_FM_OP_ENABLE_VOLUME_KEY_SCALING) ? chn->fm.ops[1].vol_ksl_mult : 1);
 			
 			for (int sub = 0; sub < CYD_SUB_OSCS; ++sub)
@@ -1449,6 +1470,12 @@ static Sint32 cyd_output_fm_ops(CydEngine *cyd, CydChannel *chn, int chan_num, /
 		
 		case 5:
 		{
+			//          F
+			// F  F  |--1--|
+			// 4--3--|     |--(OUT) 
+			//       |  F  |
+			//       |--2--|
+			
 			out = (o[0][0] + o[0][1] + o[0][2]) * ((chn->fm.ops[0].flags & CYD_FM_OP_ENABLE_VOLUME_KEY_SCALING) ? chn->fm.ops[0].vol_ksl_mult : 1) + (o[1][0] + o[1][1] + o[1][2]) * ((chn->fm.ops[1].flags & CYD_FM_OP_ENABLE_VOLUME_KEY_SCALING) ? chn->fm.ops[1].vol_ksl_mult : 1);
 			
 			for (int sub = 0; sub < CYD_SUB_OSCS; ++sub)
@@ -1483,6 +1510,12 @@ static Sint32 cyd_output_fm_ops(CydEngine *cyd, CydChannel *chn, int chan_num, /
 		
 		case 6:
 		{
+			// F  F
+			// 4--3--|
+			//       |--(OUT)
+			// F  F  |
+			// 2--1--|
+			
 			out = (o[0][0] + o[0][1] + o[0][2]) * ((chn->fm.ops[0].flags & CYD_FM_OP_ENABLE_VOLUME_KEY_SCALING) ? chn->fm.ops[0].vol_ksl_mult : 1) + (o[2][0] + o[2][1] + o[2][2]) * ((chn->fm.ops[2].flags & CYD_FM_OP_ENABLE_VOLUME_KEY_SCALING) ? chn->fm.ops[2].vol_ksl_mult : 1);
 			
 			for (int sub = 0; sub < CYD_SUB_OSCS; ++sub)
@@ -1509,6 +1542,13 @@ static Sint32 cyd_output_fm_ops(CydEngine *cyd, CydChannel *chn, int chan_num, /
 		
 		case 7:
 		{
+			// F  
+			// 4--|  F
+			//    |--2--|
+			// F  |     |--(OUT)
+			// 3--|  F  |
+			//       1--|
+			
 			out = (o[0][0] + o[0][1] + o[0][2]) * ((chn->fm.ops[0].flags & CYD_FM_OP_ENABLE_VOLUME_KEY_SCALING) ? chn->fm.ops[0].vol_ksl_mult : 1) + (o[1][0] + o[1][1] + o[1][2]) * ((chn->fm.ops[1].flags & CYD_FM_OP_ENABLE_VOLUME_KEY_SCALING) ? chn->fm.ops[1].vol_ksl_mult : 1);
 			
 			for (int sub = 0; sub < CYD_SUB_OSCS; ++sub)
@@ -1527,6 +1567,15 @@ static Sint32 cyd_output_fm_ops(CydEngine *cyd, CydChannel *chn, int chan_num, /
 		
 		case 8:
 		{
+			// F  
+			// 4--|
+			//    |
+			// F  |  F
+			// 3--|--1--(OUT)
+			//    |
+			// F  |
+			// 2--|
+			
 			out = (o[0][0] + o[0][1] + o[0][2]) * ((chn->fm.ops[0].flags & CYD_FM_OP_ENABLE_VOLUME_KEY_SCALING) ? chn->fm.ops[0].vol_ksl_mult : 1);
 			
 			for (int sub = 0; sub < CYD_SUB_OSCS; ++sub)
@@ -1545,6 +1594,15 @@ static Sint32 cyd_output_fm_ops(CydEngine *cyd, CydChannel *chn, int chan_num, /
 		
 		case 9:
 		{
+			// F  F
+			// 4--3--|
+			//       |
+			//    F  |
+			//    2--|--(OUT)
+			//       |
+			//    F  |
+			//    1--|
+			
 			out = (o[0][0] + o[0][1] + o[0][2]) * ((chn->fm.ops[0].flags & CYD_FM_OP_ENABLE_VOLUME_KEY_SCALING) ? chn->fm.ops[0].vol_ksl_mult : 1) + (o[1][0] + o[1][1] + o[1][2]) * ((chn->fm.ops[1].flags & CYD_FM_OP_ENABLE_VOLUME_KEY_SCALING) ? chn->fm.ops[1].vol_ksl_mult : 1) + (o[2][0] + o[2][1] + o[2][2]) * ((chn->fm.ops[2].flags & CYD_FM_OP_ENABLE_VOLUME_KEY_SCALING) ? chn->fm.ops[2].vol_ksl_mult : 1);
 			
 			for (int sub = 0; sub < CYD_SUB_OSCS; ++sub)
@@ -1563,6 +1621,15 @@ static Sint32 cyd_output_fm_ops(CydEngine *cyd, CydChannel *chn, int chan_num, /
 		
 		case 10:
 		{
+			//       F
+			// F  |--3--|
+			// 4--|     |
+			//    |  F  |
+			//    |--2--|--(OUT)
+			//          |
+			//       F  |
+			//       1--|
+			
 			out = (o[0][0] + o[0][1] + o[0][2]) * ((chn->fm.ops[0].flags & CYD_FM_OP_ENABLE_VOLUME_KEY_SCALING) ? chn->fm.ops[0].vol_ksl_mult : 1) + (o[1][0] + o[1][1] + o[1][2]) * ((chn->fm.ops[1].flags & CYD_FM_OP_ENABLE_VOLUME_KEY_SCALING) ? chn->fm.ops[1].vol_ksl_mult : 1) + (o[2][0] + o[2][1] + o[2][2]) * ((chn->fm.ops[2].flags & CYD_FM_OP_ENABLE_VOLUME_KEY_SCALING) ? chn->fm.ops[2].vol_ksl_mult : 1);
 			
 			for (int sub = 0; sub < CYD_SUB_OSCS; ++sub)
@@ -1589,6 +1656,15 @@ static Sint32 cyd_output_fm_ops(CydEngine *cyd, CydChannel *chn, int chan_num, /
 		
 		case 11:
 		{
+			//       F
+			//    |--3--|
+			//    |     |
+			// F  |  F  |
+			// 4--|--2--|--(OUT)
+			//    |     |
+			//    |  F  |
+			//    |--1--|
+			
 			out = (o[0][0] + o[0][1] + o[0][2]) * ((chn->fm.ops[0].flags & CYD_FM_OP_ENABLE_VOLUME_KEY_SCALING) ? chn->fm.ops[0].vol_ksl_mult : 1) + (o[1][0] + o[1][1] + o[1][2]) * ((chn->fm.ops[1].flags & CYD_FM_OP_ENABLE_VOLUME_KEY_SCALING) ? chn->fm.ops[1].vol_ksl_mult : 1) + (o[2][0] + o[2][1] + o[2][2]) * ((chn->fm.ops[2].flags & CYD_FM_OP_ENABLE_VOLUME_KEY_SCALING) ? chn->fm.ops[2].vol_ksl_mult : 1);
 			
 			for (int sub = 0; sub < CYD_SUB_OSCS; ++sub)
@@ -1623,6 +1699,12 @@ static Sint32 cyd_output_fm_ops(CydEngine *cyd, CydChannel *chn, int chan_num, /
 		
 		case 12:
 		{
+			//       F
+			//    |--3--|
+			// F  |     |
+			// 4--|  F  |--1--(OUT)
+			//    |--2--|
+			
 			out = (o[0][0] + o[0][1] + o[0][2]) * ((chn->fm.ops[0].flags & CYD_FM_OP_ENABLE_VOLUME_KEY_SCALING) ? chn->fm.ops[0].vol_ksl_mult : 1);
 			
 			for (int sub = 0; sub < CYD_SUB_OSCS; ++sub)
@@ -1657,6 +1739,18 @@ static Sint32 cyd_output_fm_ops(CydEngine *cyd, CydChannel *chn, int chan_num, /
 		
 		case 13:
 		{
+			// F
+			// 4--|
+			//    |
+			// F  |
+			// 3--|
+			//    |
+			// F  |--(OUT)
+			// 2--|
+			//    |
+			// F  |
+			// 1--|
+			
 			out = (o[0][0] + o[0][1] + o[0][2]) * ((chn->fm.ops[0].flags & CYD_FM_OP_ENABLE_VOLUME_KEY_SCALING) ? chn->fm.ops[0].vol_ksl_mult : 1) + (o[1][0] + o[1][1] + o[1][2]) * ((chn->fm.ops[1].flags & CYD_FM_OP_ENABLE_VOLUME_KEY_SCALING) ? chn->fm.ops[1].vol_ksl_mult : 1) + (o[2][0] + o[2][1] + o[2][2]) * ((chn->fm.ops[2].flags & CYD_FM_OP_ENABLE_VOLUME_KEY_SCALING) ? chn->fm.ops[2].vol_ksl_mult : 1) + (o[3][0] + o[3][1] + o[3][2]) * ((chn->fm.ops[3].flags & CYD_FM_OP_ENABLE_VOLUME_KEY_SCALING) ? chn->fm.ops[3].vol_ksl_mult : 1);
 			
 			break;
