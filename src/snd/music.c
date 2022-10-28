@@ -5481,7 +5481,7 @@ int mus_trigger_instrument_internal(MusEngine* mus, int chan, MusInstrument *ins
 	{
 		for (int i = 0; i < mus->cyd->n_channels; ++i)
 		{
-			if (!(mus->cyd->channel[i].flags & CYD_CHN_ENABLE_GATE))
+			if (!(mus->cyd->channel[i].flags & CYD_CHN_ENABLE_GATE) && !(mus->channel[i].flags & MUS_CHN_DISABLED))
 			{
 				chan = i;
 			}
@@ -5848,7 +5848,7 @@ static void mus_advance_channel(MusEngine* mus, int chan)
 			
 			for(int i = 0; i < CYD_FM_NUM_OPS; ++i)
 			{
-				if(mus->cyd->channel[chan].fm.ops[i].adsr.envelope > 0)
+				if(mus->cyd->channel[chan].fm.ops[i].adsr.envelope > 0 || (mus->cyd->channel[chan].fm.ops[i].flags & CYD_FM_OP_ENABLE_GATE)) //so if CSM timer plays it still executes effects damn
 				{
 					ops_playing++;
 				}

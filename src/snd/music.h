@@ -107,7 +107,7 @@ typedef struct //wasn't there
 	
 	Uint8 sine_acc_shift; //0-F
 	
-	Uint8 num_of_macros; //how many macros operator has, 1 by default
+	Uint8 num_of_macros; //how many macros operator has, 1 by default, max 16
 	
 	Uint8 CSM_timer_note;
 	Sint8 CSM_timer_finetune;
@@ -180,7 +180,7 @@ typedef struct
 	
 	Uint8 sine_acc_shift; //0-F
 	
-	Uint8 num_of_macros; //how many macros instrument has, 1 by default
+	Uint8 num_of_macros; //how many macros instrument has, 1 by default, 32 max
 
 } MusInstrument;
 
