@@ -4203,6 +4203,51 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 				}
 				break;
 				
+				case MUS_FX_ARPEGGIO_DOWN:
+				{
+					if(ops_index == 0 || ops_index == 0xFF)
+					{
+						if (chn->fixed_note != 0xffff)
+						{
+							chn->note = chn->last_note;
+							chn->fixed_note = 0xffff;
+						}
+
+						if ((inst & 0xff) == 0xf0)
+							chn->arpeggio_note = track_status->extarp1;
+						else if ((inst & 0xff) == 0xf1)
+							chn->arpeggio_note = track_status->extarp2;
+						else
+							chn->arpeggio_note = -1 * (inst & 0xff);
+						
+						if(ops_index == 0xFF)
+						{
+							for(int i = 0; i < CYD_FM_NUM_OPS; ++i)
+							{
+								if (chn->ops[i].fixed_note != 0xffff)
+								{
+									chn->ops[i].note = chn->ops[i].last_note;
+									chn->ops[i].fixed_note = 0xffff;
+								}
+								
+								chn->ops[i].arpeggio_note = -1 * (inst & 0xff);
+							}
+						}
+					}
+					
+					else
+					{
+						if (chn->ops[ops_index - 1].fixed_note != 0xffff)
+						{
+							chn->ops[ops_index - 1].note = chn->ops[ops_index - 1].last_note;
+							chn->ops[ops_index - 1].fixed_note = 0xffff;
+						}
+						
+						chn->ops[ops_index - 1].arpeggio_note = -1 * (inst & 0xff);
+					}
+				}
+				break;
+				
 				case MUS_FX_SET_NOISE_CONSTANT_PITCH:
 				{
 					switch(ops_index)
@@ -6289,7 +6334,7 @@ static void mus_advance_channel(MusEngine* mus, int chan)
 	
 	cydchn->fm.fm_vib = fm_vib;
 	
-	Sint32 note = (mus->channel[chan].fixed_note != 0xffff ? mus->channel[chan].fixed_note : mus->channel[chan].note) + vib + ((Uint16)mus->channel[chan].arpeggio_note << 8);
+	Sint32 note = (mus->channel[chan].fixed_note != 0xffff ? mus->channel[chan].fixed_note : mus->channel[chan].note) + vib + ((Sint16)mus->channel[chan].arpeggio_note << 8);
 
 	if (note < 0) note = 0;
 	if (note > FREQ_TAB_SIZE << 8) note = (FREQ_TAB_SIZE - 1) << 8;
@@ -6315,7 +6360,7 @@ static void mus_advance_channel(MusEngine* mus, int chan)
 		for(int i = 0; i < CYD_FM_NUM_OPS; ++i)
 		{
 			//Sint32 note_ops = (mus->channel[chan].ops[i].note) + ops_vib[i] + ((Uint16)mus->channel[chan].ops[i].arpeggio_note << 8);
-			Sint32 note_ops = (mus->channel[chan].ops[i].fixed_note != 0xffff ? mus->channel[chan].ops[i].fixed_note : mus->channel[chan].ops[i].note) + ops_vib[i] + ((Uint16)mus->channel[chan].ops[i].arpeggio_note << 8);
+			Sint32 note_ops = (mus->channel[chan].ops[i].fixed_note != 0xffff ? mus->channel[chan].ops[i].fixed_note : mus->channel[chan].ops[i].note) + ops_vib[i] + ((Sint16)mus->channel[chan].ops[i].arpeggio_note << 8);
 
 			if (note_ops < 0) note_ops = 0;
 			if (note_ops > FREQ_TAB_SIZE << 8) note_ops = (FREQ_TAB_SIZE - 1) << 8;

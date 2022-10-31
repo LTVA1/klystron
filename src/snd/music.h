@@ -39,6 +39,9 @@ OTHER DEALINGS IN THE SOFTWARE.
 #define MUS_PROG_LEN 255
 #define MUS_MAX_NESTEDNESS 5
 
+#define MUS_MAX_MACROS_INST 32 /* number of macros per (main) instrument */
+#define MUS_MAX_MACROS_OP 16 /* number of macros per FM operator */
+
 #define MUS_MAX_CHANNELS CYD_MAX_CHANNELS
 
 #define MUS_VERSION 37
@@ -220,7 +223,7 @@ enum
 typedef struct
 {
 	Uint32 note;
-	Uint8 arpeggio_note;
+	Sint16 arpeggio_note;
 	
 	Uint8 noise_note;
 	
@@ -252,7 +255,7 @@ typedef struct
 	
 	Uint8 volume;
 	// ------
-	Uint8 arpeggio_note;
+	Sint16 arpeggio_note;
 	Uint32 target_note, last_note, fixed_note;
 	volatile Uint32 flags;
 	Uint32 current_tick;
@@ -465,6 +468,8 @@ enum
 	MUS_FX_ARPEGGIO = 0x0000,
 	MUS_FX_SET_2ND_ARP_NOTE = 0x7400,
 	MUS_FX_SET_3RD_ARP_NOTE = 0x7500,
+	
+	MUS_FX_ARPEGGIO_DOWN = 0x2300, //arpeggio but semitones down instead of semitones up (for easy Furnace/Deflemask/FamiTracker/etc. import)
 	
 	MUS_FX_SET_CSM_TIMER_NOTE = 0xf000,
 	MUS_FX_SET_CSM_TIMER_FINETUNE = 0xf300,

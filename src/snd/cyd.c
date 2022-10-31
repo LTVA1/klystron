@@ -2396,7 +2396,7 @@ void cyd_output_buffer_stereo(int chan, void *_stream, int len, void *udata)
 			
 #ifndef STANDALONE_COMPILE
 
-			if(mused.flags & SHOW_OSCILLOSCOPE_INST_EDITOR)
+			if(mused.flags & SHOW_OSCILLOSCOPE_INST_EDITOR || !(mused.flags2 & SHOW_OLD_SPECTRUM_VIS))
 			{
 				mused.output_buffer[mused.output_buffer_counter] = (o1 + o2) / 2;
 				mused.output_buffer_counter++;
