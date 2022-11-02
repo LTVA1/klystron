@@ -7894,6 +7894,7 @@ int mus_load_instrument_RW2(RWops *ctx, MusInstrument *inst, CydWavetableEntry *
 void mus_get_default_instrument(MusInstrument *inst)
 {
 	memset(inst, 0, sizeof(*inst));
+	
 	inst->flags = MUS_INST_DRUM | MUS_INST_SET_PW | MUS_INST_SET_CUTOFF | MUS_INST_SAVE_LFO_SETTINGS;
 	inst->pw = 0x600;
 	inst->cydflags = CYD_CHN_ENABLE_TRIANGLE | CYD_CHN_ENABLE_KEY_SYNC;
@@ -8933,6 +8934,7 @@ int mus_load_song_RW(RWops *ctx, MusSong *song, CydWavetableEntry *wavetable_ent
 						my_RWread(ctx, song->wavetable_names[i], len, sizeof(char));
 					}
 				}
+
 				else
 				{
 					for (int i = 0; i < max_wt; ++i)
@@ -9012,6 +9014,7 @@ int mus_load_song_RW(RWops *ctx, MusSong *song, CydWavetableEntry *wavetable_ent
 				}
 			}
 		}
+		
 #ifndef STANDALONE_COMPILE
 		//optimize_duplicate_patterns(song, false);
 #endif

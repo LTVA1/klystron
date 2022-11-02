@@ -31,6 +31,14 @@ OTHER DEALINGS IN THE SOFTWARE.
 #include "bevdefs.h"
 #include <string.h>
 
+#ifndef STANDALONE_COMPILE
+
+#include "../../../src/mused.h"
+
+extern Mused mused;
+
+#endif
+
 #define SC_SIZE 64
 
 enum { ZONE, DRAW };
@@ -91,7 +99,7 @@ void close_menu()
 			}
 			
 			if (current_menu_action->p3)
-				((void *(*)(void*,void*,void*))(current_menu_action->p3))(0,0,0);
+				((void *(*)(void*, void*, void*))(current_menu_action->p3))(0, 0, 0);
 		}
 		
 		else
@@ -102,6 +110,9 @@ void close_menu()
 		current_menu = NULL;
 		current_menu_action = NULL;
 	}
+#ifndef STANDALONE_COMPILE
+	mused.frames_since_menu_close = 0;
+#endif
 }
 
 
@@ -321,6 +332,9 @@ static void draw_submenu(GfxDomain *menu_dest, const SDL_Event *event, const Men
 			}
 		}
 	}
+#ifndef STANDALONE_COMPILE
+	mused.frames_since_menu_close = 0;
+#endif
 }
 
 

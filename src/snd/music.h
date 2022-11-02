@@ -41,6 +41,7 @@ OTHER DEALINGS IN THE SOFTWARE.
 
 #define MUS_MAX_MACROS_INST 32 /* number of macros per (main) instrument */
 #define MUS_MAX_MACROS_OP 16 /* number of macros per FM operator */
+#define MUS_MACRO_NAME_LEN 32
 
 #define MUS_MAX_CHANNELS CYD_MAX_CHANNELS
 
@@ -114,6 +115,9 @@ typedef struct //wasn't there
 	
 	Uint8 CSM_timer_note;
 	Sint8 CSM_timer_finetune;
+	
+	Uint8 num_macros;
+	char program_names[MUS_MAX_MACROS_OP][MUS_MACRO_NAME_LEN + 1];
 
 } MusFmOp;
 
@@ -156,6 +160,9 @@ typedef struct
 	Sint16 buzz_offset;
 	Uint8 fx_bus, vibrato_shape, vibrato_delay, pwm_shape;
 	char name[MUS_INSTRUMENT_NAME_LEN + 1];
+	
+	Uint8 num_macros;
+	char program_names[MUS_MAX_MACROS_INST][MUS_MACRO_NAME_LEN + 1];
 	
 	Uint8 wavetable_entry;
 	

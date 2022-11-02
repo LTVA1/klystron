@@ -68,6 +68,14 @@ enum { FOCUS_LIST, FOCUS_FIELD };
 
 static GfxDomain *domain;
 
+#ifndef STANDALONE_COMPILE
+
+#include "../../../src/mused.h"
+
+extern Mused mused;
+
+#endif
+
 typedef struct
 {
 	int type;
@@ -382,6 +390,10 @@ static void buttons_view(GfxDomain *dest_surface, const SDL_Rect *area, const SD
 	button.x = area->w + area->x - button.w;
 	button_text_event(dest_surface, event, &button, data.gfx, data.largefont, BEV_BUTTON, BEV_BUTTON_ACTIVE, "OK", ok_action, 0, 0, 0);
 	button.x += button.w + 1;
+	
+#ifndef STANDALONE_COMPILE
+	mused.frames_since_menu_close = 0;
+#endif
 }
 
 
