@@ -5402,6 +5402,8 @@ void mus_trigger_fm_op_internal(CydFm* fm, MusInstrument* ins, CydChannel* cydch
 			chn->ops[i].program_tick[pr] = 0;
 			//chn->ops[i].program_loop = 1;
 			
+			
+			
 			for(int j = 0; j < MUS_MAX_NESTEDNESS; ++j)
 			{
 				chn->ops[i].program_loop[pr][j] = 1;
@@ -6016,7 +6018,7 @@ static void mus_advance_channel(MusEngine* mus, int chan)
 		{
 			if(!(mus->cyd->channel[chan].fm.flags & CYD_FM_FOUROP_USE_MAIN_INST_PROG))
 			{
-				if(mus->channel[chan].ops[i].flags)
+				if(mus->channel[chan].ops[i].program_flags)
 				{
 					for(int pr = 0; pr < mus->channel[chan].instrument->ops[i].num_macros; ++pr)
 					{
@@ -7276,21 +7278,87 @@ int mus_load_instrument_RW(Uint8 version, RWops *ctx, MusInstrument *inst, CydWa
 	
 	_VER_READ(&inst->pw, 0);
 	_VER_READ(&inst->volume, 0);
-	Uint8 progsteps = 0;
-	_VER_READ(&progsteps, 0);
 	
-	if(progsteps > 0 && version >= 32)
+	Uint8 progsteps = 0;
+	
+	if(version < 38)
 	{
-		for (int i = 0; i < progsteps / 8 + 1; ++i)
+		progsteps = 0;
+		_VER_READ(&progsteps, 0);
+		
+		if(progsteps > 0 && version >= 32)
 		{
-			VER_READ(version, 32, 0xff, &inst->program_unite_bits[0][i], 0);
+			for (int i = 0; i < progsteps / 8 + 1; ++i)
+			{
+				VER_READ(version, 32, 0xff, &inst->program_unite_bits[0][i], 0);
+			}
+		}
+		
+		if (progsteps)
+		{
+			//_VER_READ(&inst->program, (int)progsteps * sizeof(inst->program[0]));
+			_VER_READ(inst->program[0], (int)progsteps * sizeof(inst->program[0][0]));
 		}
 	}
 	
-	if (progsteps)
+	else
 	{
-		//_VER_READ(&inst->program, (int)progsteps * sizeof(inst->program[0]));
-		_VER_READ(inst->program[0], (int)progsteps * sizeof(inst->program[0][0]));
+		if(inst->flags & MUS_INST_SEVERAL_MACROS)
+		{
+			VER_READ(version, 38, 0xff, &inst->num_macros, 0);
+			
+			debug("num macros %d", inst->num_macros);
+		}
+		
+		for(int pr = 0; pr < inst->num_macros; ++pr)
+		{
+			if(pr > 0)
+			{
+				inst->program[pr] = (Uint16*)malloc(MUS_PROG_LEN * sizeof(Uint16));
+				inst->program_unite_bits[pr] = (Uint8*)malloc((MUS_PROG_LEN / 8 + 1) * sizeof(Uint8));
+				
+				for (int p = 0; p < MUS_PROG_LEN; ++p)
+				{
+					inst->program[pr][p] = MUS_FX_NOP;
+				}
+				
+				for (int p = 0; p < MUS_PROG_LEN / 8 + 1; ++p)
+				{
+					inst->program_unite_bits[pr][p] = 0;
+				}
+			}
+			
+			Uint8 len = 32;
+			VER_READ(version, 38, 0xff, &len, 0);
+			
+			debug("len %d", len);
+			
+			if (len)
+			{
+				memset(inst->program_names[pr], 0, sizeof(inst->program_names[pr]));
+				_VER_READ(inst->program_names[pr], len);
+				inst->program_names[pr][sizeof(inst->program_names[pr]) - 1] = '\0';
+			}
+			
+			progsteps = 0;
+			_VER_READ(&progsteps, 0);
+			
+			if(progsteps > 0)
+			{
+				for (int i = 0; i < progsteps / 8 + 1; ++i)
+				{
+					VER_READ(version, 38, 0xff, &inst->program_unite_bits[pr][i], 0);
+				}
+			}
+			
+			if (progsteps)
+			{
+				//_VER_READ(&inst->program, (int)progsteps * sizeof(inst->program[0]));
+				_VER_READ(inst->program[pr], (int)progsteps * sizeof(inst->program[pr][0]));
+			}
+			
+			_VER_READ(&inst->prog_period[pr], 0);
+		}
 	}
 	
 	if(version < 32) //to account for extended command range
@@ -7371,7 +7439,10 @@ int mus_load_instrument_RW(Uint8 version, RWops *ctx, MusInstrument *inst, CydWa
 		}
 	}
 	
-	_VER_READ(&inst->prog_period[0], 0);
+	if(version < 38)
+	{
+		_VER_READ(&inst->prog_period[0], 0);
+	}
 	
 	if(((inst->flags & MUS_INST_SAVE_LFO_SETTINGS) && version >= 31) || version < 31)
 	{
@@ -7656,20 +7727,63 @@ int mus_load_instrument_RW(Uint8 version, RWops *ctx, MusInstrument *inst, CydWa
 				
 				VER_READ(version, 34, 0xff, &inst->ops[i].volume, 0);
 				
-				Uint8 progsteps = 0;
-				_VER_READ(&progsteps, 0);
-				
-				if(progsteps > 0)
+				if(version < 38)
 				{
-					for (int i1 = 0; i1 < progsteps / 8 + 1; ++i1)
+					Uint8 progsteps = 0;
+					_VER_READ(&progsteps, 0);
+					
+					if(progsteps > 0)
 					{
-						VER_READ(version, 34, 0xff, &inst->ops[i].program_unite_bits[0][i1], 0);
+						for (int i1 = 0; i1 < progsteps / 8 + 1; ++i1)
+						{
+							VER_READ(version, 34, 0xff, &inst->ops[i].program_unite_bits[0][i1], 0);
+						}
+					}
+					
+					if (progsteps)
+					{
+						_VER_READ(inst->ops[i].program[0], (int)progsteps * sizeof(inst->ops[i].program[0][0]));
 					}
 				}
 				
-				if (progsteps)
+				else
 				{
-					_VER_READ(inst->ops[i].program[0], (int)progsteps * sizeof(inst->ops[i].program[0][0]));
+					if(inst->ops[i].flags & MUS_INST_SEVERAL_MACROS)
+					{
+						VER_READ(version, 38, 0xff, &inst->ops[i].num_macros, 0);
+					}
+					
+					for(int pr = 0; pr < inst->ops[i].num_macros; ++pr)
+					{
+						Uint8 len = 32;
+						VER_READ(version, 38, 0xff, &len, 0);
+						
+						if (len)
+						{
+							memset(inst->ops[i].program_names[pr], 0, sizeof(inst->ops[i].program_names[pr]));
+							_VER_READ(inst->ops[i].program_names[pr], my_min(len, sizeof(inst->ops[i].program_names[pr])));
+							inst->ops[i].program_names[pr][sizeof(inst->ops[i].program_names[pr]) - 1] = '\0';
+						}
+						
+						Uint8 progsteps = 0;
+						_VER_READ(&progsteps, 0);
+						
+						if(progsteps > 0)
+						{
+							for (int i = 0; i < progsteps / 8 + 1; ++i)
+							{
+								VER_READ(version, 38, 0xff, &inst->ops[i].program_unite_bits[pr][i], 0);
+							}
+						}
+						
+						if (progsteps)
+						{
+							//_VER_READ(&inst->program, (int)progsteps * sizeof(inst->program[0]));
+							_VER_READ(inst->ops[i].program[pr], (int)progsteps * sizeof(inst->ops[i].program[pr][0]));
+						}
+						
+						_VER_READ(&inst->ops[i].prog_period[pr], 0);
+					}
 				}
 				
 				if(version < 35)
@@ -7686,7 +7800,10 @@ int mus_load_instrument_RW(Uint8 version, RWops *ctx, MusInstrument *inst, CydWa
 					}
 				}
 				
-				VER_READ(version, 34, 0xff, &inst->ops[i].prog_period[0], 0);
+				if(version < 38)
+				{
+					VER_READ(version, 34, 0xff, &inst->ops[i].prog_period[0], 0);
+				}
 				
 				if(inst->ops[i].flags & MUS_FM_OP_SAVE_LFO_SETTINGS)
 				{
