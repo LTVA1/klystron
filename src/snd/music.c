@@ -7306,8 +7306,6 @@ int mus_load_instrument_RW(Uint8 version, RWops *ctx, MusInstrument *inst, CydWa
 		if(inst->flags & MUS_INST_SEVERAL_MACROS)
 		{
 			VER_READ(version, 38, 0xff, &inst->num_macros, 0);
-			
-			debug("num macros %d", inst->num_macros);
 		}
 		
 		for(int pr = 0; pr < inst->num_macros; ++pr)
@@ -7330,8 +7328,6 @@ int mus_load_instrument_RW(Uint8 version, RWops *ctx, MusInstrument *inst, CydWa
 			
 			Uint8 len = 32;
 			VER_READ(version, 38, 0xff, &len, 0);
-			
-			debug("len %d", len);
 			
 			if (len)
 			{
@@ -7748,13 +7744,31 @@ int mus_load_instrument_RW(Uint8 version, RWops *ctx, MusInstrument *inst, CydWa
 				
 				else
 				{
-					if(inst->ops[i].flags & MUS_INST_SEVERAL_MACROS)
+					if(inst->ops[i].flags & MUS_FM_OP_SEVERAL_MACROS)
 					{
-						VER_READ(version, 38, 0xff, &inst->ops[i].num_macros, 0);
+						_VER_READ(&inst->ops[i].num_macros, 0);
+						
+						debug("num_macros %d", inst->ops[i].num_macros);
 					}
 					
 					for(int pr = 0; pr < inst->ops[i].num_macros; ++pr)
 					{
+						if(pr > 0)
+						{
+							inst->ops[i].program[pr] = (Uint16*)malloc(MUS_PROG_LEN * sizeof(Uint16));
+							inst->ops[i].program_unite_bits[pr] = (Uint8*)malloc((MUS_PROG_LEN / 8 + 1) * sizeof(Uint8));
+							
+							for (int p = 0; p < MUS_PROG_LEN; ++p)
+							{
+								inst->ops[i].program[pr][p] = MUS_FX_NOP;
+							}
+							
+							for (int p = 0; p < MUS_PROG_LEN / 8 + 1; ++p)
+							{
+								inst->ops[i].program_unite_bits[pr][p] = 0;
+							}
+						}
+						
 						Uint8 len = 32;
 						VER_READ(version, 38, 0xff, &len, 0);
 						
@@ -7765,16 +7779,23 @@ int mus_load_instrument_RW(Uint8 version, RWops *ctx, MusInstrument *inst, CydWa
 							inst->ops[i].program_names[pr][sizeof(inst->ops[i].program_names[pr]) - 1] = '\0';
 						}
 						
+						debug("after name read");
+						
 						Uint8 progsteps = 0;
 						_VER_READ(&progsteps, 0);
 						
+						debug("progsteps %d", progsteps);
+						
 						if(progsteps > 0)
 						{
-							for (int i = 0; i < progsteps / 8 + 1; ++i)
+							for (int i1 = 0; i1 < progsteps / 8 + 1; ++i1)
 							{
-								VER_READ(version, 38, 0xff, &inst->ops[i].program_unite_bits[pr][i], 0);
+								debug("reading unite bits");
+								VER_READ(version, 38, 0xff, &inst->ops[i].program_unite_bits[pr][i1], 0);
 							}
 						}
+						
+						debug("after reading unite bits");
 						
 						if (progsteps)
 						{
@@ -7782,9 +7803,13 @@ int mus_load_instrument_RW(Uint8 version, RWops *ctx, MusInstrument *inst, CydWa
 							_VER_READ(inst->ops[i].program[pr], (int)progsteps * sizeof(inst->ops[i].program[pr][0]));
 						}
 						
+						debug("after program read");
+						
 						_VER_READ(&inst->ops[i].prog_period[pr], 0);
 					}
 				}
+				
+				debug("after macros loading");
 				
 				if(version < 35)
 				{
@@ -7882,7 +7907,6 @@ int mus_load_instrument_RW(Uint8 version, RWops *ctx, MusInstrument *inst, CydWa
 			{
 				if (inst->fm_wave == 0xff)
 				{
-					debug("here fm");
 					inst->fm_wave = find_and_load_wavetable(version, ctx, wavetable_entries);
 				}
 				
@@ -7975,7 +7999,6 @@ int mus_load_instrument_RW(Uint8 version, RWops *ctx, MusInstrument *inst, CydWa
 						
 						if(need_load_wave)
 						{
-							debug("here");
 							inst->ops[i].wavetable_entry = find_and_load_wavetable(version, ctx, wavetable_entries);
 						}
 					}
