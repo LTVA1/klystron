@@ -76,8 +76,11 @@ typedef struct //wasn't there
 	Uint8 vol_ksl_level;
 	Uint8 env_ksl_level;
 	
-	Uint16 program[MUS_PROG_LEN];
-	Uint8 program_unite_bits[MUS_PROG_LEN / 8 + 1];
+	//Uint16 program[MUS_PROG_LEN];
+	//Uint8 program_unite_bits[MUS_PROG_LEN / 8 + 1];
+	
+	Uint16* program[MUS_MAX_MACROS_OP];
+	Uint8* program_unite_bits[MUS_MAX_MACROS_OP];
 	
 	Uint8 attack_start;
 	
@@ -89,7 +92,7 @@ typedef struct //wasn't there
 	
 	Uint8 env_offset, program_offset; //<-----
 	
-    Uint8 prog_period; 
+    Uint8 prog_period[MUS_MAX_MACROS_OP]; 
     Uint16 slide_speed;
     Uint8 tremolo_speed, tremolo_delay, tremolo_shape, tremolo_depth;
     Uint8 vibrato_speed, vibrato_delay, vibrato_shape, vibrato_depth;
@@ -111,12 +114,10 @@ typedef struct //wasn't there
 	
 	Uint8 sine_acc_shift; //0-F
 	
-	Uint8 num_of_macros; //how many macros operator has, 1 by default, max 16
-	
 	Uint8 CSM_timer_note;
 	Sint8 CSM_timer_finetune;
 	
-	Uint8 num_macros;
+	Uint8 num_macros; //how many macros operator has, 1 by default, max 16
 	char program_names[MUS_MAX_MACROS_OP][MUS_MACRO_NAME_LEN + 1];
 
 } MusFmOp;
@@ -136,10 +137,13 @@ typedef struct
 	Uint8 mixmode; //wasn't there
 	Uint8 slope;
 	
-	Uint16 program[MUS_PROG_LEN];
-	Uint8 program_unite_bits[MUS_PROG_LEN / 8 + 1];
+	//Uint16 program[MUS_PROG_LEN];
+	//Uint8 program_unite_bits[MUS_PROG_LEN / 8 + 1];
 	
-	Uint8 prog_period; 
+	Uint16* program[MUS_MAX_MACROS_INST];
+	Uint8* program_unite_bits[MUS_MAX_MACROS_INST];
+	
+	Uint8 prog_period[MUS_MAX_MACROS_INST]; 
 	Uint8 vibrato_speed, vibrato_depth, pwm_speed, pwm_depth;
 	Uint16 slide_speed;
 	
@@ -161,13 +165,13 @@ typedef struct
 	Uint8 fx_bus, vibrato_shape, vibrato_delay, pwm_shape;
 	char name[MUS_INSTRUMENT_NAME_LEN + 1];
 	
-	Uint8 num_macros;
+	Uint8 num_macros; //how many macros instrument has, 1 by default, 32 max
 	char program_names[MUS_MAX_MACROS_INST][MUS_MACRO_NAME_LEN + 1];
 	
 	Uint8 wavetable_entry;
 	
-	Uint8 morph_wavetable_entry;
-	Uint8 morph_speed, morph_shape, morph_delay;
+	//Uint8 morph_wavetable_entry;
+	//Uint8 morph_speed, morph_shape, morph_delay;
 	
 	Uint8 lfsr_type;
 	Sint8 finetune;
@@ -189,8 +193,6 @@ typedef struct
 	Uint8 fm_4op_vol; //4-op module master volume
 	
 	Uint8 sine_acc_shift; //0-F
-	
-	Uint8 num_of_macros; //how many macros instrument has, 1 by default, 32 max
 
 } MusInstrument;
 
@@ -238,12 +240,20 @@ typedef struct
 	// ------
 	Uint32 target_note, last_note, fixed_note;
 	volatile Uint32 flags;
+	
+	Uint32 program_flags;
+	
 	Uint32 current_tick;
 	//Uint8 program_counter, program_tick, program_loop, prog_period;
-	Uint8 program_counter, program_tick, prog_period;
-	Uint8 program_loop[MUS_MAX_NESTEDNESS];
-	Uint8 program_loop_addresses[MUS_MAX_NESTEDNESS][2]; //[][0] loop begin address [][1] loop end address
-	Uint8 nestedness;
+	//Uint8 program_counter, program_tick, prog_period;
+	
+	Uint8 program_counter[MUS_MAX_MACROS_OP];
+	Uint8 program_tick[MUS_MAX_MACROS_OP];
+	Uint8 prog_period[MUS_MAX_MACROS_OP];
+	
+	Uint8 program_loop[MUS_MAX_MACROS_OP][MUS_MAX_NESTEDNESS];
+	Uint8 program_loop_addresses[MUS_MAX_MACROS_OP][MUS_MAX_NESTEDNESS][2]; //[][][0] loop begin address [][][1] loop end address
+	Uint8 nestedness[MUS_MAX_MACROS_OP];
 	
 	Sint16 trigger_delay; //how many ticks to wait after general trigger to trigger specific operator, can be very creative
 	
@@ -265,12 +275,20 @@ typedef struct
 	Sint16 arpeggio_note;
 	Uint32 target_note, last_note, fixed_note;
 	volatile Uint32 flags;
+	
+	Uint32 program_flags;
+	
 	Uint32 current_tick;
 	//Uint8 program_counter, program_tick, program_loop, prog_period;
-	Uint8 program_counter, program_tick, prog_period;
-	Uint8 program_loop[MUS_MAX_NESTEDNESS];
-	Uint8 program_loop_addresses[MUS_MAX_NESTEDNESS][2]; //[][0] loop begin address [][1] loop end address
-	Uint8 nestedness;
+	//Uint8 program_counter, program_tick, prog_period;
+	
+	Uint8 program_counter[MUS_MAX_MACROS_INST];
+	Uint8 program_tick[MUS_MAX_MACROS_INST];
+	Uint8 prog_period[MUS_MAX_MACROS_INST];
+	
+	Uint8 program_loop[MUS_MAX_MACROS_INST][MUS_MAX_NESTEDNESS];
+	Uint8 program_loop_addresses[MUS_MAX_MACROS_INST][MUS_MAX_NESTEDNESS][2]; //[][][0] loop begin address [][][1] loop end address
+	Uint8 nestedness[MUS_MAX_MACROS_INST];
 	
 	Sint16 buzz_offset;
 	
@@ -406,7 +424,7 @@ typedef struct
 	MusTrackStatus song_track[MUS_MAX_CHANNELS];
 	MusSong *song;
 	Uint8 song_counter;
-	int song_position; //was Uint16 song_position;
+	Sint32 song_position; //was Uint16 song_position;
 	CydEngine *cyd;
 	Uint8 current_tick;
 	Uint8 volume, play_volume; // 0..128
