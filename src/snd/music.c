@@ -7002,6 +7002,54 @@ void mus_set_song(MusEngine *mus, MusSong *song, Uint16 position)
 			mus->channel[i].volume = MAX_VOLUME;
 		}
 	}
+	
+	for(int chan = 0; chan < MUS_MAX_CHANNELS; ++chan) //so we reset the damn channels even if no prog reset flag is there
+	{
+		mus->channel[chan].program_flags = 0;
+		
+		for(int n = 0; n < MUS_MAX_NESTEDNESS; ++n)
+		{
+			mus->channel[chan].nestedness[n] = 0;
+		}
+		
+		for(int pr = 0; pr < MUS_MAX_MACROS_INST; ++pr)
+		{
+			for(int n = 0; n < MUS_MAX_NESTEDNESS; ++n)
+			{
+				mus->channel[chan].program_loop[pr][n] = 0;
+				
+				mus->channel[chan].program_loop_addresses[pr][n][0] = 0;
+				mus->channel[chan].program_loop_addresses[pr][n][1] = 0;
+				
+				mus->channel[chan].program_counter[pr] = 0;
+				mus->channel[chan].program_tick[pr] = 0;
+			}
+		}
+		
+		for(int op = 0; op < CYD_FM_NUM_OPS; ++op)
+		{
+			mus->channel[chan].ops[op].program_flags = 0;
+			
+			for(int n = 0; n < MUS_MAX_NESTEDNESS; ++n)
+			{
+				mus->channel[chan].ops[op].nestedness[n] = 0;
+			}
+			
+			for(int pr = 0; pr < MUS_MAX_MACROS_OP; ++pr)
+			{
+				for(int n = 0; n < MUS_MAX_NESTEDNESS; ++n)
+				{
+					mus->channel[chan].ops[op].program_loop[pr][n] = 0;
+					
+					mus->channel[chan].ops[op].program_loop_addresses[pr][n][0] = 0;
+					mus->channel[chan].ops[op].program_loop_addresses[pr][n][1] = 0;
+					
+					mus->channel[chan].ops[op].program_counter[pr] = 0;
+					mus->channel[chan].ops[op].program_tick[pr] = 0;
+				}
+			}
+		}
+	}
 
 	cyd_lock(mus->cyd, 0);
 }
@@ -7747,8 +7795,6 @@ int mus_load_instrument_RW(Uint8 version, RWops *ctx, MusInstrument *inst, CydWa
 					if(inst->ops[i].flags & MUS_FM_OP_SEVERAL_MACROS)
 					{
 						_VER_READ(&inst->ops[i].num_macros, 0);
-						
-						debug("num_macros %d", inst->ops[i].num_macros);
 					}
 					
 					for(int pr = 0; pr < inst->ops[i].num_macros; ++pr)
@@ -7779,31 +7825,22 @@ int mus_load_instrument_RW(Uint8 version, RWops *ctx, MusInstrument *inst, CydWa
 							inst->ops[i].program_names[pr][sizeof(inst->ops[i].program_names[pr]) - 1] = '\0';
 						}
 						
-						debug("after name read");
-						
 						Uint8 progsteps = 0;
 						_VER_READ(&progsteps, 0);
-						
-						debug("progsteps %d", progsteps);
 						
 						if(progsteps > 0)
 						{
 							for (int i1 = 0; i1 < progsteps / 8 + 1; ++i1)
 							{
-								debug("reading unite bits");
 								VER_READ(version, 38, 0xff, &inst->ops[i].program_unite_bits[pr][i1], 0);
 							}
 						}
-						
-						debug("after reading unite bits");
 						
 						if (progsteps)
 						{
 							//_VER_READ(&inst->program, (int)progsteps * sizeof(inst->program[0]));
 							_VER_READ(inst->ops[i].program[pr], (int)progsteps * sizeof(inst->ops[i].program[pr][0]));
 						}
-						
-						debug("after program read");
 						
 						_VER_READ(&inst->ops[i].prog_period[pr], 0);
 					}
