@@ -1046,6 +1046,16 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 					}
 				}
 			}
+			
+			else
+			{
+				cydchn->fm.ops[ops_index - 1].adsr.a = (inst & 0x3f);
+				
+				if (cydchn->fm.ops[ops_index - 1].adsr.envelope_state == ATTACK)
+				{
+					cydchn->fm.ops[ops_index - 1].adsr.env_speed = envspd(cyd, cydchn->fm.ops[ops_index - 1].adsr.a);
+				}
+			}
 		}
 		break;
 		
@@ -1099,6 +1109,16 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 							}
 						}
 					}
+				}
+			}
+			
+			else
+			{
+				cydchn->fm.ops[ops_index - 1].adsr.d = (inst & 0x3f);
+				
+				if (cydchn->fm.ops[ops_index - 1].adsr.envelope_state == DECAY)
+				{
+					cydchn->fm.ops[ops_index - 1].adsr.env_speed = envspd(cyd, cydchn->fm.ops[ops_index - 1].adsr.d);
 				}
 			}
 		}
@@ -1160,6 +1180,49 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 					}
 				}
 			}
+			
+			else
+			{
+				if((inst & 0xff) <= 0x1f) //for current channel only
+				{
+					cydchn->fm.ops[ops_index - 1].adsr.s = (inst & 0x1f);
+					
+					if (cydchn->fm.ops[ops_index - 1].adsr.envelope_state == SUSTAIN)
+					{
+						cydchn->fm.ops[ops_index - 1].adsr.envelope = (Uint32)cydchn->fm.ops[ops_index - 1].adsr.s << 19;
+					}
+				}
+				
+				else //for all channels that use this instrument
+				{
+					for (int chann = 0; chann < cyd->n_channels; ++chann)
+					{
+						if(mus->channel[chann].instrument == chn->instrument)
+						{
+							cyd->channel[chann].fm.ops[ops_index - 1].adsr.s = (inst & 0x1f);
+							
+							if (cyd->channel[chann].fm.ops[ops_index - 1].adsr.envelope_state == SUSTAIN)
+							{
+								cyd->channel[chann].fm.ops[ops_index - 1].adsr.envelope = (Uint32)cyd->channel[chann].fm.ops[ops_index - 1].adsr.s << 19;
+							}
+						}
+					}
+				}
+			}
+		}
+		break;
+		
+		case MUS_FX_SET_SUSTAIN_RATE:
+		{
+			if(ops_index != 0xFF && ops_index != 0) //only in FM op program
+			{
+				cydchn->fm.ops[ops_index - 1].adsr.sr = (inst & 0x3f);
+				
+				if (cydchn->fm.ops[ops_index - 1].adsr.envelope_state == SUSTAIN)
+				{
+					cydchn->fm.ops[ops_index - 1].adsr.env_speed = cydchn->fm.ops[ops_index - 1].adsr.sr == 0 ? 0 : envspd(cyd, 64 - cydchn->fm.ops[ops_index - 1].adsr.sr);
+				}
+			}
 		}
 		break;
 		
@@ -1205,6 +1268,8 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 							{
 								for(int i = 0; i < CYD_FM_NUM_OPS; ++i)
 								{
+									cyd->channel[chann].fm.ops[i].adsr.r = (inst & 0x3f);
+									
 									if (cyd->channel[chann].fm.ops[i].adsr.envelope_state == RELEASE)
 									{
 										cyd->channel[chann].fm.ops[i].adsr.env_speed = envspd(cyd, cyd->channel[chann].fm.ops[i].adsr.r);
@@ -1213,6 +1278,16 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 							}
 						}
 					}
+				}
+			}
+			
+			else
+			{
+				cydchn->fm.ops[ops_index - 1].adsr.r = (inst & 0x3f);
+				
+				if (cydchn->fm.ops[ops_index - 1].adsr.envelope_state == RELEASE)
+				{
+					cydchn->fm.ops[ops_index - 1].adsr.env_speed = envspd(cyd, cydchn->fm.ops[ops_index - 1].adsr.r);
 				}
 			}
 		}
@@ -1324,6 +1399,44 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 							if (cyd->channel[chann].fm.ops[op].adsr.envelope_state == SUSTAIN)
 							{
 								cyd->channel[chann].fm.ops[op].adsr.envelope = (Uint32)cyd->channel[chann].fm.ops[op].adsr.s << 19;
+							}
+						}
+					}
+				}
+			}
+		}
+		break;
+		
+		case MUS_FX_FM_SET_OP1_SUSTAIN_RATE:
+		case MUS_FX_FM_SET_OP2_SUSTAIN_RATE:
+		case MUS_FX_FM_SET_OP3_SUSTAIN_RATE:
+		case MUS_FX_FM_SET_OP4_SUSTAIN_RATE:
+		{
+			if(ops_index == 0xFF || ops_index == 0)
+			{
+				Uint8 op = (((inst & 0xF000) - (MUS_FX_FM_SET_OP1_SUSTAIN_RATE & 0xF000)) >> 12);
+				
+				if((inst & 0xff) <= 0x3f) //for current channel only
+				{
+					cydchn->fm.ops[op].adsr.sr = (inst & 0x3f);
+					
+					if (cydchn->fm.ops[op].adsr.envelope_state == SUSTAIN)
+					{
+						cydchn->fm.ops[op].adsr.env_speed = envspd(cyd, 64 - cydchn->fm.ops[op].adsr.sr);
+					}
+				}
+				
+				else //for all channels that use this instrument
+				{
+					for (int chann = 0; chann < cyd->n_channels; ++chann)
+					{
+						if(mus->channel[chann].instrument == chn->instrument)
+						{
+							cyd->channel[chann].fm.ops[op].adsr.sr = (inst & 0x3f);
+							
+							if (cyd->channel[chann].fm.ops[op].adsr.envelope_state == SUSTAIN)
+							{
+								cyd->channel[chann].fm.ops[op].adsr.env_speed = cyd->channel[chann].fm.ops[op].adsr.sr == 0 ? 0 : envspd(cyd, 64 - cyd->channel[chann].fm.ops[op].adsr.sr);
 							}
 						}
 					}
@@ -5258,6 +5371,9 @@ void mus_trigger_fm_op_internal(CydFm* fm, MusInstrument* ins, CydChannel* cydch
 	fm->ops[i].adsr.a = ins->ops[i].adsr.a;
 	fm->ops[i].adsr.d = ins->ops[i].adsr.d;
 	fm->ops[i].adsr.s = ins->ops[i].adsr.s;
+	
+	fm->ops[i].adsr.sr = ins->ops[i].adsr.sr;
+	
 	fm->ops[i].adsr.r = ins->ops[i].adsr.r;
 	
 	fm->ops[i].adsr.passes = 0;
@@ -7721,7 +7837,19 @@ int mus_load_instrument_RW(Uint8 version, RWops *ctx, MusInstrument *inst, CydWa
 					inst->ops[i].ssg_eg_type = (temp_feedback_ssgeg >> 4) & 0x7;
 				}
 				
-				VER_READ(version, 34, 0xff, &inst->ops[i].adsr, 0);
+				if(version < 39)
+				{
+					VER_READ(version, 34, 0xff, &inst->ops[i].adsr.a, 0);
+					VER_READ(version, 34, 0xff, &inst->ops[i].adsr.d, 0);
+					VER_READ(version, 34, 0xff, &inst->ops[i].adsr.s, 0);
+					VER_READ(version, 34, 0xff, &inst->ops[i].adsr.r, 0);
+				}
+				
+				else
+				{
+					VER_READ(version, 34, 0xff, &inst->ops[i].adsr, 0); //added sustain rate param
+				}
+				
 				
 				if(inst->ops[i].cydflags & CYD_FM_OP_ENABLE_FILTER)
 				{
@@ -7838,15 +7966,12 @@ int mus_load_instrument_RW(Uint8 version, RWops *ctx, MusInstrument *inst, CydWa
 						
 						if (progsteps)
 						{
-							//_VER_READ(&inst->program, (int)progsteps * sizeof(inst->program[0]));
 							_VER_READ(inst->ops[i].program[pr], (int)progsteps * sizeof(inst->ops[i].program[pr][0]));
 						}
 						
 						_VER_READ(&inst->ops[i].prog_period[pr], 0);
 					}
 				}
-				
-				debug("after macros loading");
 				
 				if(version < 35)
 				{

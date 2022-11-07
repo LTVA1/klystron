@@ -603,7 +603,27 @@ Uint32 cyd_cycle_fm_op_adsr(const CydEngine *eng, Uint32 flags, Uint32 ym_env_sh
 				
 				else
 				{
-					return flags; break;
+					if(adsr->sr == 0)
+					{
+						return flags; break;
+					}
+					
+					else
+					{
+						if (adsr->envelope > adsr->env_speed)
+						{
+							adsr->envelope -= adsr->env_speed;
+						}
+						
+						else 
+						{
+							adsr->envelope_state = DONE;
+							adsr->passes = 0;
+							if ((flags & (CYD_FM_OP_ENABLE_WAVE | CYD_FM_OP_WAVE_OVERRIDE_ENV)) != (CYD_FM_OP_ENABLE_WAVE | CYD_FM_OP_WAVE_OVERRIDE_ENV) && !(flags & CYD_FM_OP_ENABLE_CSM_TIMER)) flags &= ~CYD_CHN_ENABLE_GATE;
+							adsr->envelope = 0;
+						}
+						break;
+					}
 				}
 			}
 			
@@ -727,14 +747,30 @@ Uint32 cyd_cycle_fm_op_adsr(const CydEngine *eng, Uint32 flags, Uint32 ym_env_sh
 					adsr->envelope = (Uint32)adsr->s << 19;
 					adsr->envelope_state = (adsr->s == 0) ? RELEASE : SUSTAIN;
 					
-					if(env_ksl_mult == 0.0 || env_ksl_mult == 1.0)
+					if(adsr->envelope_state == SUSTAIN && adsr->sr > 0)
 					{
-						adsr->env_speed = envspd(eng, adsr->r);
+						if(env_ksl_mult == 0.0 || env_ksl_mult == 1.0)
+						{
+							adsr->env_speed = envspd(eng, (64 - adsr->sr));
+						}
+						
+						else
+						{
+							adsr->env_speed = (int)((double)envspd(eng, (64 - adsr->sr)) * env_ksl_mult);
+						}
 					}
 					
 					else
 					{
-						adsr->env_speed = (int)((double)envspd(eng, adsr->r) * env_ksl_mult);
+						if(env_ksl_mult == 0.0 || env_ksl_mult == 1.0)
+						{
+							adsr->env_speed = envspd(eng, adsr->r);
+						}
+						
+						else
+						{
+							adsr->env_speed = (int)((double)envspd(eng, adsr->r) * env_ksl_mult);
+						}
 					}
 				}
 			}

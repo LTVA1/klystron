@@ -45,7 +45,7 @@ OTHER DEALINGS IN THE SOFTWARE.
 
 #define MUS_MAX_CHANNELS CYD_MAX_CHANNELS
 
-#define MUS_VERSION 38
+#define MUS_VERSION 39
 
 #define MUS_SONG_TITLE_LEN 255
 #define MUS_INSTRUMENT_NAME_LEN 255
@@ -62,13 +62,21 @@ typedef struct
 	Uint8 a, d, s, r; // 0-63 for a, d, r; 0-31 for s
 } MusAdsr;
 
+typedef struct
+{
+	Uint8 a, d, s, r; // 0-63 for a, d, r; 0-31 for s
+	
+	Uint8 sr; //sustain rate, 0 means horizontal sustain, 31 immediate fall down
+} MusFmOpAdsr;
+
 typedef struct //wasn't there
 {
 	Uint8 harmonic; //freq mult
     
     Uint32 cydflags;
 	Uint16 flags; //musflags
-    MusAdsr adsr;
+	
+    MusFmOpAdsr adsr;
 	Uint8 ssg_eg_type; //0-7
 
 	Uint8 wavetable_entry;
@@ -522,7 +530,9 @@ enum
 	MUS_FX_VIBRATO = 0x0400,
 	MUS_FX_TREMOLO = 0x2400, //wasn't there
 	MUS_FX_PWM = 0x2500, //wasn't there
-	MUS_FX_SWEEP = 0x2600, //wasn't there //26xy filter sweep, by default unlooped saw LFO with speed x and depth y //not implemented
+	
+	
+	
 	MUS_FX_FM_VIBRATO = 0x2700, //wasn't there
 	MUS_FX_FM_TREMOLO = 0x2800, //wasn't there
 	MUS_FX_FADE_VOLUME = 0x0a00,
@@ -580,6 +590,7 @@ enum
 	MUS_FX_SET_DECAY_RATE = 0x1500,
 	MUS_FX_SET_SUSTAIN_LEVEL = 0x2000,
 	MUS_FX_SET_RELEASE_RATE = 0x1600,
+	MUS_FX_SET_SUSTAIN_RATE = 0x2600, //only for FM op
 	
 	MUS_FX_FM_SET_MODULATION = 0x3300,
 	MUS_FX_FM_SET_FEEDBACK = 0x3400,
@@ -608,6 +619,11 @@ enum
 	MUS_FX_FM_SET_OP2_SUSTAIN_LEVEL = 0xB700,
 	MUS_FX_FM_SET_OP3_SUSTAIN_LEVEL = 0xC700,
 	MUS_FX_FM_SET_OP4_SUSTAIN_LEVEL = 0xD700,
+	
+	MUS_FX_FM_SET_OP1_SUSTAIN_RATE = 0xA800,
+	MUS_FX_FM_SET_OP2_SUSTAIN_RATE = 0xB800,
+	MUS_FX_FM_SET_OP3_SUSTAIN_RATE = 0xC800,
+	MUS_FX_FM_SET_OP4_SUSTAIN_RATE = 0xD800,
 	
 	MUS_FX_FM_SET_OP1_RELEASE_RATE = 0xA100,
 	MUS_FX_FM_SET_OP2_RELEASE_RATE = 0xB100,

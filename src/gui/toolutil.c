@@ -87,7 +87,6 @@ int confirm_ync(GfxDomain *domain, GfxSurface *gfx, const Font *font, const char
 	}
 	
 	return 0;
-	
 }
 
 
