@@ -804,6 +804,8 @@ typedef struct RWops
 
 #endif
 
+void mus_free_inst_programs(MusInstrument* inst);
+
 int mus_advance_tick(void* udata);
 int mus_trigger_instrument(MusEngine* mus, int chan, MusInstrument *ins, Uint16 note, int panning);
 void mus_set_channel_volume(MusEngine* mus, int chan, int volume);

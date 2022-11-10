@@ -193,12 +193,16 @@ int msgbox(GfxDomain *domain, GfxSurface *gfx, const Font *font, const char *msg
 			int r = draw_box(domain, gfx, font, &e, msg, buttons, &selected);
 			gfx_domain_flip(domain);
 			set_repeat_timer(NULL);
+			
 			if (r) 
 			{
 				return r;
 			}
 		}
+		
 		else
+		{
 			SDL_Delay(5);
+		}
 	}
 }

@@ -168,7 +168,37 @@ static RWops * RWFromFile(const char *name, const char *mode)
 #endif
 }
 
-
+void mus_free_inst_programs(MusInstrument* inst) //because memory for programs is dynamically allocated we need to free() it when we delete/overwrite instrument
+{
+	for(int i = 0; i < MUS_MAX_MACROS_INST; ++i)
+	{
+		if(inst->program[i])
+		{
+			free(inst->program[i]);
+		}
+		
+		if(inst->program_unite_bits[i])
+		{
+			free(inst->program_unite_bits[i]);
+		}
+	}
+	
+	for(int op = 0; op < CYD_FM_NUM_OPS; ++op)
+	{
+		for(int i = 0; i < MUS_MAX_MACROS_OP; ++i)
+		{
+			if(inst->ops[op].program[i])
+			{
+				free(inst->ops[op].program[i]);
+			}
+			
+			if(inst->ops[op].program_unite_bits[i])
+			{
+				free(inst->ops[op].program_unite_bits[i]);
+			}
+		}
+	}
+}
 
 static void update_volumes(MusEngine *mus, MusTrackStatus *ts, MusChannel *chn, CydChannel *cydchn, int volume)
 {
@@ -7741,6 +7771,18 @@ int mus_load_instrument_RW(Uint8 version, RWops *ctx, MusInstrument *inst, CydWa
 		}
 		
 		VER_READ(version, 23, 0xff, &inst->fm_harmonic, 0);
+		
+		/*if(version < 39) //only now I realised how weird mults were, they were multiplied by two
+		{
+			Uint8 one = inst->fm_harmonic & 0xf;
+			Uint8 two = (inst->fm_harmonic >> 4) & 0xf;
+			
+			if(one < 8) one *= 2; else one = 0xf;
+			if(two < 8) two *= 2; else two = 0xf;
+			
+			inst->fm_harmonic = one | (two << 4);
+		}*/
+		
 		VER_READ(version, 23, 0xff, &inst->fm_adsr, 0);
 		
 		if(version >= 34)
@@ -7820,6 +7862,18 @@ int mus_load_instrument_RW(Uint8 version, RWops *ctx, MusInstrument *inst, CydWa
 				else
 				{
 					VER_READ(version, 34, 0xff, &inst->ops[i].harmonic, 0);
+					
+					/*if(version < 39) //only now I realised how weird mults were, they were multiplied by two
+					{
+						Uint8 one = inst->ops[i].harmonic & 0xf;
+						Uint8 two = (inst->ops[i].harmonic >> 4) & 0xf;
+						
+						if(one < 8) one *= 2; else one = 0xf;
+						if(two < 8) two *= 2; else two = 0xf;
+						
+						inst->ops[i].harmonic = one | (two << 4);
+					}*/
+					
 					Uint8 temp_detune;
 					VER_READ(version, 34, 0xff, &temp_detune, 0);
 					
@@ -8277,34 +8331,7 @@ int mus_load_instrument_RW2(RWops *ctx, MusInstrument *inst, CydWavetableEntry *
 
 void mus_get_default_instrument(MusInstrument *inst)
 {
-	for(int i = 0; i < MUS_MAX_MACROS_INST; ++i)
-	{
-		if(inst->program[i])
-		{
-			free(inst->program[i]);
-		}
-		
-		if(inst->program_unite_bits[i])
-		{
-			free(inst->program_unite_bits[i]);
-		}
-	}
-	
-	for(int op = 0; op < CYD_FM_NUM_OPS; ++op)
-	{
-		for(int i = 0; i < MUS_MAX_MACROS_OP; ++i)
-		{
-			if(inst->ops[op].program[i])
-			{
-				free(inst->ops[op].program[i]);
-			}
-			
-			if(inst->ops[op].program_unite_bits[i])
-			{
-				free(inst->ops[op].program_unite_bits[i]);
-			}
-		}
-	}
+	mus_free_inst_programs(inst);
 	
 	memset(inst, 0, sizeof(*inst));
 	
