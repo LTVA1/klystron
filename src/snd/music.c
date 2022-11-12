@@ -1,5 +1,6 @@
 /*
 Copyright (c) 2009-2010 Tero Lindeman (kometbomb)
+Copyright (c) 2021-2022 Georgy Saraykin (LTVA1 a.k.a. LTVA) and contributors
 
 Permission is hereby granted, free of charge, to any person
 obtaining a copy of this software and associated documentation
@@ -4778,87 +4779,132 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 				{
 					if (!from_program)
 					{
-						for(int pr = 0; pr < chn->instrument->num_macros; ++pr)
+						if(ops_index == 0 || ops_index == 0xFF)
 						{
-							chn->program_counter[pr] = 0;
-							chn->program_tick[pr] = 0;
-							
-							for(int i = 0; i < MUS_MAX_NESTEDNESS; ++i)
+							for(int pr = 0; pr < chn->instrument->num_macros; ++pr)
 							{
-								chn->program_loop[pr][i] = 1;
-								chn->program_loop_addresses[pr][i][0] = chn->program_loop_addresses[pr][i][1] = 0;
-							}
-							
-							chn->nestedness[pr] = 0;
-			
-							int i = 1;
-							int temp_address = 0;
-							
-							while(i < MUS_MAX_NESTEDNESS && temp_address < MUS_PROG_LEN)
-							{
-								if(chn->instrument->program[pr][temp_address] == MUS_FX_LABEL)
+								chn->program_counter[pr] = 0;
+								chn->program_tick[pr] = 0;
+								
+								for(int i = 0; i < MUS_MAX_NESTEDNESS; ++i)
 								{
-									chn->program_loop_addresses[pr][i][0] = temp_address;
-									i++;
+									chn->program_loop[pr][i] = 1;
+									chn->program_loop_addresses[pr][i][0] = chn->program_loop_addresses[pr][i][1] = 0;
 								}
 								
-								if(chn->instrument->program[pr][temp_address] == MUS_FX_LOOP)
+								chn->nestedness[pr] = 0;
+				
+								int i = 1;
+								int temp_address = 0;
+								
+								while(i < MUS_MAX_NESTEDNESS && temp_address < MUS_PROG_LEN)
 								{
-									goto loops;
+									if(chn->instrument->program[pr][temp_address] == MUS_FX_LABEL)
+									{
+										chn->program_loop_addresses[pr][i][0] = temp_address;
+										i++;
+									}
+									
+									if(chn->instrument->program[pr][temp_address] == MUS_FX_LOOP)
+									{
+										goto loops;
+									}
+									
+									else
+									{
+										temp_address++;
+									}
 								}
 								
-								else
-								{
-									temp_address++;
-								}
+								loops:;
+							
 							}
 							
-							loops:;
-						
+							if(chn->instrument->fm_flags & CYD_FM_FOUROP_USE_MAIN_INST_PROG)
+							{
+								for(int i = 0; i < CYD_FM_NUM_OPS; ++i)
+								{
+									for(int pr = 0; pr < chn->instrument->ops[i].num_macros; ++pr)
+									{
+										chn->ops[i].program_counter[pr] = 0;
+										chn->ops[i].program_tick[pr] = 0;
+										//chn->ops[i].program_loop = 1;
+										
+										for(int j = 0; j < MUS_MAX_NESTEDNESS; ++j)
+										{
+											chn->ops[i].program_loop[pr][j] = 1;
+											chn->ops[i].program_loop_addresses[pr][j][0] = chn->ops[i].program_loop_addresses[pr][j][1] = 0;
+										}
+										
+										chn->ops[i].nestedness[pr] = 0;
+				
+										int j = 1;
+										int temp_address = 0;
+										
+										while(j < MUS_MAX_NESTEDNESS && temp_address < MUS_PROG_LEN)
+										{
+											if(chn->instrument->ops[i].program[pr][temp_address] == MUS_FX_LABEL)
+											{
+												chn->ops[i].program_loop_addresses[pr][j][0] = temp_address;
+												j++;
+											}
+											
+											if(chn->instrument->ops[i].program[pr][temp_address] == MUS_FX_LOOP)
+											{
+												goto loops1;
+											}
+											
+											else
+											{
+												temp_address++;
+											}
+										}
+										
+										loops1:;
+									}
+								}
+							}
 						}
 						
-						if(chn->instrument->fm_flags & CYD_FM_FOUROP_USE_MAIN_INST_PROG)
+						else //if from phat fucker 5-col pattern which is/would be workaround for Deflemask and Furnace extended ch3 modes
 						{
-							for(int i = 0; i < CYD_FM_NUM_OPS; ++i)
+							for(int pr = 0; pr < chn->instrument->ops[ops_index - 1].num_macros; ++pr)
 							{
-								for(int pr = 0; pr < chn->instrument->ops[i].num_macros; ++pr)
+								chn->ops[ops_index - 1].program_counter[pr] = 0;
+								chn->ops[ops_index - 1].program_tick[pr] = 0;
+								//chn->ops[i].program_loop = 1;
+								
+								for(int j = 0; j < MUS_MAX_NESTEDNESS; ++j)
 								{
-									chn->ops[i].program_counter[pr] = 0;
-									chn->ops[i].program_tick[pr] = 0;
-									//chn->ops[i].program_loop = 1;
-									
-									for(int j = 0; j < MUS_MAX_NESTEDNESS; ++j)
-									{
-										chn->ops[i].program_loop[pr][j] = 1;
-										chn->ops[i].program_loop_addresses[pr][j][0] = chn->ops[i].program_loop_addresses[pr][j][1] = 0;
-									}
-									
-									chn->ops[i].nestedness[pr] = 0;
-			
-									int j = 1;
-									int temp_address = 0;
-									
-									while(j < MUS_MAX_NESTEDNESS && temp_address < MUS_PROG_LEN)
-									{
-										if(chn->instrument->ops[i].program[pr][temp_address] == MUS_FX_LABEL)
-										{
-											chn->ops[i].program_loop_addresses[pr][j][0] = temp_address;
-											j++;
-										}
-										
-										if(chn->instrument->ops[i].program[pr][temp_address] == MUS_FX_LOOP)
-										{
-											goto loops1;
-										}
-										
-										else
-										{
-											temp_address++;
-										}
-									}
-									
-									loops1:;
+									chn->ops[ops_index - 1].program_loop[pr][j] = 1;
+									chn->ops[ops_index - 1].program_loop_addresses[pr][j][0] = chn->ops[ops_index - 1].program_loop_addresses[pr][j][1] = 0;
 								}
+								
+								chn->ops[ops_index - 1].nestedness[pr] = 0;
+		
+								int j = 1;
+								int temp_address = 0;
+								
+								while(j < MUS_MAX_NESTEDNESS && temp_address < MUS_PROG_LEN)
+								{
+									if(chn->instrument->ops[ops_index - 1].program[pr][temp_address] == MUS_FX_LABEL)
+									{
+										chn->ops[ops_index - 1].program_loop_addresses[pr][j][0] = temp_address;
+										j++;
+									}
+									
+									if(chn->instrument->ops[ops_index - 1].program[pr][temp_address] == MUS_FX_LOOP)
+									{
+										goto loops2;
+									}
+									
+									else
+									{
+										temp_address++;
+									}
+								}
+								
+								loops2:;
 							}
 						}
 					}
@@ -6827,7 +6873,7 @@ int mus_advance_tick(void* udata)
 
 								if (ctrl & MUS_CTRL_SLIDE)
 								{
-									if(pinst->fm_flags & CYD_FM_ENABLE_4OP)
+									/*if(pinst->fm_flags & CYD_FM_ENABLE_4OP)
 									{
 										for(int j = 0; j < CYD_FM_NUM_OPS; ++j)
 										{
@@ -6842,11 +6888,31 @@ int mus_advance_tick(void* udata)
 												mus->channel[i].ops[j].target_note = (((Uint16)note + pinst->base_note - MIDDLE_C) << 8) + (Sint32)mus->cyd->channel[i].fm.ops[j].detune * DETUNE + coarse_detune_table[mus->cyd->channel[i].fm.ops[j].coarse_detune];
 											}
 										}
-									}
+									}*/
 									
 									if (ctrl & MUS_CTRL_LEGATO)
 									{
 										mus_set_slide(mus, i, (((Uint16)note + pinst->base_note - MIDDLE_C) << 8) + pinst->finetune);
+										
+										//MusChannel *chn = &mus->channel[chan];
+										//chn->target_note = note;
+										
+										if(pinst->fm_flags & CYD_FM_ENABLE_4OP)
+										{
+											for(int j = 0; j < CYD_FM_NUM_OPS; ++j)
+											{
+												if(pinst->fm_flags & CYD_FM_ENABLE_3CH_EXP_MODE)
+												{
+													mus->channel[i].ops[j].target_note = (((Uint16)note + pinst->ops[j].base_note - MIDDLE_C) << 8) + pinst->ops[j].finetune;
+												}
+												
+												else
+												{
+													//mus->channel[i].ops[j].target_note = (((Uint16)note + pinst->base_note - MIDDLE_C) << 8) + pinst->ops[j].detune * DETUNE + pinst->ops[j].coarse_detune * COARSE_DETUNE;
+													mus->channel[i].ops[j].target_note = (((Uint16)note + pinst->base_note - MIDDLE_C) << 8) + (Sint32)mus->cyd->channel[i].fm.ops[j].detune * DETUNE + coarse_detune_table[mus->cyd->channel[i].fm.ops[j].coarse_detune];
+												}
+											}
+										}
 									}
 									
 									else
@@ -8438,6 +8504,57 @@ void mus_get_default_instrument(MusInstrument *inst)
 	
 	inst->ops[2].volume = inst->ops[3].volume = 0;
 	inst->ops[1].volume = 0x38;
+}
+
+
+void mus_get_empty_instrument(MusInstrument *inst)
+{
+	mus_free_inst_programs(inst);
+	
+	memset(inst, 0, sizeof(*inst));
+	
+	for(int i = 0; i < MUS_MAX_MACROS_INST; ++i)
+	{
+		inst->prog_period[i] = 1;
+	}
+	
+	inst->program[0] = (Uint16*)malloc(MUS_PROG_LEN * sizeof(Uint16));
+	inst->program_unite_bits[0] = (Uint8*)malloc((MUS_PROG_LEN / 8 + 1) * sizeof(Uint8));
+	
+	inst->num_macros = 1;
+
+	for (int p = 0; p < MUS_PROG_LEN; ++p)
+	{
+		inst->program[0][p] = MUS_FX_NOP;
+	}
+	
+	for (int p = 0; p < MUS_PROG_LEN / 8 + 1; ++p)
+	{
+		inst->program_unite_bits[0][p] = 0;
+	}
+	
+	for(int i = 0; i < CYD_FM_NUM_OPS; ++i)
+	{
+		for(int j = 0; j < MUS_MAX_MACROS_OP; ++j)
+		{
+			inst->ops[i].prog_period[j] = 1;
+		}
+		
+		inst->ops[i].program[0] = (Uint16*)malloc(MUS_PROG_LEN * sizeof(Uint16));
+		inst->ops[i].program_unite_bits[0] = (Uint8*)malloc((MUS_PROG_LEN / 8 + 1) * sizeof(Uint8));
+		
+		inst->ops[i].num_macros = 1;
+
+		for (int p = 0; p < MUS_PROG_LEN; ++p)
+		{
+			inst->ops[i].program[0][p] = MUS_FX_NOP;
+		}
+		
+		for (int p = 0; p < MUS_PROG_LEN / 8 + 1; ++p)
+		{
+			inst->ops[i].program_unite_bits[0][p] = 0;
+		}
+	}
 }
 
 

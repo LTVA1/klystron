@@ -66,7 +66,7 @@ typedef struct
 {
 	Uint8 a, d, s, r; // 0-63 for a, d, r; 0-31 for s
 	
-	Uint8 sr; //sustain rate, 0 means horizontal sustain, 31 immediate fall down
+	Uint8 sr; //sustain rate, 0 means horizontal sustain, 63 immediate fall down
 } MusFmOpAdsr;
 
 typedef struct //wasn't there
@@ -834,5 +834,6 @@ Uint32 mus_ext_sync(MusEngine *mus);
 Uint32 mus_get_playtime_at(MusSong *song, int position);
 
 void mus_trigger_fm_op_internal(CydFm* fm, MusInstrument* ins, CydChannel* cydchn, MusChannel* chn, MusTrackStatus* track, MusEngine* mus, Uint8 i/*op number*/, Uint16 note, int chan, bool retrig);
+void mus_get_empty_instrument(MusInstrument *inst);
 
 #endif
