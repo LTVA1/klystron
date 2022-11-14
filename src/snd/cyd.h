@@ -302,6 +302,8 @@ typedef struct CydEngine_t
 	Uint16 PulseTriSaw_8580[4096];
 	
 	Uint16 sine_table[65536];
+	
+	Uint8 mus_volume;
 } CydEngine;
 
 enum

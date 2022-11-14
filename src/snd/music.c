@@ -233,14 +233,14 @@ static void update_fm_op_volume(MusEngine *mus, MusTrackStatus *track, MusChanne
 	{
 		track->ops_status[i].volume = volume;
 		
-		cydchn->fm.ops[i].adsr.volume = (chn->flags & MUS_CHN_DISABLED) ? 0 : ((int)chn->instrument->ops[i].volume * volume / MAX_VOLUME * (int)mus->volume / MAX_VOLUME * (int)mus->play_volume / MAX_VOLUME * (int)chn->volume / MAX_VOLUME);
+		cydchn->fm.ops[i].adsr.volume = (chn->flags & MUS_CHN_DISABLED) ? 0 : ((int)chn->instrument->ops[i].volume * volume / MAX_VOLUME /* * (int)mus->volume / MAX_VOLUME */ * (int)mus->play_volume / MAX_VOLUME * (int)chn->volume / MAX_VOLUME);
 	}
 	
 	else
 	{
 		track->ops_status[i].volume = volume;
 		
-		cydchn->fm.ops[i].adsr.volume = (chn->flags & MUS_CHN_DISABLED) ? 0 : (track->ops_status[i].volume * (int)mus->volume / MAX_VOLUME * (int)mus->play_volume / MAX_VOLUME * (int)chn->volume / MAX_VOLUME);
+		cydchn->fm.ops[i].adsr.volume = (chn->flags & MUS_CHN_DISABLED) ? 0 : (track->ops_status[i].volume /* * (int)mus->volume / MAX_VOLUME */ * (int)mus->play_volume / MAX_VOLUME * (int)chn->volume / MAX_VOLUME);
 	}
 }
 
@@ -5763,6 +5763,8 @@ void mus_trigger_fm_op_internal(CydFm* fm, MusInstrument* ins, CydChannel* cydch
 //***** USE THIS INSIDE MUS_ADVANCE_TICK TO AVOID MUTEX DEADLOCK
 int mus_trigger_instrument_internal(MusEngine* mus, int chan, MusInstrument *ins, Uint16 note, int panning)
 {
+	mus->cyd->mus_volume = mus->volume;
+	
 	Uint16 temp_note = note;
 	
 	if (chan == -1)
@@ -8522,6 +8524,12 @@ void mus_get_empty_instrument(MusInstrument *inst)
 	inst->program_unite_bits[0] = (Uint8*)malloc((MUS_PROG_LEN / 8 + 1) * sizeof(Uint8));
 	
 	inst->num_macros = 1;
+	
+	inst->fm_4op_vol = 0x80;
+	
+	inst->base_note = MIDDLE_C;
+	inst->noise_note = MIDDLE_C;
+	inst->fm_base_note = MIDDLE_C; //wasn't there
 
 	for (int p = 0; p < MUS_PROG_LEN; ++p)
 	{
@@ -8544,6 +8552,11 @@ void mus_get_empty_instrument(MusInstrument *inst)
 		inst->ops[i].program_unite_bits[0] = (Uint8*)malloc((MUS_PROG_LEN / 8 + 1) * sizeof(Uint8));
 		
 		inst->ops[i].num_macros = 1;
+		
+		inst->ops[i].base_note = MIDDLE_C;
+		inst->ops[i].noise_note = MIDDLE_C;
+		
+		inst->ops[i].CSM_timer_note = MIDDLE_C;
 
 		for (int p = 0; p < MUS_PROG_LEN; ++p)
 		{

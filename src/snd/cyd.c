@@ -2112,7 +2112,7 @@ static Sint32 cyd_output(CydEngine *cyd)
 			
 			if((cyd->channel[i].fm.flags & CYD_FM_ENABLE_4OP) && !(cyd->channel[i].fm.flags & CYD_FM_FOUROP_BYPASS_MAIN_INST_FILTER))
 			{
-				o += cyd_output_fm_ops(cyd, chn, i, s) * (Sint32)cyd->channel[i].fm.fm_4op_vol / MAX_VOLUME;
+				o += cyd_output_fm_ops(cyd, chn, i, s) * (Sint32)cyd->channel[i].fm.fm_4op_vol / (int)MAX_VOLUME * (int)cyd->mus_volume / (int)MAX_VOLUME;
 			}
 #endif
 
@@ -2165,7 +2165,7 @@ static Sint32 cyd_output(CydEngine *cyd)
 			
 			if((cyd->channel[i].fm.flags & CYD_FM_ENABLE_4OP) && (cyd->channel[i].fm.flags & CYD_FM_FOUROP_BYPASS_MAIN_INST_FILTER))
 			{
-				o += cyd_output_fm_ops(cyd, chn, i, s) * (int)cyd->channel[i].fm.fm_4op_vol / MAX_VOLUME;
+				o += cyd_output_fm_ops(cyd, chn, i, s) * (int)cyd->channel[i].fm.fm_4op_vol / (int)MAX_VOLUME * (int)cyd->mus_volume / (int)MAX_VOLUME;
 			}
 			
 #ifdef STEREOOUTPUT
