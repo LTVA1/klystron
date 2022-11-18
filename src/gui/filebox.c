@@ -672,9 +672,17 @@ int filebox(const char *title, int mode, char *buffer, size_t buffer_size, const
 
 	while (!data.quit)
 	{
+#ifndef STANDALONE_COMPILE
+	mused.frames_since_menu_close = 0;
+#endif
+
 		if (data.picked_file)
 		{
 			set_repeat_timer(NULL);
+			
+#ifndef STANDALONE_COMPILE
+	mused.frames_since_menu_close = 0;
+#endif
 
 			if (data.picked_file->type == FB_FILE)
 			{
@@ -702,6 +710,9 @@ int filebox(const char *title, int mode, char *buffer, size_t buffer_size, const
 		int got_event = 0;
 		while (SDL_PollEvent(&e))
 		{
+#ifndef STANDALONE_COMPILE
+	mused.frames_since_menu_close = 0;
+#endif
 			switch (e.type)
 			{
 				case SDL_QUIT:
@@ -862,7 +873,10 @@ int filebox(const char *title, int mode, char *buffer, size_t buffer_size, const
 			if (0)
 			{
 			exit_ok:;
-
+			
+#ifndef STANDALONE_COMPILE
+				mused.frames_since_menu_close = 0;
+#endif
 				set_repeat_timer(NULL);
 				strncpy(buffer, exp ? exp : data.field, buffer_size);
 				strncpy(last_picked_file, "", sizeof(last_picked_file));
@@ -901,9 +915,19 @@ int filebox(const char *title, int mode, char *buffer, size_t buffer_size, const
 		{
 			draw_view(domain, filebox_view, &e);
 			gfx_domain_flip(domain);
+			
+#ifndef STANDALONE_COMPILE
+	mused.frames_since_menu_close = 0;
+#endif
 		}
+		
 		else
+		{
+#ifndef STANDALONE_COMPILE
+	mused.frames_since_menu_close = 0;
+#endif
 			SDL_Delay(5);
+		}
 	}
 
 	free_files();

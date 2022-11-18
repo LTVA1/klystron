@@ -7973,16 +7973,21 @@ int mus_load_instrument_RW(Uint8 version, RWops *ctx, MusInstrument *inst, CydWa
 				}
 				
 				
-				if(inst->ops[i].cydflags & CYD_FM_OP_ENABLE_FILTER)
+				if((inst->ops[i].cydflags & CYD_FM_OP_ENABLE_FILTER) && version < 40)
 				{
 					inst->ops[i].slope = ((inst->ops[i].adsr.s & 0b11100000) >> 5);
 					inst->ops[i].flttype = (((inst->ops[i].adsr.a) & 0b11000000) >> 5) | (((inst->ops[i].adsr.d) & 0b01000000) >> 6);
 				}
 				
-				inst->ops[i].adsr.a &= 0b00111111;
-				inst->ops[i].adsr.d &= 0b00111111;
+				
 				inst->ops[i].adsr.s &= 0b00011111;
-				inst->ops[i].adsr.r &= 0b00111111;
+				
+				if(version < 40)
+				{
+					inst->ops[i].adsr.r &= 0b00111111;
+					inst->ops[i].adsr.a &= 0b00111111;
+					inst->ops[i].adsr.d &= 0b00111111;
+				}
 				
 				if(inst->ops[i].cydflags & CYD_FM_OP_ENABLE_FIXED_NOISE_PITCH)
 				{
@@ -8146,6 +8151,8 @@ int mus_load_instrument_RW(Uint8 version, RWops *ctx, MusInstrument *inst, CydWa
 					
 					inst->ops[i].resonance = inst->ops[i].cutoff >> 12;
 					inst->ops[i].cutoff &= 0xfff;
+					
+					VER_READ(version, 40, 0xff, &inst->ops[i].flttype, 0);
 				}
 				
 				if (inst->ops[i].cydflags & CYD_FM_OP_ENABLE_WAVE)
@@ -9138,13 +9145,13 @@ int mus_load_song_RW(RWops *ctx, MusSong *song, CydWavetableEntry *wavetable_ent
 			debug("Song has %u effects", n_fx);
 			if (version >= 10)
 			{
-				memset(&song->fx, 0, sizeof(song->fx[0]) * n_fx);
+				memset(&song->fx, 0, sizeof(song->fx[0]) * (n_fx > CYD_MAX_FX_CHANNELS ? CYD_MAX_FX_CHANNELS : n_fx));
 
-				debug("Loading fx at offset %x (%d/%d)", (Uint32)my_RWtell(ctx), (int)sizeof(song->fx[0]) * n_fx, (int)sizeof(song->fx[0]));
+				debug("Loading fx at offset %x (%d/%d)", (Uint32)my_RWtell(ctx), (int)sizeof(song->fx[0]) * (n_fx > CYD_MAX_FX_CHANNELS ? CYD_MAX_FX_CHANNELS : n_fx), (int)sizeof(song->fx[0]));
 
 				for (int fx = 0; fx < n_fx; ++fx)
 				{
-					inner_load_fx(ctx, &song->fx[fx], version);
+					inner_load_fx(ctx, &song->fx[(fx >= CYD_MAX_FX_CHANNELS ? CYD_MAX_FX_CHANNELS - 1 : fx)], version);
 				}
 			}
 			
@@ -9152,8 +9159,8 @@ int mus_load_song_RW(RWops *ctx, MusSong *song, CydWavetableEntry *wavetable_ent
 			{
 				for (int fx = 0; fx < n_fx; ++fx)
 				{
-					song->fx[fx].flags = CYDFX_ENABLE_REVERB;
-					if (song->flags & MUS_ENABLE_CRUSH) song->fx[fx].flags |= CYDFX_ENABLE_CRUSH;
+					song->fx[(fx >= CYD_MAX_FX_CHANNELS ? CYD_MAX_FX_CHANNELS - 1 : fx)].flags = CYDFX_ENABLE_REVERB;
+					if (song->flags & MUS_ENABLE_CRUSH) song->fx[(fx >= CYD_MAX_FX_CHANNELS ? CYD_MAX_FX_CHANNELS - 1 : fx)].flags |= CYDFX_ENABLE_CRUSH;
 
 					for (int i = 0; i < 8; ++i)
 					{
@@ -9161,13 +9168,13 @@ int mus_load_song_RW(RWops *ctx, MusSong *song, CydWavetableEntry *wavetable_ent
 						my_RWread(ctx, &g, 1, sizeof(g));
 						my_RWread(ctx, &d, 1, sizeof(d));
 
-						song->fx[fx].rvb.tap[i].gain = g;
-						song->fx[fx].rvb.tap[i].delay = d;
-						song->fx[fx].rvb.tap[i].panning = CYD_PAN_CENTER;
-						song->fx[fx].rvb.tap[i].flags = 1;
+						song->fx[(fx >= CYD_MAX_FX_CHANNELS ? CYD_MAX_FX_CHANNELS - 1 : fx)].rvb.tap[i].gain = g;
+						song->fx[(fx >= CYD_MAX_FX_CHANNELS ? CYD_MAX_FX_CHANNELS - 1 : fx)].rvb.tap[i].delay = d;
+						song->fx[(fx >= CYD_MAX_FX_CHANNELS ? CYD_MAX_FX_CHANNELS - 1 : fx)].rvb.tap[i].panning = CYD_PAN_CENTER;
+						song->fx[(fx >= CYD_MAX_FX_CHANNELS ? CYD_MAX_FX_CHANNELS - 1 : fx)].rvb.tap[i].flags = 1;
 
-						FIX_ENDIAN(song->fx[fx].rvb.tap[i].gain);
-						FIX_ENDIAN(song->fx[fx].rvb.tap[i].delay);
+						FIX_ENDIAN(song->fx[(fx >= CYD_MAX_FX_CHANNELS ? CYD_MAX_FX_CHANNELS - 1 : fx)].rvb.tap[i].gain);
+						FIX_ENDIAN(song->fx[(fx >= CYD_MAX_FX_CHANNELS ? CYD_MAX_FX_CHANNELS - 1 : fx)].rvb.tap[i].delay);
 					}
 				}
 			}

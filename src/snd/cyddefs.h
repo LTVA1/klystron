@@ -49,7 +49,7 @@ OTHER DEALINGS IN THE SOFTWARE.
 
 #define CYD_BASE_FREQ 22050
 #define CYD_MAX_CHANNELS 128 /* was 32 */
-#define CYD_MAX_FX_CHANNELS 64 /* was 8 */
+#define CYD_MAX_FX_CHANNELS 16 /* was 8 */
 #define CYD_SUB_OSCS 3
 
 #define CYD_PAN_CENTER 128 /* was 64 */
