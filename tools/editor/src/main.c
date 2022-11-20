@@ -792,7 +792,7 @@ int main(int argc, char **argv)
 	domain = gfx_create_domain("Editor", 0, 640, 480, 1);
 	domain->screen_w = 640;
 	domain->screen_h = 480;
-	domain->fps = 20;
+	domain->fps = 30;
 	domain->scale = 1;
 	gfx_domain_update(domain, true);
 	
