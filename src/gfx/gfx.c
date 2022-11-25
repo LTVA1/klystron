@@ -632,17 +632,20 @@ void gfx_domain_update(GfxDomain *domain, bool resize_window)
 		if (domain->scale_texture)
 			SDL_DestroyTexture(domain->scale_texture);
 
-		domain->scale_texture = SDL_CreateTexture(domain->renderer, SDL_PIXELFORMAT_RGB888, SDL_TEXTUREACCESS_TARGET, domain->screen_w, domain->screen_h);
+		domain->scale_texture = SDL_CreateTexture(domain->renderer, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_TARGET, domain->screen_w, domain->screen_h);
 
 		if (!domain->scale_texture)
 		{
 			warning("Could not create texture: %s", SDL_GetError());
 		}
+		
 		else
 		{
 			SDL_SetRenderTarget(domain->renderer, domain->scale_texture);
+			SDL_SetTextureBlendMode(domain->scale_texture, SDL_BLENDMODE_BLEND);
 		}
 	}
+	
 	else
 	{
 		debug("Rendering to texture disabled");
@@ -745,6 +748,14 @@ GfxDomain * gfx_create_domain(const char *title, Uint32 window_flags, int window
 #else
 	d->window = SDL_CreateWindow(title, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, window_w, window_h, window_flags);
 	d->renderer = SDL_CreateRenderer(d->window, -1, SDL_RENDERER_PRESENTVSYNC|SDL_RENDERER_ACCELERATED|SDL_RENDERER_TARGETTEXTURE);
+	
+	int transprent = SDL_SetRenderDrawBlendMode(d->renderer, SDL_BLENDMODE_BLEND); //wasn't there
+	
+	if(transprent != 0)
+	{
+		debug("Renderer doesn't support transparency!");
+	}
+	
 	SDL_RendererInfo info;
 	SDL_GetRendererInfo(d->renderer, &info);
 	
@@ -828,7 +839,7 @@ void gfx_update_texture(GfxDomain *domain, GfxSurface *surface)
 	GPU_SetImageFilter(surface->texture, GPU_FILTER_NEAREST);
 	GPU_SetSnapMode(surface->texture, GPU_SNAP_POSITION_AND_DIMENSIONS);
 	GPU_SetBlending(surface->texture, 1);
-	GPU_SetBlendMode(surface->texture, GPU_BLEND_NORMAL);
+	GPU_SetBlendMode(surface->texture, GPU_BLEND_NORMAL); //was GPU_BLEND_NORMAL
 #else
 	if (surface->texture)
 		SDL_DestroyTexture(surface->texture);

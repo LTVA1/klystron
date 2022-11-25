@@ -432,7 +432,7 @@ static int font_load_inner(GfxDomain *domain, Font *font, Bundle *fb)
 
 	if (rw)
 	{
-		GfxSurface * s= gfx_load_surface_RW(domain, rw, GFX_KEYED);
+		GfxSurface * s = gfx_load_surface_RW(domain, rw, GFX_KEYED);
 
 		char map[1000];
 		memset(map, 0, sizeof(map));
