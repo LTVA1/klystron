@@ -109,22 +109,6 @@ void cydfm_cycle(const CydEngine *cyd, CydFm *fm)
 	fm->fb2 = fm->fb1;
 	fm->fb1 = mod;
 	fm->current_modulation = mod;
-	
-	Sint16 env_ksl_level_final = (fm->flags & CYD_FM_ENABLE_ENVELOPE_KEY_SCALING) ? fm->fm_env_ksl_level : -1;
-	
-	if(fm->fm_freq_LUT == 0)
-	{
-		fm->fm_env_ksl_mult = (env_ksl_level_final == -1) ? 1.0 : (pow((get_freq(((fm->fm_base_note << 8) + fm->fm_finetune)) + 1.0) / (get_freq(fm->freq_for_fm_ksl) + 1.0) * (Uint64)harmonic[fm->harmonic >> 4] / (Uint64)harmonic[fm->harmonic & 15], (env_ksl_level_final == 0 ? 0 : (env_ksl_level_final / 127.0))));
-		
-		fm->fm_env_ksl_mult = 1.0 / fm->fm_env_ksl_mult;
-	}
-	
-	else
-	{
-		fm->fm_env_ksl_mult = (env_ksl_level_final == -1) ? 1.0 : (pow((get_freq(((fm->fm_base_note << 8) + fm->fm_finetune)) + 1.0) / (get_freq(fm->freq_for_fm_ksl) + 1.0) * (Uint64)harmonicOPN[fm->harmonic >> 4] / (Uint64)harmonicOPN[fm->harmonic & 15], (env_ksl_level_final == 0 ? 0 : (env_ksl_level_final / 127.0))));
-		
-		fm->fm_env_ksl_mult = 1.0 / fm->fm_env_ksl_mult;
-	}
 }
 
 
@@ -143,23 +127,11 @@ void cydfm_set_frequency(const CydEngine *cyd, CydFm *fm, Uint32 base_frequency)
 	Sint16 vol_ksl_level_final = (fm->flags & CYD_FM_ENABLE_VOLUME_KEY_SCALING) ? fm->fm_vol_ksl_level : -1;
 	Sint16 env_ksl_level_final = (fm->flags & CYD_FM_ENABLE_ENVELOPE_KEY_SCALING) ? fm->fm_env_ksl_level : -1;
 	
-	if(fm->fm_freq_LUT == 0)
-	{
-		fm->fm_vol_ksl_mult = (vol_ksl_level_final == -1) ? 1.0 : (pow((get_freq(((fm->fm_base_note << 8) + fm->fm_finetune)) + 1.0) / (get_freq(fm->freq_for_fm_ksl) + 1.0) * (Uint64)harmonic[fm->harmonic >> 4] / (Uint64)harmonic[fm->harmonic & 15], (vol_ksl_level_final == 0 ? 0 : (vol_ksl_level_final / 127.0))));
-		
-		fm->fm_env_ksl_mult = (env_ksl_level_final == -1) ? 1.0 : (pow((get_freq(((fm->fm_base_note << 8) + fm->fm_finetune)) + 1.0) / (get_freq(fm->freq_for_fm_ksl) + 1.0) * (Uint64)harmonic[fm->harmonic >> 4] / (Uint64)harmonic[fm->harmonic & 15], (env_ksl_level_final == 0 ? 0 : (env_ksl_level_final / 127.0))));
-		
-		fm->fm_env_ksl_mult = 1.0 / fm->fm_env_ksl_mult;
-	}
+	fm->fm_vol_ksl_mult = (vol_ksl_level_final == -1) ? 1.0 : (pow((get_freq(((fm->fm_base_note << 8) + fm->fm_finetune)) + 1.0) / (get_freq(fm->freq_for_fm_ksl) + 1.0), (vol_ksl_level_final == 0 ? 0 : (vol_ksl_level_final / 127.0))));
 	
-	else
-	{
-		fm->fm_vol_ksl_mult = (vol_ksl_level_final == -1) ? 1.0 : (pow((get_freq(((fm->fm_base_note << 8) + fm->fm_finetune)) + 1.0) / (get_freq(fm->freq_for_fm_ksl) + 1.0) * (Uint64)harmonicOPN[fm->harmonic >> 4] / (Uint64)harmonicOPN[fm->harmonic & 15], (vol_ksl_level_final == 0 ? 0 : (vol_ksl_level_final / 127.0))));
-		
-		fm->fm_env_ksl_mult = (env_ksl_level_final == -1) ? 1.0 : (pow((get_freq(((fm->fm_base_note << 8) + fm->fm_finetune)) + 1.0) / (get_freq(fm->freq_for_fm_ksl) + 1.0) * (Uint64)harmonicOPN[fm->harmonic >> 4] / (Uint64)harmonicOPN[fm->harmonic & 15], (env_ksl_level_final == 0 ? 0 : (env_ksl_level_final / 127.0))));
-		
-		fm->fm_env_ksl_mult = 1.0 / fm->fm_env_ksl_mult;
-	}
+	fm->fm_env_ksl_mult = (env_ksl_level_final == -1) ? 1.0 : (pow((get_freq(((fm->fm_base_note << 8) + fm->fm_finetune)) + 1.0) / (get_freq(fm->freq_for_fm_ksl) + 1.0), (env_ksl_level_final == 0 ? 0 : (env_ksl_level_final / 127.0))));
+	
+	fm->fm_env_ksl_mult = 1.0 / fm->fm_env_ksl_mult;
 	
 	//double vol_ksl_mult = (vol_ksl_level_final == -1) ? 1.0 : (pow((get_freq((chn->base_note << 8) + chn->finetune) + 1.0) / (get_freq(chn->freq_for_ksl) + 1.0), (vol_ksl_level_final == 0 ? 0 : (vol_ksl_level_final / 127.0))));
 	

@@ -1187,21 +1187,37 @@ static Sint32 cyd_output_fm_ops(CydEngine *cyd, CydChannel *chn, int chan_num, /
 		
 		Uint64 acc, noise_acc, wave_acc[CYD_SUB_OSCS];
 		
-		chn->fm.ops[i].vol_ksl_mult = chn->fm.ops[i].env_ksl_mult = 1.0;
+		/*chn->fm.ops[i].vol_ksl_mult = chn->fm.ops[i].env_ksl_mult = 1.0;
 		
 		if((chn->fm.ops[i].flags & CYD_FM_OP_ENABLE_VOLUME_KEY_SCALING) || (chn->fm.ops[i].flags & CYD_FM_OP_ENABLE_ENVELOPE_KEY_SCALING))
 		{
 			Sint16 vol_ksl_level_final = (chn->fm.ops[i].flags & CYD_FM_OP_ENABLE_VOLUME_KEY_SCALING) ? chn->fm.ops[i].vol_ksl_level : -1;
 			
-			chn->fm.ops[i].vol_ksl_mult = (vol_ksl_level_final == -1) ? 1.0 : (pow(((Uint64)get_freq((chn->fm.ops[i].base_note << 8) + chn->fm.ops[i].finetune + chn->fm.ops[i].detune * DETUNE + coarse_detune_table[chn->fm.ops[i].coarse_detune]) / (get_freq(chn->fm.ops[i].freq_for_ksl) + 1.0)), (vol_ksl_level_final == 0 ? 0 : (vol_ksl_level_final / 127.0))));
+			if(chn->fm.flags & CYD_FM_ENABLE_3CH_EXP_MODE)
+			{
+				chn->fm.ops[i].vol_ksl_mult = (vol_ksl_level_final == -1) ? 1.0 : (pow(((Uint64)get_freq((chn->fm.ops[i].base_note << 8) + chn->fm.ops[i].finetune + chn->fm.ops[i].detune * DETUNE + coarse_detune_table[chn->fm.ops[i].coarse_detune]) / (get_freq(chn->fm.ops[i].freq_for_ksl) + 1.0)), (vol_ksl_level_final == 0 ? 0 : (vol_ksl_level_final / 127.0))));
+			}
+			
+			else
+			{
+				chn->fm.ops[i].vol_ksl_mult = (vol_ksl_level_final == -1) ? 1.0 : (pow(((Uint64)get_freq(((chn->base_note << 8) + chn->finetune + chn->fm.ops[i].detune * DETUNE + coarse_detune_table[chn->fm.ops[i].coarse_detune])) / (get_freq(chn->fm.ops[i].freq_for_ksl) + 1.0)), (vol_ksl_level_final == 0 ? 0 : (vol_ksl_level_final / 127.0))));
+			}
 			//chn->fm.ops[i].vol_ksl_mult = (vol_ksl_level_final == -1) ? 1.0 : (pow((get_freq((chn->fm.ops[i].base_note << 8) + chn->fm.ops[i].finetune + chn->fm.ops[i].detune * 8 + chn->fm.ops[i].coarse_detune * 128) + 1.0) / (get_freq(chn->fm.ops[i].freq_for_ksl) + 1.0), (vol_ksl_level_final == 0 ? 0 : (vol_ksl_level_final / 127.0))));
 			
 			Sint16 env_ksl_level_final = (chn->fm.ops[i].flags & CYD_FM_OP_ENABLE_ENVELOPE_KEY_SCALING) ? chn->fm.ops[i].env_ksl_level : -1;
 			
-			chn->fm.ops[i].env_ksl_mult = (env_ksl_level_final == -1) ? 1.0 : (pow(((Uint64)get_freq((chn->fm.ops[i].base_note << 8) + chn->fm.ops[i].finetune + chn->fm.ops[i].detune * DETUNE + coarse_detune_table[chn->fm.ops[i].coarse_detune]) / (get_freq(chn->fm.ops[i].freq_for_ksl) + 1.0)), (env_ksl_level_final == 0 ? 0 : (env_ksl_level_final / 127.0))));
+			if(chn->fm.flags & CYD_FM_ENABLE_3CH_EXP_MODE)
+			{
+				chn->fm.ops[i].env_ksl_mult = (env_ksl_level_final == -1) ? 1.0 : (pow(((Uint64)get_freq((chn->fm.ops[i].base_note << 8) + chn->fm.ops[i].finetune + chn->fm.ops[i].detune * DETUNE + coarse_detune_table[chn->fm.ops[i].coarse_detune]) / (get_freq(chn->fm.ops[i].freq_for_ksl) + 1.0)), (env_ksl_level_final == 0 ? 0 : (env_ksl_level_final / 127.0))));
+			}
+			
+			else
+			{
+				chn->fm.ops[i].env_ksl_mult = (env_ksl_level_final == -1) ? 1.0 : (pow(((Uint64)get_freq(((chn->base_note << 8) + chn->finetune + chn->fm.ops[i].detune * DETUNE + coarse_detune_table[chn->fm.ops[i].coarse_detune] * harmonic1[chn->fm.ops[i].harmonic & 15] / harmonic1[chn->fm.ops[i].harmonic >> 4])) / (get_freq(chn->fm.ops[i].freq_for_ksl) + 1.0)), (env_ksl_level_final == 0 ? 0 : (env_ksl_level_final / 127.0))));
+			}
 			//chn->fm.ops[i].env_ksl_mult = (env_ksl_level_final == -1) ? 1.0 : (pow((get_freq((chn->fm.ops[i].base_note << 8) + chn->fm.ops[i].finetune + chn->fm.ops[i].detune * 8 + chn->fm.ops[i].coarse_detune * 128) + 1.0) / (get_freq(chn->fm.ops[i].freq_for_ksl) + 1.0), (env_ksl_level_final == 0 ? 0 : (env_ksl_level_final / 127.0))));
 			chn->fm.ops[i].env_ksl_mult = 1.0 / chn->fm.ops[i].env_ksl_mult;
-		}
+		}*/
 		
 		chn->fm.ops[i].curr_tremolo = chn->fm.ops[i].tremolo;
 		
@@ -2032,7 +2048,7 @@ static Sint32 cyd_output(CydEngine *cyd)
 	{
 		CydChannel *chn = &cyd->channel[i];
 		
-		chn->vol_ksl_mult = 1.0;
+		/*chn->vol_ksl_mult = 1.0;
 		chn->env_ksl_mult = 1.0;
 		
 		if(chn->fm.flags & CYD_FM_ENABLE_4OP)
@@ -2042,7 +2058,7 @@ static Sint32 cyd_output(CydEngine *cyd)
 				chn->fm.ops[i].vol_ksl_mult = 1.0;
 				chn->fm.ops[i].env_ksl_mult = 1.0;
 			}
-		}
+		}*/
 		
 		if((chn->flags & CYD_CHN_ENABLE_VOLUME_KEY_SCALING) || (chn->flags & CYD_CHN_ENABLE_ENVELOPE_KEY_SCALING))
 		{
