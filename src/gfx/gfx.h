@@ -128,4 +128,7 @@ void gfx_domain_get_clip(GfxDomain *domain, SDL_Rect *rect);
 //
 void my_BlitSurface(GfxSurface *src, SDL_Rect *src_rect, GfxDomain *dest, SDL_Rect *dest_rect);
 
+void gfx_translucent_line(GfxDomain *dest, int x0, int y0, int x1, int y1, Uint32 color);
+void gfx_translucent_rect(GfxDomain *domain, SDL_Rect *dest, Uint32 color);
+
 #endif

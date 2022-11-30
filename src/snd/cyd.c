@@ -400,13 +400,10 @@ void cyd_init(CydEngine *cyd, Uint32 sample_rate, int channels)
 		cyd->channel[i].fm_env_ksl_mult = 1.0;
 		cyd->channel[i].fm.fm_vol_ksl_mult = 1.0;
 		
-		if(cyd->channel[i].fm.flags & CYD_FM_ENABLE_4OP)
+		for (int j = 0; j < CYD_FM_NUM_OPS; ++j)
 		{
-			for (int j = 0; j < CYD_FM_NUM_OPS; ++j)
-			{
-				cyd->channel[i].fm.ops[j].vol_ksl_mult = 1.0;
-				cyd->channel[i].fm.ops[j].env_ksl_mult = 1.0;
-			}
+			cyd->channel[i].fm.ops[j].vol_ksl_mult = 1.0;
+			cyd->channel[i].fm.ops[j].env_ksl_mult = 1.0;
 		}
 	}
 }

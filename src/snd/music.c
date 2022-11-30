@@ -614,6 +614,125 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 	
 	switch (inst & 0xfff0)
 	{
+		case MUS_FX_PHASE_RESET:
+		{
+			if ((inst & 0xf) > 0 && (tick % (inst & 0xf)) == 0)
+			{
+				if(ops_index == 0 || ops_index == 0xFF)
+				{
+					for(int s = 0; s < CYD_SUB_OSCS; ++s)
+					{
+						cydchn->subosc[s].accumulator = 0;
+					}
+					
+					if(ops_index == 0xFF)
+					{
+						for(int i = 0; i < CYD_FM_NUM_OPS; ++i)
+						{
+							for(int s = 0; s < CYD_SUB_OSCS; ++s)
+							{
+								cydchn->fm.ops[i].subosc[s].accumulator = 0;
+							}
+						}
+					}
+				}
+				
+				else
+				{
+					for(int s = 0; s < CYD_SUB_OSCS; ++s)
+					{
+						cydchn->fm.ops[ops_index - 1].subosc[s].accumulator = 0;
+					}
+				}
+			}
+			
+			break;
+		}
+		
+		case MUS_FX_NOISE_PHASE_RESET:
+		{
+			if ((inst & 0xf) > 0 && (tick % (inst & 0xf)) == 0)
+			{
+				if(ops_index == 0 || ops_index == 0xFF)
+				{
+					for(int s = 0; s < CYD_SUB_OSCS; ++s)
+					{
+						cydchn->subosc[s].noise_accumulator = 0;
+					}
+					
+					if(ops_index == 0xFF)
+					{
+						for(int i = 0; i < CYD_FM_NUM_OPS; ++i)
+						{
+							for(int s = 0; s < CYD_SUB_OSCS; ++s)
+							{
+								cydchn->fm.ops[i].subosc[s].noise_accumulator = 0;
+							}
+						}
+					}
+				}
+				
+				else
+				{
+					for(int s = 0; s < CYD_SUB_OSCS; ++s)
+					{
+						cydchn->fm.ops[ops_index - 1].subosc[s].noise_accumulator = 0;
+					}
+				}
+			}
+			
+			break;
+		}
+		
+		case MUS_FX_WAVE_PHASE_RESET:
+		{
+			if ((inst & 0xf) > 0 && (tick % (inst & 0xf)) == 0)
+			{
+				if(ops_index == 0 || ops_index == 0xFF)
+				{
+					for(int s = 0; s < CYD_SUB_OSCS; ++s)
+					{
+						cydchn->subosc[s].wave.acc = 0;
+					}
+					
+					if(ops_index == 0xFF)
+					{
+						for(int i = 0; i < CYD_FM_NUM_OPS; ++i)
+						{
+							for(int s = 0; s < CYD_SUB_OSCS; ++s)
+							{
+								cydchn->fm.ops[i].subosc[s].wave.acc = 0;
+							}
+						}
+					}
+				}
+				
+				else
+				{
+					for(int s = 0; s < CYD_SUB_OSCS; ++s)
+					{
+						cydchn->fm.ops[ops_index - 1].subosc[s].wave.acc = 0;
+					}
+				}
+			}
+			
+			break;
+		}
+		
+		case MUS_FX_FM_PHASE_RESET:
+		{
+			if ((inst & 0xf) > 0 && (tick % (inst & 0xf)) == 0)
+			{
+				if(ops_index == 0 || ops_index == 0xFF)
+				{
+					cydchn->fm.accumulator = 0;
+					cydchn->fm.wave.acc = 0;
+				}
+			}
+			
+			break;
+		}
+		
 		case MUS_FX_FM_4OP_MASTER_FADE_VOLUME_UP:
 		{
 			if(track_status->fm_4op_vol + (inst & 0xf) > 0xff)
@@ -5757,38 +5876,6 @@ void mus_trigger_fm_op_internal(CydFm* fm, MusInstrument* ins, CydChannel* cydch
 	}
 	
 	mus_set_fm_op_note(mus, chan, fm, chn->ops[i].last_note, i /*op number*/, 1, 1, ins);
-	
-	cydchn->fm.ops[i].vol_ksl_mult = cydchn->fm.ops[i].env_ksl_mult = 1.0;
-	
-	if((cydchn->fm.ops[i].flags & CYD_FM_OP_ENABLE_VOLUME_KEY_SCALING) || (cydchn->fm.ops[i].flags & CYD_FM_OP_ENABLE_ENVELOPE_KEY_SCALING))
-	{
-		Sint16 vol_ksl_level_final = (cydchn->fm.ops[i].flags & CYD_FM_OP_ENABLE_VOLUME_KEY_SCALING) ? cydchn->fm.ops[i].vol_ksl_level : -1;
-		
-		if(cydchn->fm.flags & CYD_FM_ENABLE_3CH_EXP_MODE)
-		{
-			cydchn->fm.ops[i].vol_ksl_mult = (vol_ksl_level_final == -1) ? 1.0 : (pow(((Uint64)get_freq((cydchn->fm.ops[i].base_note << 8) + cydchn->fm.ops[i].finetune + cydchn->fm.ops[i].detune * DETUNE + coarse_detune_table[cydchn->fm.ops[i].coarse_detune]) / (get_freq(cydchn->fm.ops[i].freq_for_ksl) + 1.0)), (vol_ksl_level_final == 0 ? 0 : (vol_ksl_level_final / 127.0))));
-		}
-		
-		else
-		{
-			cydchn->fm.ops[i].vol_ksl_mult = (vol_ksl_level_final == -1) ? 1.0 : (pow(((Uint64)get_freq(((cydchn->base_note << 8) + cydchn->finetune + cydchn->fm.ops[i].detune * DETUNE + coarse_detune_table[cydchn->fm.ops[i].coarse_detune])) / (get_freq(cydchn->fm.ops[i].freq_for_ksl) + 1.0)), (vol_ksl_level_final == 0 ? 0 : (vol_ksl_level_final / 127.0))));
-		}
-		//cydchn->fm.ops[i].vol_ksl_mult = (vol_ksl_level_final == -1) ? 1.0 : (pow((get_freq((cydchn->fm.ops[i].base_note << 8) + cydchn->fm.ops[i].finetune + cydchn->fm.ops[i].detune * 8 + cydchn->fm.ops[i].coarse_detune * 128) + 1.0) / (get_freq(cydchn->fm.ops[i].freq_for_ksl) + 1.0), (vol_ksl_level_final == 0 ? 0 : (vol_ksl_level_final / 127.0))));
-		
-		Sint16 env_ksl_level_final = (cydchn->fm.ops[i].flags & CYD_FM_OP_ENABLE_ENVELOPE_KEY_SCALING) ? cydchn->fm.ops[i].env_ksl_level : -1;
-		
-		if(cydchn->fm.flags & CYD_FM_ENABLE_3CH_EXP_MODE)
-		{
-			cydchn->fm.ops[i].env_ksl_mult = (env_ksl_level_final == -1) ? 1.0 : (pow(((Uint64)get_freq((cydchn->fm.ops[i].base_note << 8) + cydchn->fm.ops[i].finetune + cydchn->fm.ops[i].detune * DETUNE + coarse_detune_table[cydchn->fm.ops[i].coarse_detune]) / (get_freq(cydchn->fm.ops[i].freq_for_ksl) + 1.0)), (env_ksl_level_final == 0 ? 0 : (env_ksl_level_final / 127.0))));
-		}
-		
-		else
-		{
-			cydchn->fm.ops[i].env_ksl_mult = (env_ksl_level_final == -1) ? 1.0 : (pow(((Uint64)get_freq(((cydchn->base_note << 8) + cydchn->finetune + cydchn->fm.ops[i].detune * DETUNE + coarse_detune_table[cydchn->fm.ops[i].coarse_detune] * harmonic1[cydchn->fm.ops[i].harmonic & 15] / harmonic1[cydchn->fm.ops[i].harmonic >> 4])) / (get_freq(cydchn->fm.ops[i].freq_for_ksl) + 1.0)), (env_ksl_level_final == 0 ? 0 : (env_ksl_level_final / 127.0))));
-		}
-		//cydchn->fm.ops[i].env_ksl_mult = (env_ksl_level_final == -1) ? 1.0 : (pow((get_freq((cydchn->fm.ops[i].base_note << 8) + cydchn->fm.ops[i].finetune + cydchn->fm.ops[i].detune * 8 + cydchn->fm.ops[i].coarse_detune * 128) + 1.0) / (get_freq(cydchn->fm.ops[i].freq_for_ksl) + 1.0), (env_ksl_level_final == 0 ? 0 : (env_ksl_level_final / 127.0))));
-		cydchn->fm.ops[i].env_ksl_mult = 1.0 / cydchn->fm.ops[i].env_ksl_mult;
-	}
 	
 	if(ins->ops[i].cydflags & CYD_FM_OP_ENABLE_CSM_TIMER)
 	{
