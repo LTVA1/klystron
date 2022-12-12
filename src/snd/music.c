@@ -2208,6 +2208,8 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 					
 					chn->ops[ops_index - 1].target_note = chn->ops[ops_index - 1].note;
 					
+					//debug("chn->ops[ops_index - 1].target_note %d", chn->ops[ops_index - 1].target_note);
+					
 					break;
 				}
 			}
@@ -2559,7 +2561,7 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 							}
 						}
 						
-						if(!(chn->instrument->fm_flags & CYD_FM_FOUROP_USE_MAIN_INST_PROG) && (chn->instrument->fm_flags & CYD_FM_ENABLE_4OP))
+						if(chn->instrument->fm_flags & CYD_FM_ENABLE_4OP)
 						{
 							for(int i = 0; i < CYD_FM_NUM_OPS; ++i)
 							{
@@ -2666,7 +2668,7 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 							}
 						}
 						
-						if(!(chn->instrument->fm_flags & CYD_FM_FOUROP_USE_MAIN_INST_PROG) && (chn->instrument->fm_flags & CYD_FM_ENABLE_4OP))
+						if(chn->instrument->fm_flags & CYD_FM_ENABLE_4OP)
 						{
 							for(int i = 0; i < CYD_FM_NUM_OPS; ++i)
 							{
@@ -2846,6 +2848,7 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 			if(ops_index == 0 || ops_index == 0xFF)
 			{
 				int p = cydchn->panning;
+				
 				if ((inst & 0xff00) == MUS_FX_PAN_LEFT)
 				{
 					p -= inst & 0x00ff;
@@ -4973,48 +4976,45 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 							
 							}
 							
-							if(chn->instrument->fm_flags & CYD_FM_FOUROP_USE_MAIN_INST_PROG)
+							for(int i = 0; i < CYD_FM_NUM_OPS; ++i)
 							{
-								for(int i = 0; i < CYD_FM_NUM_OPS; ++i)
+								for(int pr = 0; pr < chn->instrument->ops[i].num_macros; ++pr)
 								{
-									for(int pr = 0; pr < chn->instrument->ops[i].num_macros; ++pr)
+									chn->ops[i].program_counter[pr] = 0;
+									chn->ops[i].program_tick[pr] = 0;
+									//chn->ops[i].program_loop = 1;
+									
+									for(int j = 0; j < MUS_MAX_NESTEDNESS; ++j)
 									{
-										chn->ops[i].program_counter[pr] = 0;
-										chn->ops[i].program_tick[pr] = 0;
-										//chn->ops[i].program_loop = 1;
-										
-										for(int j = 0; j < MUS_MAX_NESTEDNESS; ++j)
-										{
-											chn->ops[i].program_loop[pr][j] = 1;
-											chn->ops[i].program_loop_addresses[pr][j][0] = chn->ops[i].program_loop_addresses[pr][j][1] = 0;
-										}
-										
-										chn->ops[i].nestedness[pr] = 0;
-				
-										int j = 1;
-										int temp_address = 0;
-										
-										while(j < MUS_MAX_NESTEDNESS && temp_address < MUS_PROG_LEN)
-										{
-											if(chn->instrument->ops[i].program[pr][temp_address] == MUS_FX_LABEL)
-											{
-												chn->ops[i].program_loop_addresses[pr][j][0] = temp_address;
-												j++;
-											}
-											
-											if(chn->instrument->ops[i].program[pr][temp_address] == MUS_FX_LOOP)
-											{
-												goto loops1;
-											}
-											
-											else
-											{
-												temp_address++;
-											}
-										}
-										
-										loops1:;
+										chn->ops[i].program_loop[pr][j] = 1;
+										chn->ops[i].program_loop_addresses[pr][j][0] = chn->ops[i].program_loop_addresses[pr][j][1] = 0;
 									}
+									
+									chn->ops[i].nestedness[pr] = 0;
+			
+									int j = 1;
+									int temp_address = 0;
+									
+									while(j < MUS_MAX_NESTEDNESS && temp_address < MUS_PROG_LEN)
+									{
+										if(chn->instrument->ops[i].program[pr][temp_address] == MUS_FX_LABEL)
+										{
+											chn->ops[i].program_loop_addresses[pr][j][0] = temp_address;
+											j++;
+										}
+										
+										if(chn->instrument->ops[i].program[pr][temp_address] == MUS_FX_LOOP)
+										{
+											goto loops1;
+										}
+										
+										else
+										{
+											temp_address++;
+										}
+									}
+									
+									loops1:;
 								}
 							}
 						}
@@ -6377,19 +6377,16 @@ static void mus_advance_channel(MusEngine* mus, int chan)
 		
 		for(int i = 0; i < CYD_FM_NUM_OPS; ++i)
 		{
-			if(!(mus->cyd->channel[chan].fm.flags & CYD_FM_FOUROP_USE_MAIN_INST_PROG))
+			if(mus->channel[chan].ops[i].program_flags)
 			{
-				if(mus->channel[chan].ops[i].program_flags)
+				for(int pr = 0; pr < mus->channel[chan].instrument->ops[i].num_macros; ++pr)
 				{
-					for(int pr = 0; pr < mus->channel[chan].instrument->ops[i].num_macros; ++pr)
+					if(mus->channel[chan].ops[i].program_flags & (1 << pr))
 					{
-						if(mus->channel[chan].ops[i].program_flags & (1 << pr))
-						{
-							int u = (chn->ops[i].program_counter[pr] + 1) >= chn->ops[i].prog_period[pr];
-							mus_exec_4op_prog_tick(mus, chan, u, i, pr);
-							++chn->ops[i].program_counter[pr];
-							if (u) chn->ops[i].program_counter[pr] = 0;
-						}
+						int u = (chn->ops[i].program_counter[pr] + 1) >= chn->ops[i].prog_period[pr];
+						mus_exec_4op_prog_tick(mus, chan, u, i, pr);
+						++chn->ops[i].program_counter[pr];
+						if (u) chn->ops[i].program_counter[pr] = 0;
 					}
 				}
 			}
@@ -6940,7 +6937,7 @@ int mus_advance_tick(void* udata)
 										}
 									}
 									
-									if(!(muschn->instrument->fm_flags & CYD_FM_FOUROP_USE_MAIN_INST_PROG) && (muschn->instrument->fm_flags & CYD_FM_ENABLE_4OP))
+									if(muschn->instrument->fm_flags & CYD_FM_ENABLE_4OP)
 									{
 										for(int i1 = 0; i1 < CYD_FM_NUM_OPS; ++i1)
 										{
@@ -6983,7 +6980,7 @@ int mus_advance_tick(void* udata)
 										}
 									}
 									
-									if(!(muschn->instrument->fm_flags & CYD_FM_FOUROP_USE_MAIN_INST_PROG) && (muschn->instrument->fm_flags & CYD_FM_ENABLE_4OP))
+									if(muschn->instrument->fm_flags & CYD_FM_ENABLE_4OP)
 									{
 										for(int i1 = 0; i1 < CYD_FM_NUM_OPS; ++i1)
 										{
@@ -9859,7 +9856,7 @@ void mus_release(MusEngine *mus, int chan)
 			}
 		}
 		
-		if(!(mus->channel[chan].instrument->fm_flags & CYD_FM_FOUROP_USE_MAIN_INST_PROG) && (mus->channel[chan].instrument->fm_flags & CYD_FM_ENABLE_4OP))
+		if(mus->channel[chan].instrument->fm_flags & CYD_FM_ENABLE_4OP)
 		{
 			for(int i = 0; i < CYD_FM_NUM_OPS; ++i)
 			{

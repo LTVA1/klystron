@@ -116,7 +116,7 @@ int generic_edit_text(SDL_Event *e, char *edit_buffer, size_t edit_buffer_size, 
 			{
 				memmove(&edit_buffer[*editpos + 1], &edit_buffer[*editpos], edit_buffer_size - *editpos - 1);
 				edit_buffer[*editpos] = e->text.text[0];
-				clamp(*editpos, +1, 0,edit_buffer_size-1);
+				clamp(*editpos, +1, 0, edit_buffer_size - 1);
 			}
 			break;
 		case SDL_TEXTEDITING:
@@ -127,6 +127,52 @@ int generic_edit_text(SDL_Event *e, char *edit_buffer, size_t edit_buffer_size, 
 		
 		switch (e->key.keysym.sym)
 		{
+			case SDLK_c: //copy
+			{
+				if(e->key.keysym.mod & KMOD_CTRL)
+				{
+					SDL_SetClipboardText(edit_buffer);
+				}
+				
+				break;
+			}
+			
+			case SDLK_x: //cut
+			{
+				if(e->key.keysym.mod & KMOD_CTRL)
+				{
+					SDL_SetClipboardText(edit_buffer);
+					
+					edit_buffer[0] = '\0';
+					
+					*editpos = 0;
+				}
+				
+				break;
+			}
+			
+			case SDLK_v: //paste
+			{
+				if(e->key.keysym.mod & KMOD_CTRL)
+				{
+					char* temp = SDL_GetClipboardText();
+					
+					if(temp)
+					{
+						if(strlen(temp) < edit_buffer_size)
+						{
+							strcpy(edit_buffer, temp);
+						}
+						
+						SDL_free(temp);
+						
+						*editpos = strlen(edit_buffer);
+					}
+				}
+				
+				break;
+			}
+			
 			case SDLK_ESCAPE:
 				return -1;
 			break;
