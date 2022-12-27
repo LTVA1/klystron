@@ -747,6 +747,7 @@ GfxDomain * gfx_create_domain(const char *title, Uint32 window_flags, int window
 	d->screen = GPU_Init(window_w, window_h, GPU_DEFAULT_INIT_FLAGS);
 #else
 	d->window = SDL_CreateWindow(title, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, window_w, window_h, window_flags);
+
 	d->renderer = SDL_CreateRenderer(d->window, -1, SDL_RENDERER_PRESENTVSYNC|SDL_RENDERER_ACCELERATED|SDL_RENDERER_TARGETTEXTURE);
 	
 	int transprent = SDL_SetRenderDrawBlendMode(d->renderer, SDL_BLENDMODE_BLEND); //wasn't there

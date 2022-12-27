@@ -79,6 +79,10 @@ static void drag_begin(void *event, void *_param, void *area)
 void slider(GfxDomain *dest_surface, const SDL_Rect *_area, const SDL_Event *event, void *_param)
 {
 #ifndef STANDALONE_COMPILE
+	if((_param == &mused.program_slider_param) && (mused.show_point_envelope_editor || mused.show_four_op_menu)) return;
+	
+	if((_param == &mused.point_env_slider_param) && !(mused.show_point_envelope_editor)) return;
+	if((_param == &mused.point_env_slider_param) && mused.show_four_op_menu) return;
 	if(((_param == &mused.four_op_slider_param) && mused.show_four_op_menu) || _param != &mused.four_op_slider_param)
 	{
 #endif

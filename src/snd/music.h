@@ -53,6 +53,9 @@ OTHER DEALINGS IN THE SOFTWARE.
 
 #define MUS_MAX_COMMANDS 8
 
+#define MUS_MAX_ENVELOPE_POINTS 16 /* how many points in volume/panning envelope you can have */
+#define MUS_MAX_ENVELOPE_POINT_X 2000 /* with 1/100th of a second resolution this gives max length of 20 seconds */
+
 #define DETUNE ((Sint32)(2))
 
 typedef unsigned long char32_t;
@@ -132,6 +135,12 @@ typedef struct //wasn't there
 
 typedef struct
 {
+	Uint16 x;
+	Uint8 y; //this is either panning or volume so 0-255 range
+} MusEnvPoint;
+
+typedef struct
+{
 	Uint32 flags;
 	Uint32 cydflags;
 	MusAdsr adsr;
@@ -201,6 +210,26 @@ typedef struct
 	Uint8 fm_4op_vol; //4-op module master volume
 	
 	Uint8 sine_acc_shift; //0-F
+	
+	//======== volume and panning envelope
+	
+	Uint16 vol_env_fadeout;
+	
+	Uint8 num_vol_points;
+	Uint8 vol_env_loop_start;
+	Uint8 vol_env_loop_end;
+	Uint8 vol_env_sustain;
+	Uint8 vol_env_flags; //1 - sustain, 2 - loop
+	
+	MusEnvPoint volume_envelope[MUS_MAX_ENVELOPE_POINTS];
+	
+	Uint8 num_pan_points;
+	Uint8 pan_env_loop_start;
+	Uint8 pan_env_loop_end;
+	Uint8 pan_env_sustain;
+	Uint8 pan_env_flags; //1 - sustain, 2 - loop
+	
+	MusEnvPoint panning_envelope[MUS_MAX_ENVELOPE_POINTS];
 
 } MusInstrument;
 
@@ -224,6 +253,14 @@ enum
 	MUS_INST_INVERT_TREMOLO_BIT = 8192,
 	
 	MUS_INST_SEVERAL_MACROS = 16384, //if instrument has more than 1 macro
+	MUS_INST_USE_VOLUME_ENVELOPE = 32768,
+	MUS_INST_USE_PANNING_ENVELOPE = 65536,
+};
+
+enum
+{
+	MUS_ENV_SUSTAIN = 1,
+	MUS_ENV_LOOP = 2,
 };
 
 enum

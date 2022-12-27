@@ -7039,29 +7039,9 @@ int mus_advance_tick(void* udata)
 
 								if (ctrl & MUS_CTRL_SLIDE)
 								{
-									/*if(pinst->fm_flags & CYD_FM_ENABLE_4OP)
-									{
-										for(int j = 0; j < CYD_FM_NUM_OPS; ++j)
-										{
-											if(pinst->fm_flags & CYD_FM_ENABLE_3CH_EXP_MODE)
-											{
-												mus->channel[i].ops[j].target_note = (((Uint16)note + pinst->ops[j].base_note - MIDDLE_C) << 8) + pinst->ops[j].finetune;
-											}
-											
-											else
-											{
-												//mus->channel[i].ops[j].target_note = (((Uint16)note + pinst->base_note - MIDDLE_C) << 8) + pinst->ops[j].detune * DETUNE + pinst->ops[j].coarse_detune * COARSE_DETUNE;
-												mus->channel[i].ops[j].target_note = (((Uint16)note + pinst->base_note - MIDDLE_C) << 8) + (Sint32)mus->cyd->channel[i].fm.ops[j].detune * DETUNE + coarse_detune_table[mus->cyd->channel[i].fm.ops[j].coarse_detune];
-											}
-										}
-									}*/
-									
 									if (ctrl & MUS_CTRL_LEGATO)
 									{
 										mus_set_slide(mus, i, (((Uint16)note + pinst->base_note - MIDDLE_C) << 8) + pinst->finetune);
-										
-										//MusChannel *chn = &mus->channel[chan];
-										//chn->target_note = note;
 										
 										if(pinst->fm_flags & CYD_FM_ENABLE_4OP)
 										{
@@ -7074,7 +7054,6 @@ int mus_advance_tick(void* udata)
 												
 												else
 												{
-													//mus->channel[i].ops[j].target_note = (((Uint16)note + pinst->base_note - MIDDLE_C) << 8) + pinst->ops[j].detune * DETUNE + pinst->ops[j].coarse_detune * COARSE_DETUNE;
 													mus->channel[i].ops[j].target_note = (((Uint16)note + pinst->base_note - MIDDLE_C) << 8) + (Sint32)mus->cyd->channel[i].fm.ops[j].detune * DETUNE + coarse_detune_table[mus->cyd->channel[i].fm.ops[j].coarse_detune];
 												}
 											}
@@ -7134,11 +7113,8 @@ int mus_advance_tick(void* udata)
 											
 											else
 											{
-												//mus->channel[i].ops[j].target_note = (((Uint16)note + pinst->base_note - MIDDLE_C) << 8) + pinst->ops[j].detune * DETUNE + pinst->ops[j].coarse_detune * COARSE_DETUNE;
 												mus->channel[i].ops[j].target_note = mus->channel[i].ops[j].note = (((Uint16)note + pinst->base_note - MIDDLE_C) << 8) + (Sint32)mus->cyd->channel[i].fm.ops[j].detune * DETUNE + coarse_detune_table[mus->cyd->channel[i].fm.ops[j].coarse_detune];
 											}
-											
-											//mus_set_fm_op_note(mus, i, &mus->cyd->channel[i].fm, mus->channel[i].ops[j].target_note, 1, 1, j, pinst);
 										}
 									}
 								}
@@ -7162,25 +7138,6 @@ int mus_advance_tick(void* udata)
 									
 									mus_trigger_instrument_internal(mus, i, pinst, note << 8, -1);
 									muschn->target_note = (((Uint16)note + pinst->base_note - MIDDLE_C) << 8) + pinst->finetune;
-									
-									/*if(pinst->fm_flags & CYD_FM_ENABLE_4OP)
-									{
-										for(int j = 0; j < CYD_FM_NUM_OPS; ++j)
-										{
-											if(pinst->fm_flags & CYD_FM_ENABLE_3CH_EXP_MODE)
-											{
-												mus->channel[i].ops[j].target_note = (((Uint16)note + pinst->ops[j].base_note - MIDDLE_C) << 8) + pinst->ops[j].finetune;
-											}
-											
-											else
-											{
-												//mus->channel[i].ops[j].target_note = (((Uint16)note + pinst->base_note - MIDDLE_C) << 8) + pinst->ops[j].detune * DETUNE + pinst->ops[j].coarse_detune * COARSE_DETUNE;
-												mus->channel[i].ops[j].target_note = (((Uint16)note + pinst->base_note - MIDDLE_C) << 8) + (Sint32)mus->cyd->channel[i].fm.ops[j].detune * DETUNE + coarse_detune_table[mus->cyd->channel[i].fm.ops[j].coarse_detune];
-											}
-											
-											mus_set_fm_op_note(mus, i, &mus->cyd->channel[i].fm, mus->channel[i].ops[j].target_note, 1, 1, j, pinst);
-										}
-									}*/
 
 									if (inst == MUS_NOTE_NO_INSTRUMENT)
 									{
@@ -8590,6 +8547,12 @@ void mus_get_default_instrument(MusInstrument *inst)
 	inst->volume = MAX_VOLUME;
 	inst->vol_ksl_level = 0x80; //wasn't there
 	inst->env_ksl_level = 0x80; //wasn't there
+	
+	inst->num_vol_points = 2;
+	inst->volume_envelope[0].x = 0;
+	inst->volume_envelope[0].y = 0;
+	inst->volume_envelope[1].x = 100;
+	inst->volume_envelope[1].y = 100;
 	
 	inst->base_note = MIDDLE_C;
 	inst->noise_note = MIDDLE_C;
