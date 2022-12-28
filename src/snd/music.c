@@ -6298,7 +6298,8 @@ int mus_trigger_instrument_internal(MusEngine* mus, int chan, MusInstrument *ins
 		cydchn->adsr.vol_env_loop_start = ins->vol_env_loop_start;
 		cydchn->adsr.vol_env_loop_end = ins->vol_env_loop_end;
 		
-		cydchn->adsr.vol_env_fadeout = ins->vol_env_fadeout;
+																												//this is coefficient to adjust (more or less) precisely to FT2 timing
+		cydchn->adsr.vol_env_fadeout = (Uint32)((double)(ins->vol_env_fadeout << 7) * 48000.0 / (double)mus->cyd->sample_rate * 1390.0 / 2485.0);
 		
 		cydchn->adsr.current_vol_env_point = 0;
 		cydchn->adsr.next_vol_env_point = 1;
@@ -6322,7 +6323,7 @@ int mus_trigger_instrument_internal(MusEngine* mus, int chan, MusInstrument *ins
 		for(int i = 0; i < ins->num_vol_points; ++i)
 		{
 			cydchn->adsr.volume_envelope[i].x = (Uint32)ins->volume_envelope[i].x << 16;
-			cydchn->adsr.volume_envelope[i].y = (Uint16)ins->volume_envelope[i].y << 9;
+			cydchn->adsr.volume_envelope[i].y = (Uint16)ins->volume_envelope[i].y << 8;
 		}
 	}
 
@@ -8591,8 +8592,8 @@ void mus_get_default_instrument(MusInstrument *inst)
 	inst->num_vol_points = 2;
 	inst->volume_envelope[0].x = 0;
 	inst->volume_envelope[0].y = 0;
-	inst->volume_envelope[1].x = 100;
-	inst->volume_envelope[1].y = 100;
+	inst->volume_envelope[1].x = 0x80;
+	inst->volume_envelope[1].y = 0x80;
 	
 	inst->base_note = MIDDLE_C;
 	inst->noise_note = MIDDLE_C;
@@ -8821,29 +8822,6 @@ static void inner_load_fx(RWops *ctx, CydFxSerialized *fx, int version)
 		taps = 8;
 		fx->rvb.taps_quant = 8;
 	}
-	/*for (int i = 0; i < taps; ++i)
-	{
-		my_RWread(ctx, &fx->rvb.tap[i].delay, 2, 1);
-		my_RWread(ctx, &fx->rvb.tap[i].gain, 2, 1);
-
-		if (version >= 27)
-		{
-			my_RWread(ctx, &fx->rvb.tap[i].panning, 1, 1);
-			my_RWread(ctx, &fx->rvb.tap[i].flags, 1, 1);
-		}
-		else
-		{
-			fx->rvb.tap[i].flags = 1;
-
-			if (spread > 0)
-				fx->rvb.tap[i].panning = CYD_PAN_LEFT;
-			else
-				fx->rvb.tap[i].panning = CYD_PAN_CENTER;
-		}
-
-		FIX_ENDIAN(fx->rvb.tap[i].gain);
-		FIX_ENDIAN(fx->rvb.tap[i].delay);
-	} */
 	
 	if(version < 32)
 	{

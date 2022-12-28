@@ -801,7 +801,12 @@ Uint32 cyd_cycle_adsr(const CydEngine *eng, Uint32 flags, Uint32 ym_env_shape, C
 		
 		if(adsr->envelope_state == RELEASE)
 		{
-			clamp(adsr->curr_vol_fadeout_value, -1 * (adsr->vol_env_fadeout << 10), 0, 0x7FFFFFFF);
+			clamp(adsr->curr_vol_fadeout_value, -1 * (adsr->vol_env_fadeout), 0, 0x7FFFFFFF);
+			
+			if((adsr->vol_env_flags & MUS_ENV_SUSTAIN) && adsr->next_vol_env_point < adsr->num_vol_points)
+			{
+				adsr->advance_volume_envelope = true;
+			}
 		}
 		
 		if(adsr->advance_volume_envelope)
@@ -825,6 +830,11 @@ Uint32 cyd_cycle_adsr(const CydEngine *eng, Uint32 flags, Uint32 ym_env_shape, C
 			}
 		}
 		
+		if((adsr->vol_env_flags & MUS_ENV_SUSTAIN) && adsr->current_vol_env_point == adsr->vol_env_sustain && adsr->envelope_state != RELEASE)
+		{
+			adsr->advance_volume_envelope = false;
+		}
+		
 		if(adsr->next_vol_env_point >= adsr->num_vol_points)
 		{
 			adsr->advance_volume_envelope = false;
@@ -841,10 +851,10 @@ Uint32 cyd_cycle_adsr(const CydEngine *eng, Uint32 flags, Uint32 ym_env_shape, C
 			double volume_prev = adsr->volume_envelope[adsr->current_vol_env_point].y;
 			double volume_next = adsr->volume_envelope[adsr->next_vol_env_point].y;
 			
-			adsr->volume_envelope_output = ((Uint16)((volume_next - volume_prev) * delta_prev / (x_next - x_prev) + volume_prev)) << 16;
+			adsr->volume_envelope_output = ((Uint32)((volume_next - volume_prev) * delta_prev / (x_next - x_prev) + volume_prev)) << 16;
 		}
 		
-		if(adsr->curr_vol_fadeout_value <= (adsr->vol_env_fadeout << 10) && adsr->envelope_state == RELEASE)
+		if(adsr->curr_vol_fadeout_value <= (adsr->vol_env_fadeout) && adsr->envelope_state == RELEASE)
 		{
 			adsr->envelope_state = DONE;
 			if ((flags & (CYD_CHN_ENABLE_WAVE | CYD_CHN_WAVE_OVERRIDE_ENV)) != (CYD_CHN_ENABLE_WAVE | CYD_CHN_WAVE_OVERRIDE_ENV)) flags &= ~CYD_CHN_ENABLE_GATE;
@@ -1945,7 +1955,7 @@ Sint32 cyd_env_output(const CydEngine *cyd, Uint32 chn_flags, const CydAdsr *ads
 {
 	if(adsr->use_volume_envelope)
 	{
-		return input * (Sint32)(adsr->volume_envelope_output >> 16) / 32768 * (Sint32)(adsr->curr_vol_fadeout_value >> 16) / 65536;
+		return input * (Sint32)(adsr->volume_envelope_output >> 16) / 16384 * (Sint32)(adsr->curr_vol_fadeout_value >> 16) / 65536;
 	}
 	
 	if (chn_flags & CYD_CHN_ENABLE_YM_ENV)

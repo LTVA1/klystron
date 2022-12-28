@@ -8,7 +8,7 @@
 typedef struct
 {
 	Uint32 x;
-	Uint16 y;
+	Uint32 y;
 } CydEnvPoint;
 
 typedef struct
@@ -29,7 +29,7 @@ typedef struct
 	Uint8 current_vol_env_point;
 	Uint8 next_vol_env_point;
 	
-	Uint16 vol_env_fadeout;
+	Uint32 vol_env_fadeout;
 	
 	Sint32 curr_vol_fadeout_value;
 	
