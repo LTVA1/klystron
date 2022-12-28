@@ -256,12 +256,6 @@ enum
 
 enum
 {
-	MUS_ENV_SUSTAIN = 1,
-	MUS_ENV_LOOP = 2,
-};
-
-enum
-{
 	MUS_FX_WAVE_NOISE = 1,
 	MUS_FX_WAVE_PULSE = 2,
 	MUS_FX_WAVE_TRIANGLE = 4,

@@ -19,7 +19,19 @@ typedef struct
 	Uint8 envelope_state;
 	Uint8 a, d, s, r; // s 0-32, adr 0-63
 	
+	//=====================
+	
+	bool use_volume_envelope;
+	bool use_panning_envelope;
+	
+	bool advance_volume_envelope;
+	
+	Uint8 current_vol_env_point;
+	Uint8 next_vol_env_point;
+	
 	Uint16 vol_env_fadeout;
+	
+	Sint32 curr_vol_fadeout_value;
 	
 	Uint8 num_vol_points;
 	Uint8 vol_env_loop_start;
@@ -28,6 +40,8 @@ typedef struct
 	Uint8 vol_env_flags; //1 - sustain, 2 - loop
 	
 	CydEnvPoint volume_envelope[MUS_MAX_ENVELOPE_POINTS];
+	
+	Uint32 volume_envelope_output;
 	
 	Uint8 num_pan_points;
 	Uint8 pan_env_loop_start;

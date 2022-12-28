@@ -795,6 +795,65 @@ Uint32 cyd_cycle_fm_op_adsr(const CydEngine *eng, Uint32 flags, Uint32 ym_env_sh
 
 Uint32 cyd_cycle_adsr(const CydEngine *eng, Uint32 flags, Uint32 ym_env_shape, CydAdsr *adsr, double env_ksl_mult)
 {
+	if(adsr->use_volume_envelope)
+	{
+		if(adsr->envelope_state == DONE) return;
+		
+		if(adsr->envelope_state == RELEASE)
+		{
+			clamp(adsr->curr_vol_fadeout_value, -1 * (adsr->vol_env_fadeout << 10), 0, 0x7FFFFFFF);
+		}
+		
+		if(adsr->advance_volume_envelope)
+		{
+			adsr->envelope += adsr->env_speed;
+		}
+		
+		if(adsr->envelope > adsr->volume_envelope[adsr->next_vol_env_point].x)
+		{
+			adsr->next_vol_env_point++;
+			adsr->current_vol_env_point++;
+		}
+		
+		if(adsr->vol_env_flags & MUS_ENV_LOOP)
+		{
+			if(adsr->current_vol_env_point == adsr->vol_env_loop_end) //loop
+			{
+				adsr->current_vol_env_point = adsr->vol_env_loop_start;
+				adsr->next_vol_env_point = adsr->vol_env_loop_start + 1;
+				adsr->envelope = adsr->volume_envelope[adsr->current_vol_env_point].x;
+			}
+		}
+		
+		if(adsr->next_vol_env_point >= adsr->num_vol_points)
+		{
+			adsr->advance_volume_envelope = false;
+		}
+		
+		if(adsr->advance_volume_envelope)
+		{
+			double delta_prev = adsr->envelope - adsr->volume_envelope[adsr->current_vol_env_point].x;
+			//Uint64 delta_next = adsr->volume_envelope[adsr->next_vol_env_point].x - adsr->envelope;
+			
+			double x_next = adsr->volume_envelope[adsr->next_vol_env_point].x;
+			double x_prev = adsr->volume_envelope[adsr->current_vol_env_point].x;
+			
+			double volume_prev = adsr->volume_envelope[adsr->current_vol_env_point].y;
+			double volume_next = adsr->volume_envelope[adsr->next_vol_env_point].y;
+			
+			adsr->volume_envelope_output = ((Uint16)((volume_next - volume_prev) * delta_prev / (x_next - x_prev) + volume_prev)) << 16;
+		}
+		
+		if(adsr->curr_vol_fadeout_value <= (adsr->vol_env_fadeout << 10) && adsr->envelope_state == RELEASE)
+		{
+			adsr->envelope_state = DONE;
+			if ((flags & (CYD_CHN_ENABLE_WAVE | CYD_CHN_WAVE_OVERRIDE_ENV)) != (CYD_CHN_ENABLE_WAVE | CYD_CHN_WAVE_OVERRIDE_ENV)) flags &= ~CYD_CHN_ENABLE_GATE;
+			adsr->envelope = 0;
+		}
+		
+		return flags;
+	}
+	
 	if (!(flags & CYD_CHN_ENABLE_YM_ENV))
 	{
 #ifndef CYD_DISABLE_ENVELOPE
@@ -1183,38 +1242,6 @@ static Sint32 cyd_output_fm_ops(CydEngine *cyd, CydChannel *chn, int chan_num, /
 		}
 		
 		Uint64 acc, noise_acc, wave_acc[CYD_SUB_OSCS];
-		
-		/*chn->fm.ops[i].vol_ksl_mult = chn->fm.ops[i].env_ksl_mult = 1.0;
-		
-		if((chn->fm.ops[i].flags & CYD_FM_OP_ENABLE_VOLUME_KEY_SCALING) || (chn->fm.ops[i].flags & CYD_FM_OP_ENABLE_ENVELOPE_KEY_SCALING))
-		{
-			Sint16 vol_ksl_level_final = (chn->fm.ops[i].flags & CYD_FM_OP_ENABLE_VOLUME_KEY_SCALING) ? chn->fm.ops[i].vol_ksl_level : -1;
-			
-			if(chn->fm.flags & CYD_FM_ENABLE_3CH_EXP_MODE)
-			{
-				chn->fm.ops[i].vol_ksl_mult = (vol_ksl_level_final == -1) ? 1.0 : (pow(((Uint64)get_freq((chn->fm.ops[i].base_note << 8) + chn->fm.ops[i].finetune + chn->fm.ops[i].detune * DETUNE + coarse_detune_table[chn->fm.ops[i].coarse_detune]) / (get_freq(chn->fm.ops[i].freq_for_ksl) + 1.0)), (vol_ksl_level_final == 0 ? 0 : (vol_ksl_level_final / 127.0))));
-			}
-			
-			else
-			{
-				chn->fm.ops[i].vol_ksl_mult = (vol_ksl_level_final == -1) ? 1.0 : (pow(((Uint64)get_freq(((chn->base_note << 8) + chn->finetune + chn->fm.ops[i].detune * DETUNE + coarse_detune_table[chn->fm.ops[i].coarse_detune])) / (get_freq(chn->fm.ops[i].freq_for_ksl) + 1.0)), (vol_ksl_level_final == 0 ? 0 : (vol_ksl_level_final / 127.0))));
-			}
-			//chn->fm.ops[i].vol_ksl_mult = (vol_ksl_level_final == -1) ? 1.0 : (pow((get_freq((chn->fm.ops[i].base_note << 8) + chn->fm.ops[i].finetune + chn->fm.ops[i].detune * 8 + chn->fm.ops[i].coarse_detune * 128) + 1.0) / (get_freq(chn->fm.ops[i].freq_for_ksl) + 1.0), (vol_ksl_level_final == 0 ? 0 : (vol_ksl_level_final / 127.0))));
-			
-			Sint16 env_ksl_level_final = (chn->fm.ops[i].flags & CYD_FM_OP_ENABLE_ENVELOPE_KEY_SCALING) ? chn->fm.ops[i].env_ksl_level : -1;
-			
-			if(chn->fm.flags & CYD_FM_ENABLE_3CH_EXP_MODE)
-			{
-				chn->fm.ops[i].env_ksl_mult = (env_ksl_level_final == -1) ? 1.0 : (pow(((Uint64)get_freq((chn->fm.ops[i].base_note << 8) + chn->fm.ops[i].finetune + chn->fm.ops[i].detune * DETUNE + coarse_detune_table[chn->fm.ops[i].coarse_detune]) / (get_freq(chn->fm.ops[i].freq_for_ksl) + 1.0)), (env_ksl_level_final == 0 ? 0 : (env_ksl_level_final / 127.0))));
-			}
-			
-			else
-			{
-				chn->fm.ops[i].env_ksl_mult = (env_ksl_level_final == -1) ? 1.0 : (pow(((Uint64)get_freq(((chn->base_note << 8) + chn->finetune + chn->fm.ops[i].detune * DETUNE + coarse_detune_table[chn->fm.ops[i].coarse_detune] * harmonic1[chn->fm.ops[i].harmonic & 15] / harmonic1[chn->fm.ops[i].harmonic >> 4])) / (get_freq(chn->fm.ops[i].freq_for_ksl) + 1.0)), (env_ksl_level_final == 0 ? 0 : (env_ksl_level_final / 127.0))));
-			}
-			//chn->fm.ops[i].env_ksl_mult = (env_ksl_level_final == -1) ? 1.0 : (pow((get_freq((chn->fm.ops[i].base_note << 8) + chn->fm.ops[i].finetune + chn->fm.ops[i].detune * 8 + chn->fm.ops[i].coarse_detune * 128) + 1.0) / (get_freq(chn->fm.ops[i].freq_for_ksl) + 1.0), (env_ksl_level_final == 0 ? 0 : (env_ksl_level_final / 127.0))));
-			chn->fm.ops[i].env_ksl_mult = 1.0 / chn->fm.ops[i].env_ksl_mult;
-		}*/
 		
 		chn->fm.ops[i].curr_tremolo = chn->fm.ops[i].tremolo;
 		
@@ -1916,6 +1943,11 @@ Sint32 cyd_fm_op_env_output(const CydEngine *cyd, Uint32 chn_flags, const CydFmO
 
 Sint32 cyd_env_output(const CydEngine *cyd, Uint32 chn_flags, const CydAdsr *adsr, Sint32 input)
 {
+	if(adsr->use_volume_envelope)
+	{
+		return input * (Sint32)(adsr->volume_envelope_output >> 16) / 32768 * (Sint32)(adsr->curr_vol_fadeout_value >> 16) / 65536;
+	}
+	
 	if (chn_flags & CYD_CHN_ENABLE_YM_ENV)
 	{
 #ifndef CYD_DISABLE_BUZZ
@@ -2654,14 +2686,16 @@ void cyd_enable_gate(CydEngine *cyd, CydChannel *chn, Uint8 enable)
 		chn->adsr.envelope_state = RELEASE;
 		
 		//chn->adsr.env_speed = (int)((double)envspd(cyd, chn->adsr.r) * chn->env_ksl_mult);
-
-		chn->adsr.env_speed = envspd(cyd, chn->adsr.r);
-
-		if(chn->env_ksl_mult != 0.0 && chn->env_ksl_mult != 1.0)
-		{
-			chn->adsr.env_speed = (int)((double)envspd(cyd, chn->adsr.r) * chn->env_ksl_mult);
-		}
 		
+		if(!(chn->musflags & MUS_INST_USE_VOLUME_ENVELOPE))
+		{
+			chn->adsr.env_speed = envspd(cyd, chn->adsr.r);
+
+			if(chn->env_ksl_mult != 0.0 && chn->env_ksl_mult != 1.0)
+			{
+				chn->adsr.env_speed = (int)((double)envspd(cyd, chn->adsr.r) * chn->env_ksl_mult);
+			}
+		}
 		//chn->adsr.env_speed = envspd(cyd, chn->adsr.r);
 		
 #ifndef CYD_DISABLE_FM

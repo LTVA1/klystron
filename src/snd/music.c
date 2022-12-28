@@ -6285,6 +6285,46 @@ int mus_trigger_instrument_internal(MusEngine* mus, int chan, MusInstrument *ins
 	//cyd_set_frequency(mus->cyd, cydchn, chn->frequency);
 	
 	cyd_enable_gate(mus->cyd, cydchn, 1);
+	
+	cydchn->adsr.use_volume_envelope = false;
+	cydchn->adsr.use_panning_envelope = false;
+	
+	if(ins->flags & MUS_INST_USE_VOLUME_ENVELOPE)
+	{
+		cydchn->adsr.num_vol_points = ins->num_vol_points;
+		
+		cydchn->adsr.vol_env_flags = ins->vol_env_flags;
+		cydchn->adsr.vol_env_sustain = ins->vol_env_sustain;
+		cydchn->adsr.vol_env_loop_start = ins->vol_env_loop_start;
+		cydchn->adsr.vol_env_loop_end = ins->vol_env_loop_end;
+		
+		cydchn->adsr.vol_env_fadeout = ins->vol_env_fadeout;
+		
+		cydchn->adsr.current_vol_env_point = 0;
+		cydchn->adsr.next_vol_env_point = 1;
+		
+		cydchn->adsr.envelope = 0;
+		cydchn->adsr.volume_envelope_output = 0;
+		cydchn->adsr.use_volume_envelope = true;
+		cydchn->adsr.advance_volume_envelope = true;
+		
+		cydchn->adsr.curr_vol_fadeout_value = 0x7FFFFFFF;
+		
+		//ACC_LENGTH is (1 << 16) * 100
+		//since we want 100 deltax passed at 1 second
+		//so frequency is 1 hz
+		//(Uint64)(ACC_LENGTH) * (Uint64)(frequency) / (Uint64)cyd->sample_rate;
+		cydchn->adsr.env_speed = (Uint64)((1 << 16) * 100) * (Uint64)(1) / (Uint64)mus->cyd->sample_rate;
+		//cydchn->adsr.env_speed = 1;
+		
+		//cydchn->adsr.env_speed = 10;
+		
+		for(int i = 0; i < ins->num_vol_points; ++i)
+		{
+			cydchn->adsr.volume_envelope[i].x = (Uint32)ins->volume_envelope[i].x << 16;
+			cydchn->adsr.volume_envelope[i].y = (Uint16)ins->volume_envelope[i].y << 9;
+		}
+	}
 
 	return chan;
 }
