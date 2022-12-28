@@ -53,9 +53,6 @@ OTHER DEALINGS IN THE SOFTWARE.
 
 #define MUS_MAX_COMMANDS 8
 
-#define MUS_MAX_ENVELOPE_POINTS 16 /* how many points in volume/panning envelope you can have */
-#define MUS_MAX_ENVELOPE_POINT_X 2000 /* with 1/100th of a second resolution this gives max length of 20 seconds */
-
 #define DETUNE ((Sint32)(2))
 
 typedef unsigned long char32_t;

@@ -3,6 +3,14 @@
 #include "SDL.h"
 #include <stdbool.h>
 
+#include "music_defs.h"
+
+typedef struct
+{
+	Uint32 x;
+	Uint16 y;
+} CydEnvPoint;
+
 typedef struct
 {
 	Uint8 volume;
@@ -10,6 +18,25 @@ typedef struct
 	Uint32 envelope, env_speed;
 	Uint8 envelope_state;
 	Uint8 a, d, s, r; // s 0-32, adr 0-63
+	
+	Uint16 vol_env_fadeout;
+	
+	Uint8 num_vol_points;
+	Uint8 vol_env_loop_start;
+	Uint8 vol_env_loop_end;
+	Uint8 vol_env_sustain;
+	Uint8 vol_env_flags; //1 - sustain, 2 - loop
+	
+	CydEnvPoint volume_envelope[MUS_MAX_ENVELOPE_POINTS];
+	
+	Uint8 num_pan_points;
+	Uint8 pan_env_loop_start;
+	Uint8 pan_env_loop_end;
+	Uint8 pan_env_sustain;
+	Uint8 pan_env_flags; //1 - sustain, 2 - loop
+	
+	CydEnvPoint panning_envelope[MUS_MAX_ENVELOPE_POINTS];
+	
 } CydAdsr;
 
 typedef struct
