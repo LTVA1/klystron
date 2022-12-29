@@ -2860,6 +2860,8 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 				}
 
 				p = my_min(CYD_PAN_RIGHT, my_max(CYD_PAN_LEFT, p));
+				
+				cydchn->init_panning = p;
 
 				cyd_set_panning(mus->cyd, cydchn, p);
 			}
@@ -4082,6 +4084,8 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 					if(ops_index == 0 || ops_index == 0xFF)
 					{
 						cyd_set_panning(mus->cyd, cydchn, inst & 0xff);
+						
+						cydchn->init_panning = inst & 0xff;
 					}
 				}
 				break;
@@ -6207,6 +6211,8 @@ int mus_trigger_instrument_internal(MusEngine* mus, int chan, MusInstrument *ins
 	if (panning != -1)
 	{
 		cyd_set_panning(mus->cyd, cydchn, panning);
+		
+		cydchn->init_panning = panning;
 	}
 
 #endif
@@ -6316,14 +6322,41 @@ int mus_trigger_instrument_internal(MusEngine* mus, int chan, MusInstrument *ins
 		//so frequency is 1 hz
 		//(Uint64)(ACC_LENGTH) * (Uint64)(frequency) / (Uint64)cyd->sample_rate;
 		cydchn->adsr.env_speed = (Uint64)((1 << 16) * 100) * (Uint64)(1) / (Uint64)mus->cyd->sample_rate;
-		//cydchn->adsr.env_speed = 1;
-		
-		//cydchn->adsr.env_speed = 10;
 		
 		for(int i = 0; i < ins->num_vol_points; ++i)
 		{
 			cydchn->adsr.volume_envelope[i].x = (Uint32)ins->volume_envelope[i].x << 16;
 			cydchn->adsr.volume_envelope[i].y = (Uint16)ins->volume_envelope[i].y << 8;
+		}
+	}
+	
+	if(ins->flags & MUS_INST_USE_PANNING_ENVELOPE)
+	{
+		cydchn->adsr.num_pan_points = ins->num_pan_points;
+		
+		cydchn->adsr.pan_env_flags = ins->pan_env_flags;
+		cydchn->adsr.pan_env_sustain = ins->pan_env_sustain;
+		cydchn->adsr.pan_env_loop_start = ins->pan_env_loop_start;
+		cydchn->adsr.pan_env_loop_end = ins->pan_env_loop_end;
+		
+		cydchn->adsr.pan_env_fadeout = (Uint32)((double)(ins->pan_env_fadeout << 7) * 48000.0 / (double)mus->cyd->sample_rate * 1390.0 / 2485.0);
+		
+		cydchn->adsr.current_pan_env_point = 0;
+		cydchn->adsr.next_pan_env_point = 1;
+		
+		cydchn->adsr.pan_envelope = 0;
+		cydchn->adsr.panning_envelope_output = 0;
+		cydchn->adsr.use_panning_envelope = true;
+		cydchn->adsr.advance_panning_envelope = true;
+		
+		cydchn->adsr.curr_pan_fadeout_value = 0x7FFFFFFF;
+		
+		cydchn->adsr.pan_env_speed = (Uint64)((1 << 16) * 100) * (Uint64)(1) / (Uint64)mus->cyd->sample_rate;
+		
+		for(int i = 0; i < ins->num_pan_points; ++i)
+		{
+			cydchn->adsr.panning_envelope[i].x = (Uint32)ins->panning_envelope[i].x << 16;
+			cydchn->adsr.panning_envelope[i].y = (Uint16)ins->panning_envelope[i].y << 7;
 		}
 	}
 
@@ -7370,7 +7403,11 @@ void mus_set_song(MusEngine *mus, MusSong *song, Uint16 position)
 			mus->channel[i].volume = song->default_volume[i];
 #ifdef STEREOOUTPUT
 			if (i < mus->cyd->n_channels)
+			{
 				cyd_set_panning(mus->cyd, &mus->cyd->channel[i], song->default_panning[i] + CYD_PAN_CENTER);
+				
+				mus->cyd->channel[i].init_panning = song->default_panning[i] + CYD_PAN_CENTER;
+			}
 #endif
 		}
 		else
@@ -7643,7 +7680,7 @@ int mus_load_instrument_RW(Uint8 version, RWops *ctx, MusInstrument *inst, CydWa
 {
 	mus_get_default_instrument(inst);
 	
-	if(version >= 34)
+	if(version >= 34 && version < 41)
 	{
 		Uint16 temp_f = 0;
 		_VER_READ(&temp_f, 0);
@@ -7669,6 +7706,56 @@ int mus_load_instrument_RW(Uint8 version, RWops *ctx, MusInstrument *inst, CydWa
 	inst->adsr.d &= 0b00111111;
 	inst->adsr.s &= 0b00011111;
 	inst->adsr.r &= 0b00111111;
+	
+	if(inst->flags & MUS_INST_USE_VOLUME_ENVELOPE)
+	{
+		VER_READ(version, 40, 0xff, &inst->vol_env_flags, 0);
+		VER_READ(version, 40, 0xff, &inst->num_vol_points, 0);
+		
+		VER_READ(version, 40, 0xff, &inst->vol_env_fadeout, 0);
+		
+		if(inst->vol_env_flags & MUS_ENV_SUSTAIN)
+		{
+			VER_READ(version, 40, 0xff, &inst->vol_env_sustain, 0);
+		}
+	
+		if(inst->vol_env_flags & MUS_ENV_LOOP)
+		{
+			VER_READ(version, 40, 0xff, &inst->vol_env_loop_start, 0);
+			VER_READ(version, 40, 0xff, &inst->vol_env_loop_end, 0);
+		}
+		
+		for(int i = 0; i < inst->num_vol_points; ++i)
+		{
+			VER_READ(version, 40, 0xff, &inst->volume_envelope[i].x, 0);
+			VER_READ(version, 40, 0xff, &inst->volume_envelope[i].y, 0);
+		}
+	}
+	
+	if(inst->flags & MUS_INST_USE_PANNING_ENVELOPE)
+	{
+		VER_READ(version, 40, 0xff, &inst->pan_env_flags, 0);
+		VER_READ(version, 40, 0xff, &inst->num_pan_points, 0);
+		
+		VER_READ(version, 40, 0xff, &inst->pan_env_fadeout, 0);
+		
+		if(inst->pan_env_flags & MUS_ENV_SUSTAIN)
+		{
+			VER_READ(version, 40, 0xff, &inst->pan_env_sustain, 0);
+		}
+	
+		if(inst->pan_env_flags & MUS_ENV_LOOP)
+		{
+			VER_READ(version, 40, 0xff, &inst->pan_env_loop_start, 0);
+			VER_READ(version, 40, 0xff, &inst->pan_env_loop_end, 0);
+		}
+		
+		for(int i = 0; i < inst->num_pan_points; ++i)
+		{
+			VER_READ(version, 40, 0xff, &inst->panning_envelope[i].x, 0);
+			VER_READ(version, 40, 0xff, &inst->panning_envelope[i].y, 0);
+		}
+	}
 	
 	if(inst->cydflags & CYD_CHN_ENABLE_FIXED_NOISE_PITCH)
 	{
@@ -8467,6 +8554,26 @@ int mus_load_instrument_RW(Uint8 version, RWops *ctx, MusInstrument *inst, CydWa
 	FIX_ENDIAN(inst->cydflags);
 	FIX_ENDIAN(inst->pw);
 	
+	if(inst->flags & MUS_INST_USE_VOLUME_ENVELOPE)
+	{
+		FIX_ENDIAN(inst->vol_env_fadeout);
+		
+		for(int i = 0; i < inst->num_vol_points; ++i)
+		{
+			FIX_ENDIAN(inst->volume_envelope[i].x);
+		}
+	}
+	
+	if(inst->flags & MUS_INST_USE_PANNING_ENVELOPE)
+	{
+		FIX_ENDIAN(inst->pan_env_fadeout);
+		
+		for(int i = 0; i < inst->num_pan_points; ++i)
+		{
+			FIX_ENDIAN(inst->panning_envelope[i].x);
+		}
+	}
+	
 	if(version >= 36)
 	{
 		FIX_ENDIAN(inst->slide_speed);
@@ -8594,6 +8701,12 @@ void mus_get_default_instrument(MusInstrument *inst)
 	inst->volume_envelope[0].y = 0;
 	inst->volume_envelope[1].x = 0x80;
 	inst->volume_envelope[1].y = 0x80;
+	
+	inst->num_pan_points = 2;
+	inst->panning_envelope[0].x = 0;
+	inst->panning_envelope[0].y = 0;
+	inst->panning_envelope[1].x = 0x80;
+	inst->panning_envelope[1].y = 0x80;
 	
 	inst->base_note = MIDDLE_C;
 	inst->noise_note = MIDDLE_C;

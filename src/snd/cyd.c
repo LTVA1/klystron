@@ -105,6 +105,8 @@ static void cyd_init_channel(CydEngine *cyd, CydChannel *chn)
 	cyd_set_filter_coeffs(cyd, chn, 4095, 0);
 #ifdef STEREOOUTPUT
 	cyd_set_panning(cyd, chn, CYD_PAN_CENTER);
+	
+	chn->init_panning = CYD_PAN_CENTER;
 #endif
 
 	for (int s = 0; s < CYD_SUB_OSCS; ++s)
@@ -1025,10 +1027,107 @@ static void run_lfsrs(CydChannel *chn)
 }
 #endif
 
+void cyd_cycle_panning_envelope(CydEngine* cyd, Uint32 flags, CydAdsr* adsr, CydChannel* chn)
+{
+	if(adsr->use_panning_envelope)
+	{
+		if(adsr->envelope_state == DONE) return;
+		
+		if(adsr->envelope_state == RELEASE)
+		{
+			//clamp(adsr->curr_pan_fadeout_value, -1 * (adsr->pan_env_fadeout), 0, 0x7FFFFFFF);
+			
+			if(adsr->curr_pan_fadeout_value > adsr->pan_env_fadeout)
+			{
+				adsr->curr_pan_fadeout_value -= adsr->pan_env_fadeout;
+			}
+			
+			else
+			{
+				adsr->curr_pan_fadeout_value = 0;
+			}
+			
+			if((adsr->pan_env_flags & MUS_ENV_SUSTAIN) && adsr->next_pan_env_point < adsr->num_pan_points)
+			{
+				adsr->advance_panning_envelope = true;
+			}
+		}
+		
+		if(adsr->advance_panning_envelope)
+		{
+			adsr->pan_envelope += adsr->pan_env_speed;
+		}
+		
+		if(adsr->pan_envelope > adsr->panning_envelope[adsr->next_pan_env_point].x)
+		{
+			adsr->next_pan_env_point++;
+			adsr->current_pan_env_point++;
+		}
+		
+		if(adsr->pan_env_flags & MUS_ENV_LOOP)
+		{
+			if(adsr->current_pan_env_point == adsr->pan_env_loop_end) //loop
+			{
+				adsr->current_pan_env_point = adsr->pan_env_loop_start;
+				adsr->next_pan_env_point = adsr->pan_env_loop_start + 1;
+				adsr->pan_envelope = adsr->panning_envelope[adsr->current_pan_env_point].x;
+			}
+		}
+		
+		if((adsr->pan_env_flags & MUS_ENV_SUSTAIN) && adsr->current_pan_env_point == adsr->pan_env_sustain && adsr->envelope_state != RELEASE)
+		{
+			adsr->advance_panning_envelope = false;
+		}
+		
+		if(adsr->next_pan_env_point >= adsr->num_pan_points)
+		{
+			adsr->advance_panning_envelope = false;
+		}
+		
+		if(adsr->advance_panning_envelope)
+		{
+			double delta_prev = adsr->pan_envelope - adsr->panning_envelope[adsr->current_pan_env_point].x;
+			
+			double x_next = adsr->panning_envelope[adsr->next_pan_env_point].x;
+			double x_prev = adsr->panning_envelope[adsr->current_pan_env_point].x;
+			
+			double volume_prev = adsr->panning_envelope[adsr->current_pan_env_point].y;
+			double volume_next = adsr->panning_envelope[adsr->next_pan_env_point].y;
+			
+			adsr->panning_envelope_output = ((Uint32)((volume_next - volume_prev) * delta_prev / (x_next - x_prev) + volume_prev));
+			
+			adsr->pan_counter++;
+			
+			if(adsr->pan_counter & 0x10)
+			{
+				adsr->pan_counter = 0;
+				
+				//(Sint32)(adsr->curr_vol_fadeout_value >> 16) / 65536
+				
+				Sint16 total_panning = (Sint16)chn->init_panning + ((Sint32)(adsr->panning_envelope_output >> 6) - CYD_PAN_CENTER) * (Sint32)(adsr->curr_pan_fadeout_value >> 23) / 255;
+				
+				clamp(total_panning, 0, 0, CYD_PAN_RIGHT);
+				
+				cyd_set_panning(cyd, chn, (Uint8)total_panning);
+				
+				//debug("chn pan %d output centered %d", chn->panning, ((Sint32)(adsr->panning_envelope_output >> 6) - CYD_PAN_CENTER));
+				
+				//debug("%d", adsr->num_pan_points);
+			}
+		}
+		
+		//return flags;
+	}
+}
 
 static void cyd_cycle_channel(CydEngine *cyd, CydChannel *chn)
 {
 	chn->flags = cyd_cycle_adsr(cyd, chn->flags, chn->ym_env_shape, &chn->adsr, chn->env_ksl_mult);
+	
+	if(chn->musflags & MUS_INST_USE_PANNING_ENVELOPE)
+	{
+		cyd_cycle_panning_envelope(cyd, chn->flags, &chn->adsr, chn);
+	}
 	
 	if (chn->flags & CYD_CHN_ENABLE_WAVE) 
 	{
@@ -2091,18 +2190,6 @@ static Sint32 cyd_output(CydEngine *cyd)
 	for (int i = 0; i < cyd->n_channels; ++i)
 	{
 		CydChannel *chn = &cyd->channel[i];
-		
-		/*chn->vol_ksl_mult = 1.0;
-		chn->env_ksl_mult = 1.0;
-		
-		if(chn->fm.flags & CYD_FM_ENABLE_4OP)
-		{
-			for(int i = 0; i < CYD_FM_NUM_OPS; ++i)
-			{
-				chn->fm.ops[i].vol_ksl_mult = 1.0;
-				chn->fm.ops[i].env_ksl_mult = 1.0;
-			}
-		}*/
 		
 		if((chn->flags & CYD_CHN_ENABLE_VOLUME_KEY_SCALING) || (chn->flags & CYD_CHN_ENABLE_ENVELOPE_KEY_SCALING))
 		{

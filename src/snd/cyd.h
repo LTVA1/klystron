@@ -67,6 +67,7 @@ typedef struct
 	Uint8 ym_env_shape;
 #ifdef STEREOOUTPUT
 	Uint8 panning; // 0-255, 128 = center
+	Uint8 init_panning; //for envelope
 	Sint32 gain_left, gain_right;
 #endif
 	// ---- internal
@@ -94,7 +95,7 @@ typedef struct
 	
 	Uint8 sine_acc_shift; //0-F
 	
-	Uint64 counter; //for general debug purposes
+	//Uint64 counter; //for general debug purposes
 } CydChannel;
 
 enum

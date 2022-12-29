@@ -33,6 +33,8 @@ typedef struct
 	
 	Sint32 curr_vol_fadeout_value;
 	
+	Uint32 volume_envelope_output;
+	
 	Uint8 num_vol_points;
 	Uint8 vol_env_loop_start;
 	Uint8 vol_env_loop_end;
@@ -41,13 +43,28 @@ typedef struct
 	
 	CydEnvPoint volume_envelope[MUS_MAX_ENVELOPE_POINTS];
 	
-	Uint32 volume_envelope_output;
+	bool advance_panning_envelope;
+	
+	Uint8 current_pan_env_point;
+	Uint8 next_pan_env_point;
+	
+	Uint32 pan_env_fadeout;
+	
+	Sint32 curr_pan_fadeout_value;
+	
+	Uint32 pan_env_speed;
+	
+	Uint8 pan_counter; //so we set panning every 16th step to be easier on CPU
+	
+	Uint32 panning_envelope_output;
 	
 	Uint8 num_pan_points;
 	Uint8 pan_env_loop_start;
 	Uint8 pan_env_loop_end;
 	Uint8 pan_env_sustain;
 	Uint8 pan_env_flags; //1 - sustain, 2 - loop
+	
+	Uint32 pan_envelope;
 	
 	CydEnvPoint panning_envelope[MUS_MAX_ENVELOPE_POINTS];
 	

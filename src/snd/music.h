@@ -45,7 +45,7 @@ OTHER DEALINGS IN THE SOFTWARE.
 
 #define MUS_MAX_CHANNELS CYD_MAX_CHANNELS
 
-#define MUS_VERSION 40
+#define MUS_VERSION 41
 
 #define MUS_SONG_TITLE_LEN 255
 #define MUS_INSTRUMENT_NAME_LEN 255
@@ -219,6 +219,8 @@ typedef struct
 	Uint8 vol_env_flags; //1 - sustain, 2 - loop
 	
 	MusEnvPoint volume_envelope[MUS_MAX_ENVELOPE_POINTS];
+	
+	Uint16 pan_env_fadeout;
 	
 	Uint8 num_pan_points;
 	Uint8 pan_env_loop_start;
