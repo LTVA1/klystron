@@ -1955,7 +1955,7 @@ Sint32 cyd_env_output(const CydEngine *cyd, Uint32 chn_flags, const CydAdsr *ads
 {
 	if(adsr->use_volume_envelope)
 	{
-		return input * (Sint32)(adsr->volume_envelope_output >> 16) / 16384 * (Sint32)(adsr->curr_vol_fadeout_value >> 16) / 65536;
+		return input * (Sint32)(adsr->volume_envelope_output >> 16) / 16384 * (Sint32)(adsr->curr_vol_fadeout_value >> 16) / 65536 * (Sint32)(adsr->volume) / MAX_VOLUME;
 	}
 	
 	if (chn_flags & CYD_CHN_ENABLE_YM_ENV)
