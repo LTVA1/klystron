@@ -6212,6 +6212,8 @@ int mus_trigger_instrument_internal(MusEngine* mus, int chan, MusInstrument *ins
 	{
 		cyd_set_panning(mus->cyd, cydchn, panning);
 		
+		debug("set panning %d", panning);
+		
 		cydchn->init_panning = panning;
 	}
 
@@ -7148,7 +7150,7 @@ int mus_advance_tick(void* udata)
 											}
 										}
 										
-										mus_trigger_instrument_internal(mus, i, pinst, note << 8, -1);
+										mus_trigger_instrument_internal(mus, i, pinst, note << 8, mus->song->default_panning[i] + CYD_PAN_CENTER);
 										muschn->note = oldnote;
 										
 										if(pinst->fm_flags & CYD_FM_ENABLE_4OP)
@@ -7210,7 +7212,7 @@ int mus_advance_tick(void* udata)
 										}
 									}
 									
-									mus_trigger_instrument_internal(mus, i, pinst, note << 8, -1);
+									mus_trigger_instrument_internal(mus, i, pinst, note << 8, mus->song->default_panning[i] + CYD_PAN_CENTER);
 									muschn->target_note = (((Uint16)note + pinst->base_note - MIDDLE_C) << 8) + pinst->finetune;
 
 									if (inst == MUS_NOTE_NO_INSTRUMENT)
@@ -7659,18 +7661,7 @@ static int find_and_load_wavetable(Uint8 version, RWops *ctx, CydWavetableEntry 
 				return i;
 			}
 		}
-	}	
-	
-	/*for (int i = 0; i < CYD_WAVE_MAX_ENTRIES; ++i)
-	{
-		CydWavetableEntry *e = &wavetable_entries[i];
-
-		if (e->samples == 0)
-		{
-			load_wavetable_entry(version, e, ctx);
-			return i;
-		}
-	}*/
+	}
 
 	return 0;
 }
@@ -8089,17 +8080,6 @@ int mus_load_instrument_RW(Uint8 version, RWops *ctx, MusInstrument *inst, CydWa
 		
 		VER_READ(version, 23, 0xff, &inst->fm_harmonic, 0);
 		
-		/*if(version < 39) //only now I realised how weird mults were, they were multiplied by two
-		{
-			Uint8 one = inst->fm_harmonic & 0xf;
-			Uint8 two = (inst->fm_harmonic >> 4) & 0xf;
-			
-			if(one < 8) one *= 2; else one = 0xf;
-			if(two < 8) two *= 2; else two = 0xf;
-			
-			inst->fm_harmonic = one | (two << 4);
-		}*/
-		
 		VER_READ(version, 23, 0xff, &inst->fm_adsr, 0);
 		
 		if(version >= 34)
@@ -8179,17 +8159,6 @@ int mus_load_instrument_RW(Uint8 version, RWops *ctx, MusInstrument *inst, CydWa
 				else
 				{
 					VER_READ(version, 34, 0xff, &inst->ops[i].harmonic, 0);
-					
-					/*if(version < 39) //only now I realised how weird mults were, they were multiplied by two
-					{
-						Uint8 one = inst->ops[i].harmonic & 0xf;
-						Uint8 two = (inst->ops[i].harmonic >> 4) & 0xf;
-						
-						if(one < 8) one *= 2; else one = 0xf;
-						if(two < 8) two *= 2; else two = 0xf;
-						
-						inst->ops[i].harmonic = one | (two << 4);
-					}*/
 					
 					Uint8 temp_detune;
 					VER_READ(version, 34, 0xff, &temp_detune, 0);
@@ -9724,11 +9693,6 @@ int mus_load_song_RW(RWops *ctx, MusSong *song, CydWavetableEntry *wavetable_ent
 				cyd_wave_entry_init(&wavetable_entries[i], NULL, 0, 0, 0, 0, 0);
 			}
 		}
-
-		/*for (int i = 0; i < CYD_WAVE_MAX_ENTRIES; ++i)
-		{
-			cyd_wave_entry_init(&wavetable_entries[i], NULL, 0, 0, 0, 0, 0);
-		}*/
 		
 		if(version < 28)
 		{
@@ -9813,46 +9777,6 @@ int mus_load_song_RW(RWops *ctx, MusSong *song, CydWavetableEntry *wavetable_ent
 			else
 				song->num_wavetables = 0;
 		}
-
-		/*if (version >= 12)
-		{
-			Uint8 max_wt = 0;
-			my_RWread(ctx, &max_wt, 1, sizeof(Uint8));
-
-			for (int i = 0; i < max_wt; ++i)
-			{
-				load_wavetable_entry(version, &wavetable_entries[i], ctx);
-			}
-
-			song->wavetable_names = malloc(max_wt * sizeof(char*));
-
-			if (version >= 26)
-			{
-				for (int i = 0; i < max_wt; ++i)
-				{
-					Uint8 len = 0;
-					song->wavetable_names[i] = malloc(MUS_WAVETABLE_NAME_LEN + 1);
-					memset(song->wavetable_names[i], 0, MUS_WAVETABLE_NAME_LEN + 1);
-
-					my_RWread(ctx, &len, 1, 1);
-					my_RWread(ctx, song->wavetable_names[i], len, sizeof(char));
-				}
-			}
-			else
-			{
-				for (int i = 0; i < max_wt; ++i)
-				{
-					song->wavetable_names[i] = malloc(MUS_WAVETABLE_NAME_LEN + 1);
-					memset(song->wavetable_names[i], 0, MUS_WAVETABLE_NAME_LEN + 1);
-				}
-			}
-
-			song->num_wavetables = max_wt;
-		}
-		else
-			song->num_wavetables = 0;*/
-		
-		
 		
 		if(version < 30) //to account for cutoff range extended from 000-7ff to 000-fff
 		{
