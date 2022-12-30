@@ -799,7 +799,7 @@ Uint32 cyd_cycle_adsr(const CydEngine *eng, Uint32 flags, Uint32 ym_env_shape, C
 {
 	if(adsr->use_volume_envelope)
 	{
-		if(adsr->envelope_state == DONE) return;
+		if(adsr->envelope_state == DONE) return flags;
 		
 		if(adsr->envelope_state == RELEASE)
 		{

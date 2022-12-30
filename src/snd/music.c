@@ -3441,6 +3441,93 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 	{
 		// --- commands that run only on tick 0
 		
+		switch (inst & 0xfff0)
+		{
+			case MUS_FX_EXT_PORTA_UP:
+			{
+				switch(ops_index)
+				{
+					case 0:
+					case 0xFF:
+					{
+						Uint32 prev = chn->note;
+						chn->note += ((inst & 0xf) << 2);
+						if (prev > chn->note) chn->note = 0xffff;
+
+						mus_set_slide(mus, chan, chn->note);
+						
+						if(ops_index == 0xFF)
+						{
+							for(int i = 0; i < CYD_FM_NUM_OPS; ++i)
+							{
+								Uint32 prev = chn->ops[i].note;
+								chn->ops[i].note += ((inst & 0xf) << 2);
+								if (prev > chn->ops[i].note) chn->ops[i].note = 0xffff;
+								
+								chn->ops[i].target_note = chn->ops[i].note;
+							}
+						}
+						
+						break;
+					}
+					
+					default:
+					{
+						Uint32 prev = chn->ops[ops_index - 1].note;
+						chn->ops[ops_index - 1].note += ((inst & 0xf) << 2);
+						if (prev > chn->ops[ops_index - 1].note) chn->ops[ops_index - 1].note = 0xffff;
+						
+						chn->ops[ops_index - 1].target_note = chn->ops[ops_index - 1].note;
+						
+						break;
+					}
+				}
+			}
+			break;
+
+			case MUS_FX_EXT_PORTA_DN:
+			{
+				switch(ops_index)
+				{
+					case 0:
+					case 0xFF:
+					{
+						Uint32 prev = chn->note;
+						chn->note -= ((inst & 0xf) << 2);
+						if (prev < chn->note) chn->note = 0x0;
+
+						mus_set_slide(mus, chan, chn->note);
+						
+						if(ops_index == 0xFF)
+						{
+							for(int i = 0; i < CYD_FM_NUM_OPS; ++i)
+							{
+								Uint32 prev = chn->ops[i].note;
+								chn->ops[i].note -= ((inst & 0xf) << 2);
+								if (prev < chn->ops[i].note) chn->ops[i].note = 0x0;
+								
+								chn->ops[i].target_note = chn->ops[i].note;
+							}
+						}
+						
+						break;
+					}
+					
+					default:
+					{
+						Uint32 prev = chn->ops[ops_index - 1].note;
+						chn->ops[ops_index - 1].note -= ((inst & 0xf) << 2);
+						if (prev < chn->ops[ops_index - 1].note) chn->ops[ops_index - 1].note = 0x0;
+						
+						chn->ops[ops_index - 1].target_note = chn->ops[ops_index - 1].note;
+						
+						break;
+					}
+				}
+			}
+			break;
+		}
+		
 		switch (inst & 0xff00)
 		{
 			case MUS_FX_EXT:
@@ -3576,7 +3663,7 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 					}
 					break;
 					
-					case MUS_FX_EXT_PORTA_UP:
+					case MUS_FX_EXT_FINE_PORTA_UP:
 					{
 						switch(ops_index)
 						{
@@ -3618,7 +3705,7 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 					}
 					break;
 
-					case MUS_FX_EXT_PORTA_DN:
+					case MUS_FX_EXT_FINE_PORTA_DN:
 					{
 						switch(ops_index)
 						{

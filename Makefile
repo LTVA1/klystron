@@ -116,7 +116,6 @@ bin.$(CFG)/libksndstatic.a: objs.$(CFG)/lib_ksnd.o ${snd_OBJ} | inform
 ifdef COMSPEC
 	$(MSG) "Building ksndstatic.lib..."
 	@-lib /OUT:bin.$(CFG)/ksndstatic.lib $^
-	# C:/VC/Tools/MSVC/14.32.31326/bin/Hostx64/x86/lib.exe /OUT:bin.$(CFG)/ksndstatic.lib $^
 endif
 
 bin.$(CFG)/ksnd.dll: objs.$(CFG)/lib_ksnd.o ${snd_OBJ} src/lib/ksnd.def | inform
@@ -126,7 +125,6 @@ bin.$(CFG)/ksnd.dll: objs.$(CFG)/lib_ksnd.o ${snd_OBJ} src/lib/ksnd.def | inform
 ifdef COMSPEC
 	$(MSG) "Building ksnd.lib..."
 	@-lib /DEF:src/lib/ksnd.def /OUT:bin.$(CFG)/ksnd.lib
-	# C:/VC/Tools/MSVC/14.32.31326/bin/Hostx64/x86/lib.exe /DEF:src/lib/ksnd.def /OUT:bin.$(CFG)/ksnd.lib
 endif
 
 objs.$(CFG)/snd_%.o: snd/%.c
