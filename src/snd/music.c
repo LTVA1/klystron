@@ -6299,7 +6299,7 @@ int mus_trigger_instrument_internal(MusEngine* mus, int chan, MusInstrument *ins
 	{
 		cyd_set_panning(mus->cyd, cydchn, panning);
 		
-		debug("set panning %d", panning);
+		//debug("set panning %d", panning);
 		
 		cydchn->init_panning = panning;
 	}

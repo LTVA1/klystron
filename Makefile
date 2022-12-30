@@ -1,3 +1,5 @@
+# undefine COMSPEC
+
 TARGET=engine
 VPATH=src:src
 ECHO = echo
@@ -31,7 +33,7 @@ CC = gcc -shared -std=gnu99 -Wno-strict-aliasing
 CDEP = gcc -E -std=gnu99
 
 ifndef CFLAGS
-CFLAGS = $(MACHINE) -ftree-vectorize
+CFLAGS = $(MACHINE) -ftree-vectorize -lws2_32 -lwsock32
 endif
 
 INCLUDEFLAGS= -I ../Common -I src $(SDLFLAGS) -I src/gfx -I src/snd -I src/util -I src/gui $(EXTFLAGS)

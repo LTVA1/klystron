@@ -3030,6 +3030,11 @@ int cyd_register(CydEngine * cyd)
 		return 0;
 	}
 	
+	else
+	{
+		debug("waveOutOpen successful!");
+	}
+	
 	for (int i = 0; i < CYD_NUM_WO_BUFFERS; ++i)
 	{
 		WAVEHDR * h = &cyd->waveout_hdr[i];
