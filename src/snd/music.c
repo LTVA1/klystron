@@ -7016,7 +7016,9 @@ int mus_advance_tick(void* udata)
 					while (track_status->sequence_position < mus->song->num_sequences[i] && mus->song->sequence[i][track_status->sequence_position].position <= mus->song_position)
 					{
 						track_status->pattern = &mus->song->pattern[mus->song->sequence[i][track_status->sequence_position].pattern];
+						
 						track_status->pattern_step = mus->song_position - mus->song->sequence[i][track_status->sequence_position].position;
+						
 						if (track_status->pattern_step >= mus->song->pattern[mus->song->sequence[i][track_status->sequence_position].pattern].num_steps)
 							track_status->pattern = NULL;
 						track_status->note_offset = mus->song->sequence[i][track_status->sequence_position].note_offset;
@@ -7356,7 +7358,7 @@ int mus_advance_tick(void* udata)
 						
 						for(int i1 = 0; i1 < MUS_MAX_COMMANDS; ++i1)
 						{
-							Uint32 command = track_status->pattern->step[track_status->pattern_step].command[i1];
+							Uint16 command = track_status->pattern->step[track_status->pattern_step].command[i1];
 							
 							if ((command & 0xff00) == MUS_FX_LOOP_PATTERN)
 							{
@@ -7371,6 +7373,87 @@ int mus_advance_tick(void* udata)
 								track_status->pattern = NULL;
 								track_status->pattern_step = 0;
 								flag = 0;
+								break;
+							}
+							
+							else if ((command & 0xfff0) == MUS_FX_FT2_PATTERN_LOOP)
+							{
+								if(command & 0xf) //loop end
+								{
+									if(!(track_status->in_loop))
+									{
+										track_status->loops_left = (command & 0xf);
+										track_status->in_loop = true;
+										
+										//track_status->loops_left--;
+										
+										for(int j = track_status->pattern_step; j >= 0; --j)
+										{
+											for(int com = 0; com < MUS_MAX_COMMANDS; ++com)
+											{
+												if(track_status->pattern->step[j].command[com] == MUS_FX_FT2_PATTERN_LOOP) //search for loop start
+												{
+													mus->song_position -= (track_status->pattern_step - j + 1); //jump to loop start
+													
+													int delta = track_status->pattern_step - j + 1;
+													
+													for(int chns = 0; chns < mus->song->num_channels; ++chns)
+													{
+														if(mus->song_track[chns].pattern_step >= delta)
+														{
+															mus->song_track[chns].pattern_step -= (delta);
+															mus->song_track[chns].sequence_position -= (delta);
+														}
+													}
+													
+													goto out;
+												}
+											}
+										}
+									}
+									
+									else
+									{
+										track_status->loops_left--;
+										
+										if(track_status->loops_left == 0)
+										{
+											track_status->in_loop = false;
+											goto out;
+										}
+										
+										for(int j = track_status->pattern_step; j >= 0; --j)
+										{
+											for(int com = 0; com < MUS_MAX_COMMANDS; ++com)
+											{
+												if(track_status->pattern->step[j].command[com] == MUS_FX_FT2_PATTERN_LOOP) //search for loop start
+												{
+													mus->song_position -= (track_status->pattern_step - j + 1); //jump to loop start
+													
+													int delta = track_status->pattern_step - j + 1;
+													
+													for(int chns = 0; chns < mus->song->num_channels; ++chns)
+													{
+														if(mus->song_track[chns].pattern_step >= delta)
+														{
+															mus->song_track[chns].pattern_step -= (delta);
+															mus->song_track[chns].sequence_position -= (delta);
+														}
+													}
+													
+													goto out;
+												}
+											}
+										}
+									}
+								}
+								
+								else //loop start
+								{
+									
+								}
+								
+								out:;
 								break;
 							}
 						}	
@@ -7398,6 +7481,7 @@ int mus_advance_tick(void* udata)
 						return 0;
 
 					mus->song_position = mus->song->loop_point;
+					
 					for (int i = 0; i < mus->cyd->n_channels; ++i)
 					{
 						MusTrackStatus *track_status = &mus->song_track[i];
@@ -7486,6 +7570,9 @@ void mus_set_song(MusEngine *mus, MusSong *song, Uint16 position)
 		mus->song_track[i].last_ctrl = 0;
 		mus->song_track[i].note_offset = 0;
 		mus->song_track[i].extarp1 = mus->song_track[i].extarp2 = 0;
+		
+		mus->song_track[i].in_loop = false;
+		mus->song_track[i].loops_left = 0;
 
 		if (song)
 		{

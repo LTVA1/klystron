@@ -452,6 +452,10 @@ typedef struct
 	Uint8 fm_4op_vol;
 	
 	MusFmOpTrackStatus ops_status[CYD_FM_NUM_OPS];
+	
+	bool in_loop;
+	Uint8 loops_left;
+	
 } MusTrackStatus;
 
 typedef struct
@@ -584,6 +588,8 @@ enum
 	MUS_FX_PHASE_RESET = 0x2e00,
 	MUS_FX_NOISE_PHASE_RESET = 0x2e10,
 	MUS_FX_WAVE_PHASE_RESET = 0x2e20,
+	
+	MUS_FX_FT2_PATTERN_LOOP = 0x2e30,
 	
 	MUS_FX_EXT_PORTA_UP = 0x2e30,
 	MUS_FX_EXT_PORTA_DN = 0x2e40,
