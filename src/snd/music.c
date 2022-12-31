@@ -5184,7 +5184,7 @@ static void mus_exec_track_command(MusEngine *mus, int chan, int first_tick)
 			
 			do_command(mus, chan, mus->song_counter, MUS_FX_SET_PANNING | panning, 0, mus->channel[chan].instrument != NULL ? ((mus->channel[chan].instrument->fm_flags & CYD_FM_FOUROP_USE_MAIN_INST_PROG) ? 0xFF : 0) : 0, 0);
 			
-			debug("Panned to %x", panning);
+			//debug("Panned to %x", panning);
 		}
 		break;
 

@@ -561,8 +561,6 @@ enum
 	MUS_FX_TREMOLO = 0x2400, //wasn't there
 	MUS_FX_PWM = 0x2500, //wasn't there
 	
-	
-	
 	MUS_FX_FM_VIBRATO = 0x2700, //wasn't there
 	MUS_FX_FM_TREMOLO = 0x2800, //wasn't there
 	MUS_FX_FADE_VOLUME = 0x0a00,
