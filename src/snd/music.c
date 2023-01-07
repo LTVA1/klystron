@@ -7239,7 +7239,7 @@ int mus_advance_tick(void* udata)
 											}
 										}
 										
-										mus_trigger_instrument_internal(mus, i, pinst, note << 8, mus->song->default_panning[i] + CYD_PAN_CENTER);
+										mus_trigger_instrument_internal(mus, i, pinst, note << 8, mus->song->default_panning[i] == mus->cyd->channel[i].init_panning ? (mus->song->default_panning[i] + CYD_PAN_CENTER) : -1);
 										muschn->note = oldnote;
 										
 										if(pinst->fm_flags & CYD_FM_ENABLE_4OP)
@@ -7301,7 +7301,7 @@ int mus_advance_tick(void* udata)
 										}
 									}
 									
-									mus_trigger_instrument_internal(mus, i, pinst, note << 8, mus->song->default_panning[i] + CYD_PAN_CENTER);
+									mus_trigger_instrument_internal(mus, i, pinst, note << 8, mus->song->default_panning[i] == mus->cyd->channel[i].init_panning ? (mus->song->default_panning[i] + CYD_PAN_CENTER) : -1);
 									muschn->target_note = (((Uint16)note + pinst->base_note - MIDDLE_C) << 8) + pinst->finetune;
 
 									if (inst == MUS_NOTE_NO_INSTRUMENT)
@@ -9489,13 +9489,6 @@ int mus_load_song_RW(RWops *ctx, MusSong *song, CydWavetableEntry *wavetable_ent
 				my_RWread(ctx, song->title, 1, my_min(320, title_len)); //my_RWread(ctx, song->title, 1, my_min(32, title_len));
 				song->title[title_len] = '\0'; //song->title[32 - 1] = '\0';
 			}
-			
-			/*if (version >= 5)
-			{
-				memset(song->title, 0, sizeof(song->title) / 2);
-				my_RWread(ctx, song->title, 1, my_min(sizeof(song->title) / 2, title_len));
-				song->title[sizeof(song->title) / 2 - 1] = '\0';
-			}*/
 		}
 		
 		else
@@ -9514,20 +9507,6 @@ int mus_load_song_RW(RWops *ctx, MusSong *song, CydWavetableEntry *wavetable_ent
 		}
 		
 		debug("Name: \"%s\", its length: %d", song->title, title_len);
-		
-		//delay(25000);
-
-		/*if (version >= 11)
-		{
-			my_RWread(ctx, &title_len, 1, 1);
-		}
-
-		if (version >= 5)
-		{
-			memset(song->title, 0, sizeof(song->title));
-			my_RWread(ctx, song->title, 1, my_min(sizeof(song->title), title_len));
-			song->title[sizeof(song->title) - 1] = '\0';
-		}*/
 
 		Uint8 n_fx = 0;
 
