@@ -10100,6 +10100,7 @@ int mus_load_song_file(FILE *f, MusSong *song, CydWavetableEntry *wavetable_entr
 	return 0;
 }
 
+#ifndef STANDALONE_COMPILE
 int mus_load_patch_RW(RWops *ctx, WgSettings *settings) //wasn't there
 {
 	char id[15];
@@ -10169,6 +10170,7 @@ int mus_load_wavepatch(FILE *f, WgSettings *settings) //wasn't there
 	
 	return 0;
 }
+#endif
 
 Uint32 mus_get_playtime_at(MusSong *song, int position)
 {

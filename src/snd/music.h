@@ -32,7 +32,9 @@ OTHER DEALINGS IN THE SOFTWARE.
 #include "cydfx.h"
 #include <stdio.h>
 
+#ifndef STANDALONE_COMPILE
 #include "../../../src/wavegen.h"
+#endif
 
 #include "music_defs.h"
 
@@ -869,7 +871,9 @@ int mus_load_song_RW(RWops *rw, MusSong *song, CydWavetableEntry *wavetable_entr
 int mus_load_fx_RW(RWops *ctx, CydFxSerialized *fx);
 int mus_load_fx_file(FILE *f, CydFxSerialized *fx);
 
+#ifndef STANDALONE_COMPILE
 int mus_load_wavepatch(FILE *f, WgSettings *settings); //wasn't there
+#endif
 
 int mus_load_fx(const char *path, CydFxSerialized *fx);
 void mus_free_song(MusSong *song);
