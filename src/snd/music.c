@@ -9586,6 +9586,7 @@ int mus_load_song_RW(RWops *ctx, MusSong *song, CydWavetableEntry *wavetable_ent
 		if (song->instrument == NULL)
 		{
 			song->instrument = malloc((size_t)song->num_instruments * sizeof(song->instrument[0]));
+			memset(song->instrument, 0, (size_t)song->num_instruments * sizeof(song->instrument[0]));
 		}
 
 		for (int i = 0; i < song->num_instruments; ++i)
@@ -9985,6 +9986,11 @@ int mus_load_song(const char *path, MusSong *song, CydWavetableEntry *wavetable_
 
 void mus_free_song(MusSong *song)
 {
+	for (int i = 0; i < song->num_instruments; ++i)
+	{
+		mus_free_inst_programs(&song->instrument[i]);
+	}
+	
 	free(song->instrument);
 
 	for (int i = 0; i < MUS_MAX_CHANNELS; ++i)

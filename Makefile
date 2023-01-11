@@ -1,4 +1,4 @@
-#undefine COMSPEC
+undefine COMSPEC
 
 TARGET=engine
 VPATH=src:src
