@@ -48,7 +48,7 @@ KLYSAPI KSong* KSND_LoadSong(KPlayer* player, const char *path)
 static int RWread(struct RWops *context, void *ptr, int size, int maxnum)
 {
 	const int len = my_min(size * maxnum, context->mem.length - context->mem.ptr);
-	memcpy(ptr, context->mem.base + context->mem.ptr, len);
+	memcpy(ptr, (char*)context->mem.base + context->mem.ptr, len);
 	
 	context->mem.ptr += len;
 	

@@ -7683,7 +7683,7 @@ int mus_poll_status(MusEngine *mus, int *song_position, int *pattern_position, M
 				
 				if(mus->cyd->channel[i].flags & CYD_CHN_ENABLE_FM)
 				{
-					Uint32 temp;
+					Uint32 temp = 0;
 					
 					if(cyd_env_output(mus->cyd, temp, &mus->cyd->channel[i].fm.adsr, MAX_VOLUME) > cyd_env[i])
 					{
@@ -9861,6 +9861,7 @@ int mus_load_song_RW(RWops *ctx, MusSong *song, CydWavetableEntry *wavetable_ent
 				}
 
 				song->wavetable_names = malloc(max_wt * sizeof(char*));
+				memset(song->wavetable_names, 0, max_wt * sizeof(char*));
 
 				if (version >= 26)
 				{
@@ -9903,6 +9904,7 @@ int mus_load_song_RW(RWops *ctx, MusSong *song, CydWavetableEntry *wavetable_ent
 				}
 
 				song->wavetable_names = malloc(max_wt * sizeof(char*));
+				memset(song->wavetable_names, 0, max_wt * sizeof(char*));
 
 				if (version >= 26)
 				{

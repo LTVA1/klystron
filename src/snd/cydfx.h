@@ -42,6 +42,8 @@ typedef struct
 } CydFx;
 
 /* The following is a non-aligned packed struct for saving in files */
+
+#pragma pack(push, 1)
 typedef struct
 {
 	char name[CYD_FX_NAME_LEN + 1];
@@ -68,7 +70,8 @@ typedef struct
 		Uint8 downsample, gain; // 2
 	} crushex;
 	
-} __attribute__((__packed__)) CydFxSerialized;
+} CydFxSerialized;
+#pragma pack(pop)
 
 #ifdef STEREOOUTPUT
 void cydfx_output(CydFx *fx, Sint32 fx_l, Sint32 fx_r, Sint32 *left, Sint32 *right);
