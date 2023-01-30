@@ -312,6 +312,8 @@ enum
 	CYD_PAUSED = 1,
 	CYD_CLIPPING = 2,
 	CYD_SINGLE_THREAD = 8,
+	
+	CYD_USE_OLD_FILTER = 16,
 };
 
 // YM2149 envelope shape flags, CONT is assumed to be always set

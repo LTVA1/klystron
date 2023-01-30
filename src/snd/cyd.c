@@ -1488,20 +1488,43 @@ static Sint32 cyd_output_fm_ops(CydEngine *cyd, CydChannel *chn, int chan_num, /
 			
 			if (chn->fm.ops[i].flags & CYD_FM_OP_ENABLE_FILTER) 
 			{
-				for(int j = 0; j < two_pow(2, chn->fm.ops[i].flt_slope); ++j)
+				if(cyd->flags & CYD_USE_OLD_FILTER)
 				{
-					cydflt_cycle(&chn->fm.ops[i].flts[j][sub], o[i][sub]);
-					
-					switch (chn->fm.ops[i].flttype)
+					for(int j = 0; j < two_pow(2, chn->fm.ops[i].flt_slope); ++j)
 					{
-						case FLT_BP: o[i][sub] = cydflt_output_bp(&chn->fm.ops[i].flts[j][sub]); break;
-						default: case FLT_LP: o[i][sub] = cydflt_output_lp(&chn->fm.ops[i].flts[j][sub]); break;
-						case FLT_HP: o[i][sub] = cydflt_output_hp(&chn->fm.ops[i].flts[j][sub]); break; //was only up to there
+						cydflt_cycle_old(&chn->fm.ops[i].flts[j][sub], o[i][sub]);
 						
-						case FLT_LH: o[i][sub] = (cydflt_output_lp(&chn->fm.ops[i].flts[j][sub]) + cydflt_output_hp(&chn->fm.ops[i].flts[j][sub])) / 2; break;
-						case FLT_HB: o[i][sub] = (cydflt_output_hp(&chn->fm.ops[i].flts[j][sub]) + cydflt_output_bp(&chn->fm.ops[i].flts[j][sub])) / 2; break;
-						case FLT_LB: o[i][sub] = (cydflt_output_lp(&chn->fm.ops[i].flts[j][sub]) + cydflt_output_bp(&chn->fm.ops[i].flts[j][sub])) / 2; break;
-						case FLT_ALL: o[i][sub] = (cydflt_output_lp(&chn->fm.ops[i].flts[j][sub]) + cydflt_output_bp(&chn->fm.ops[i].flts[j][sub]) + cydflt_output_hp(&chn->fm.ops[i].flts[j][sub])) / 3; break;
+						switch (chn->fm.ops[i].flttype)
+						{
+							case FLT_BP: o[i][sub] = cydflt_output_bp_old(&chn->fm.ops[i].flts[j][sub]); break;
+							default: case FLT_LP: o[i][sub] = cydflt_output_lp_old(&chn->fm.ops[i].flts[j][sub]); break;
+							case FLT_HP: o[i][sub] = cydflt_output_hp_old(&chn->fm.ops[i].flts[j][sub]); break; //was only up to there
+							
+							case FLT_LH: o[i][sub] = (cydflt_output_lp_old(&chn->fm.ops[i].flts[j][sub]) + cydflt_output_hp_old(&chn->fm.ops[i].flts[j][sub])) / 2; break;
+							case FLT_HB: o[i][sub] = (cydflt_output_hp_old(&chn->fm.ops[i].flts[j][sub]) + cydflt_output_bp_old(&chn->fm.ops[i].flts[j][sub])) / 2; break;
+							case FLT_LB: o[i][sub] = (cydflt_output_lp_old(&chn->fm.ops[i].flts[j][sub]) + cydflt_output_bp_old(&chn->fm.ops[i].flts[j][sub])) / 2; break;
+							case FLT_ALL: o[i][sub] = (cydflt_output_lp_old(&chn->fm.ops[i].flts[j][sub]) + cydflt_output_bp_old(&chn->fm.ops[i].flts[j][sub]) + cydflt_output_hp_old(&chn->fm.ops[i].flts[j][sub])) / 3; break;
+						}
+					}
+				}
+				
+				else
+				{
+					for(int j = 0; j < two_pow(2, chn->fm.ops[i].flt_slope); ++j)
+					{
+						cydflt_cycle(&chn->fm.ops[i].flts[j][sub], o[i][sub]);
+						
+						switch (chn->fm.ops[i].flttype)
+						{
+							case FLT_BP: o[i][sub] = cydflt_output_bp(&chn->fm.ops[i].flts[j][sub]); break;
+							default: case FLT_LP: o[i][sub] = cydflt_output_lp(&chn->fm.ops[i].flts[j][sub]); break;
+							case FLT_HP: o[i][sub] = cydflt_output_hp(&chn->fm.ops[i].flts[j][sub]); break; //was only up to there
+							
+							case FLT_LH: o[i][sub] = (cydflt_output_lp(&chn->fm.ops[i].flts[j][sub]) + cydflt_output_hp(&chn->fm.ops[i].flts[j][sub])) / 2; break;
+							case FLT_HB: o[i][sub] = (cydflt_output_hp(&chn->fm.ops[i].flts[j][sub]) + cydflt_output_bp(&chn->fm.ops[i].flts[j][sub])) / 2; break;
+							case FLT_LB: o[i][sub] = (cydflt_output_lp(&chn->fm.ops[i].flts[j][sub]) + cydflt_output_bp(&chn->fm.ops[i].flts[j][sub])) / 2; break;
+							case FLT_ALL: o[i][sub] = (cydflt_output_lp(&chn->fm.ops[i].flts[j][sub]) + cydflt_output_bp(&chn->fm.ops[i].flts[j][sub]) + cydflt_output_hp(&chn->fm.ops[i].flts[j][sub])) / 3; break;
+						}
 					}
 				}
 			}
@@ -2291,20 +2314,43 @@ static Sint32 cyd_output(CydEngine *cyd)
 #ifndef CYD_DISABLE_FILTER
 			if (chn->flags & CYD_CHN_ENABLE_FILTER) 
 			{
-				for(int i = 0; i < two_pow(2, chn->flt_slope); i++)
+				if(cyd->flags & CYD_USE_OLD_FILTER)
 				{
-					cydflt_cycle(&chn->flts[i], o);
-				
-					switch (chn->flttype)
+					for(int i = 0; i < two_pow(2, chn->flt_slope); i++)
 					{
-						case FLT_BP: o = cydflt_output_bp(&chn->flts[i]); break;
-						default: case FLT_LP: o = cydflt_output_lp(&chn->flts[i]); break;
-						case FLT_HP: o = cydflt_output_hp(&chn->flts[i]); break; //was only up to there
-						
-						case FLT_LH: o = (cydflt_output_lp(&chn->flts[i]) + cydflt_output_hp(&chn->flts[i])) / 2; break;
-						case FLT_HB: o = (cydflt_output_hp(&chn->flts[i]) + cydflt_output_bp(&chn->flts[i])) / 2; break;
-						case FLT_LB: o = (cydflt_output_lp(&chn->flts[i]) + cydflt_output_bp(&chn->flts[i])) / 2; break;
-						case FLT_ALL: o = (cydflt_output_lp(&chn->flts[i]) + cydflt_output_bp(&chn->flts[i]) + cydflt_output_hp(&chn->flts[i])) / 3; break;
+						cydflt_cycle_old(&chn->flts[i], o);
+					
+						switch (chn->flttype)
+						{
+							case FLT_BP: o = cydflt_output_bp_old(&chn->flts[i]); break;
+							default: case FLT_LP: o = cydflt_output_lp_old(&chn->flts[i]); break;
+							case FLT_HP: o = cydflt_output_hp_old(&chn->flts[i]); break; //was only up to there
+							
+							case FLT_LH: o = (cydflt_output_lp_old(&chn->flts[i]) + cydflt_output_hp_old(&chn->flts[i])) / 2; break;
+							case FLT_HB: o = (cydflt_output_hp_old(&chn->flts[i]) + cydflt_output_bp_old(&chn->flts[i])) / 2; break;
+							case FLT_LB: o = (cydflt_output_lp_old(&chn->flts[i]) + cydflt_output_bp_old(&chn->flts[i])) / 2; break;
+							case FLT_ALL: o = (cydflt_output_lp_old(&chn->flts[i]) + cydflt_output_bp_old(&chn->flts[i]) + cydflt_output_hp_old(&chn->flts[i])) / 3; break;
+						}
+					}
+				}
+				
+				else
+				{
+					for(int i = 0; i < two_pow(2, chn->flt_slope); i++)
+					{
+						cydflt_cycle(&chn->flts[i], o);
+					
+						switch (chn->flttype)
+						{
+							case FLT_BP: o = cydflt_output_bp(&chn->flts[i]); break;
+							default: case FLT_LP: o = cydflt_output_lp(&chn->flts[i]); break;
+							case FLT_HP: o = cydflt_output_hp(&chn->flts[i]); break; //was only up to there
+							
+							case FLT_LH: o = (cydflt_output_lp(&chn->flts[i]) + cydflt_output_hp(&chn->flts[i])) / 2; break;
+							case FLT_HB: o = (cydflt_output_hp(&chn->flts[i]) + cydflt_output_bp(&chn->flts[i])) / 2; break;
+							case FLT_LB: o = (cydflt_output_lp(&chn->flts[i]) + cydflt_output_bp(&chn->flts[i])) / 2; break;
+							case FLT_ALL: o = (cydflt_output_lp(&chn->flts[i]) + cydflt_output_bp(&chn->flts[i]) + cydflt_output_hp(&chn->flts[i])) / 3; break;
+						}
 					}
 				}
 			}
@@ -3132,9 +3178,22 @@ void cyd_set_filter_coeffs(CydEngine * cyd, CydChannel *chn, Uint16 cutoff, Uint
 {
 #ifndef CYD_DISABLE_FILTER
 	//static const Uint16 resonance_table[] = {10, 512, 1300, 2300, 2400, 2500, 2600, 2700, 2800, 2900, 3000, 3100, 3200, 3300, 3400, 4500}; //was {10, 512, 1300, 1950}
-	for(int i = 0; i < (int)pow(2, chn->flt_slope); i++)
+	static const Uint16 resonance_table[] = {10, 512, 1300, 1950};
+	
+	if(cyd->flags & CYD_USE_OLD_FILTER)
 	{
-		cydflt_set_coeff(&chn->flts[i], cutoff, resonance, cyd->sample_rate);
+		for(int i = 0; i < (int)pow(2, chn->flt_slope); i++)
+		{
+			cydflt_set_coeff_old(&chn->flts[i], cutoff, resonance_table[resonance & 3]);
+		}
+	}
+	
+	else
+	{
+		for(int i = 0; i < (int)pow(2, chn->flt_slope); i++)
+		{
+			cydflt_set_coeff(&chn->flts[i], cutoff, resonance, cyd->sample_rate);
+		}
 	}
 #endif
 }

@@ -97,6 +97,8 @@ static Sint8 sine_table[VIB_TAB_SIZE];
 
 #endif
 
+static const Uint16 resonance_table[] = {10, 512, 1300, 1950};
+
 static int mus_trigger_instrument_internal(MusEngine* mus, int chan, MusInstrument *ins, Uint16 note, int panning);
 
 #ifndef USESDL_RWOPS
@@ -2223,7 +2225,7 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 				case 0:
 				case 0xFF:
 				{
-					Uint32 prev = chn->note;
+					Sint32 prev = chn->note;
 					chn->note -= ((inst & 0xff) << 2);
 					if (prev < chn->note) chn->note = 0x0;
 
@@ -2431,7 +2433,15 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 							{
 								for (int sub = 0; sub < CYD_SUB_OSCS; ++sub)
 								{
-									cydflt_set_coeff(&cydchn->fm.ops[i].flts[j][sub], track_status->ops_status[i].filter_cutoff, track_status->ops_status[i].filter_resonance, mus->cyd->sample_rate);
+									if(mus->cyd->flags & CYD_USE_OLD_FILTER)
+									{
+										cydflt_set_coeff_old(&cydchn->fm.ops[i].flts[j][sub], track_status->ops_status[i].filter_cutoff, resonance_table[track_status->ops_status[i].filter_resonance & 3]);
+									}
+									
+									else
+									{
+										cydflt_set_coeff(&cydchn->fm.ops[i].flts[j][sub], track_status->ops_status[i].filter_cutoff, track_status->ops_status[i].filter_resonance, mus->cyd->sample_rate);
+									}
 								}
 							}
 						}
@@ -2449,7 +2459,15 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 					{
 						for (int sub = 0; sub < CYD_SUB_OSCS; ++sub)
 						{
-							cydflt_set_coeff(&cydchn->fm.ops[ops_index - 1].flts[j][sub], track_status->ops_status[ops_index - 1].filter_cutoff, track_status->ops_status[ops_index - 1].filter_resonance, mus->cyd->sample_rate);
+							if(mus->cyd->flags & CYD_USE_OLD_FILTER)
+							{
+								cydflt_set_coeff_old(&cydchn->fm.ops[ops_index - 1].flts[j][sub], track_status->ops_status[ops_index - 1].filter_cutoff, resonance_table[track_status->ops_status[ops_index - 1].filter_resonance & 3]);
+							}
+							
+							else
+							{
+								cydflt_set_coeff(&cydchn->fm.ops[ops_index - 1].flts[j][sub], track_status->ops_status[ops_index - 1].filter_cutoff, track_status->ops_status[ops_index - 1].filter_resonance, mus->cyd->sample_rate);
+							}
 						}
 					}
 					
@@ -2481,7 +2499,15 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 							{
 								for (int sub = 0; sub < CYD_SUB_OSCS; ++sub)
 								{
-									cydflt_set_coeff(&cydchn->fm.ops[i].flts[j][sub], track_status->ops_status[i].filter_cutoff, track_status->ops_status[i].filter_resonance, mus->cyd->sample_rate);
+									if(mus->cyd->flags & CYD_USE_OLD_FILTER)
+									{
+										cydflt_set_coeff_old(&cydchn->fm.ops[i].flts[j][sub], track_status->ops_status[i].filter_cutoff, resonance_table[track_status->ops_status[i].filter_resonance & 3]);
+									}
+									
+									else
+									{
+										cydflt_set_coeff(&cydchn->fm.ops[i].flts[j][sub], track_status->ops_status[i].filter_cutoff, track_status->ops_status[i].filter_resonance, mus->cyd->sample_rate);
+									}
 								}
 							}
 						}
@@ -2499,7 +2525,15 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 					{
 						for (int sub = 0; sub < CYD_SUB_OSCS; ++sub)
 						{
-							cydflt_set_coeff(&cydchn->fm.ops[ops_index - 1].flts[j][sub], track_status->ops_status[ops_index - 1].filter_cutoff, track_status->ops_status[ops_index - 1].filter_resonance, mus->cyd->sample_rate);
+							if(mus->cyd->flags & CYD_USE_OLD_FILTER)
+							{
+								cydflt_set_coeff_old(&cydchn->fm.ops[ops_index - 1].flts[j][sub], track_status->ops_status[ops_index - 1].filter_cutoff, resonance_table[track_status->ops_status[ops_index - 1].filter_resonance & 3]);
+							}
+							
+							else
+							{
+								cydflt_set_coeff(&cydchn->fm.ops[ops_index - 1].flts[j][sub], track_status->ops_status[ops_index - 1].filter_cutoff, track_status->ops_status[ops_index - 1].filter_resonance, mus->cyd->sample_rate);
+							}
 						}
 					}
 					
@@ -3172,7 +3206,15 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 									{
 										for (int sub = 0; sub < CYD_SUB_OSCS; ++sub)
 										{
-											cydflt_set_coeff(&cydchn->fm.ops[i].flts[j][sub], track_status->ops_status[i].filter_cutoff, track_status->ops_status[i].filter_resonance, mus->cyd->sample_rate);
+											if(mus->cyd->flags & CYD_USE_OLD_FILTER)
+											{
+												cydflt_set_coeff_old(&cydchn->fm.ops[i].flts[j][sub], track_status->ops_status[i].filter_cutoff, resonance_table[track_status->ops_status[i].filter_resonance & 3]);
+											}
+											
+											else
+											{
+												cydflt_set_coeff(&cydchn->fm.ops[i].flts[j][sub], track_status->ops_status[i].filter_cutoff, track_status->ops_status[i].filter_resonance, mus->cyd->sample_rate);
+											}
 										}
 									}
 								}
@@ -3190,7 +3232,15 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 							{
 								for (int sub = 0; sub < CYD_SUB_OSCS; ++sub)
 								{
-									cydflt_set_coeff(&cydchn->fm.ops[ops_index - 1].flts[j][sub], track_status->ops_status[ops_index - 1].filter_cutoff, track_status->ops_status[ops_index - 1].filter_resonance, mus->cyd->sample_rate);
+									if(mus->cyd->flags & CYD_USE_OLD_FILTER)
+									{
+										cydflt_set_coeff_old(&cydchn->fm.ops[ops_index - 1].flts[j][sub], track_status->ops_status[ops_index - 1].filter_cutoff, resonance_table[track_status->ops_status[ops_index - 1].filter_resonance & 3]);
+									}
+									
+									else
+									{
+										cydflt_set_coeff(&cydchn->fm.ops[ops_index - 1].flts[j][sub], track_status->ops_status[ops_index - 1].filter_cutoff, track_status->ops_status[ops_index - 1].filter_resonance, mus->cyd->sample_rate);
+									}
 								}
 							}
 							
@@ -3775,7 +3825,15 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 									{
 										for (int sub = 0; sub < CYD_SUB_OSCS; ++sub)
 										{
-											cydflt_set_coeff(&cydchn->fm.ops[i].flts[j][sub], track_status->ops_status[i].filter_cutoff, track_status->ops_status[i].filter_resonance, mus->cyd->sample_rate);
+											if(mus->cyd->flags & CYD_USE_OLD_FILTER)
+											{
+												cydflt_set_coeff_old(&cydchn->fm.ops[i].flts[j][sub], track_status->ops_status[i].filter_cutoff, resonance_table[track_status->ops_status[i].filter_resonance & 3]);
+											}
+											
+											else
+											{
+												cydflt_set_coeff(&cydchn->fm.ops[i].flts[j][sub], track_status->ops_status[i].filter_cutoff, track_status->ops_status[i].filter_resonance, mus->cyd->sample_rate);
+											}
 										}
 									}
 								}
@@ -3792,7 +3850,15 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 							{
 								for (int sub = 0; sub < CYD_SUB_OSCS; ++sub)
 								{
-									cydflt_set_coeff(&cydchn->fm.ops[ops_index - 1].flts[j][sub], track_status->ops_status[ops_index - 1].filter_cutoff, track_status->ops_status[ops_index - 1].filter_resonance, mus->cyd->sample_rate);
+									if(mus->cyd->flags & CYD_USE_OLD_FILTER)
+									{
+										cydflt_set_coeff_old(&cydchn->fm.ops[ops_index - 1].flts[j][sub], track_status->ops_status[ops_index - 1].filter_cutoff, resonance_table[track_status->ops_status[ops_index - 1].filter_resonance & 3]);
+									}
+									
+									else
+									{
+										cydflt_set_coeff(&cydchn->fm.ops[ops_index - 1].flts[j][sub], track_status->ops_status[ops_index - 1].filter_cutoff, track_status->ops_status[ops_index - 1].filter_resonance, mus->cyd->sample_rate);
+									}
 								}
 							}
 							
@@ -4229,7 +4295,15 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 									{
 										for (int sub = 0; sub < CYD_SUB_OSCS; ++sub)
 										{
-											cydflt_set_coeff(&cydchn->fm.ops[i].flts[j][sub], track_status->ops_status[i].filter_cutoff, track_status->ops_status[i].filter_resonance, mus->cyd->sample_rate);
+											if(mus->cyd->flags & CYD_USE_OLD_FILTER)
+											{
+												cydflt_set_coeff_old(&cydchn->fm.ops[i].flts[j][sub], track_status->ops_status[i].filter_cutoff, resonance_table[track_status->ops_status[i].filter_resonance & 3]);
+											}
+											
+											else
+											{
+												cydflt_set_coeff(&cydchn->fm.ops[i].flts[j][sub], track_status->ops_status[i].filter_cutoff, track_status->ops_status[i].filter_resonance, mus->cyd->sample_rate);
+											}
 										}
 									}
 								}
@@ -4246,7 +4320,15 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 							{
 								for (int sub = 0; sub < CYD_SUB_OSCS; ++sub)
 								{
-									cydflt_set_coeff(&cydchn->fm.ops[ops_index - 1].flts[j][sub], track_status->ops_status[ops_index - 1].filter_cutoff, track_status->ops_status[ops_index - 1].filter_resonance, mus->cyd->sample_rate);
+									if(mus->cyd->flags & CYD_USE_OLD_FILTER)
+									{
+										cydflt_set_coeff_old(&cydchn->fm.ops[ops_index - 1].flts[j][sub], track_status->ops_status[ops_index - 1].filter_cutoff, resonance_table[track_status->ops_status[ops_index - 1].filter_resonance & 3]);
+									}
+									
+									else
+									{
+										cydflt_set_coeff(&cydchn->fm.ops[ops_index - 1].flts[j][sub], track_status->ops_status[ops_index - 1].filter_cutoff, track_status->ops_status[ops_index - 1].filter_resonance, mus->cyd->sample_rate);
+									}
 								}
 							}
 							
@@ -4290,7 +4372,15 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 										{
 											for (int sub = 0; sub < CYD_SUB_OSCS; ++sub)
 											{
-												cydflt_set_coeff(&cydchn->fm.ops[i].flts[j][sub], track_status->ops_status[i].filter_cutoff, track_status->ops_status[i].filter_resonance, mus->cyd->sample_rate);
+												if(mus->cyd->flags & CYD_USE_OLD_FILTER)
+												{
+													cydflt_set_coeff_old(&cydchn->fm.ops[i].flts[j][sub], track_status->ops_status[i].filter_cutoff, resonance_table[track_status->ops_status[i].filter_resonance & 3]);
+												}
+												
+												else
+												{
+													cydflt_set_coeff(&cydchn->fm.ops[i].flts[j][sub], track_status->ops_status[i].filter_cutoff, track_status->ops_status[i].filter_resonance, mus->cyd->sample_rate);
+												}
 											}
 										}
 									}
@@ -4307,7 +4397,15 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 										{
 											for (int sub = 0; sub < CYD_SUB_OSCS; ++sub)
 											{
-												cydflt_set_coeff(&cydchn->fm.ops[i].flts[j][sub], track_status->ops_status[i].filter_cutoff, track_status->ops_status[i].filter_resonance, mus->cyd->sample_rate);
+												if(mus->cyd->flags & CYD_USE_OLD_FILTER)
+												{
+													cydflt_set_coeff_old(&cydchn->fm.ops[i].flts[j][sub], track_status->ops_status[i].filter_cutoff, resonance_table[track_status->ops_status[i].filter_resonance & 3]);
+												}
+												
+												else
+												{
+													cydflt_set_coeff(&cydchn->fm.ops[i].flts[j][sub], track_status->ops_status[i].filter_cutoff, track_status->ops_status[i].filter_resonance, mus->cyd->sample_rate);
+												}
 											}
 										}
 									}
@@ -4328,7 +4426,15 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 								{
 									for (int sub = 0; sub < CYD_SUB_OSCS; ++sub)
 									{
-										cydflt_set_coeff(&cydchn->fm.ops[ops_index - 1].flts[j][sub], track_status->ops_status[ops_index - 1].filter_cutoff, track_status->ops_status[ops_index - 1].filter_resonance, mus->cyd->sample_rate);
+										if(mus->cyd->flags & CYD_USE_OLD_FILTER)
+										{
+											cydflt_set_coeff_old(&cydchn->fm.ops[ops_index - 1].flts[j][sub], track_status->ops_status[ops_index - 1].filter_cutoff, resonance_table[track_status->ops_status[ops_index - 1].filter_resonance & 3]);
+										}
+										
+										else
+										{
+											cydflt_set_coeff(&cydchn->fm.ops[ops_index - 1].flts[j][sub], track_status->ops_status[ops_index - 1].filter_cutoff, track_status->ops_status[ops_index - 1].filter_resonance, mus->cyd->sample_rate);
+										}
 									}
 								}
 							}
@@ -4342,7 +4448,15 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 								{
 									for (int sub = 0; sub < CYD_SUB_OSCS; ++sub)
 									{
-										cydflt_set_coeff(&cydchn->fm.ops[ops_index - 1].flts[j][sub], track_status->ops_status[ops_index - 1].filter_cutoff, track_status->ops_status[ops_index - 1].filter_resonance, mus->cyd->sample_rate);
+										if(mus->cyd->flags & CYD_USE_OLD_FILTER)
+										{
+											cydflt_set_coeff_old(&cydchn->fm.ops[ops_index - 1].flts[j][sub], track_status->ops_status[ops_index - 1].filter_cutoff, resonance_table[track_status->ops_status[ops_index - 1].filter_resonance & 3]);
+										}
+										
+										else
+										{
+											cydflt_set_coeff(&cydchn->fm.ops[ops_index - 1].flts[j][sub], track_status->ops_status[ops_index - 1].filter_cutoff, track_status->ops_status[ops_index - 1].filter_resonance, mus->cyd->sample_rate);
+										}
 									}
 								}
 							}
@@ -4373,7 +4487,15 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 									{
 										for (int sub = 0; sub < CYD_SUB_OSCS; ++sub)
 										{
-											cydflt_set_coeff(&cydchn->fm.ops[i].flts[j][sub], track_status->ops_status[i].filter_cutoff, track_status->ops_status[i].filter_resonance, mus->cyd->sample_rate);
+											if(mus->cyd->flags & CYD_USE_OLD_FILTER)
+											{
+												cydflt_set_coeff_old(&cydchn->fm.ops[i].flts[j][sub], track_status->ops_status[i].filter_cutoff, resonance_table[track_status->ops_status[i].filter_resonance & 3]);
+											}
+											
+											else
+											{
+												cydflt_set_coeff(&cydchn->fm.ops[i].flts[j][sub], track_status->ops_status[i].filter_cutoff, track_status->ops_status[i].filter_resonance, mus->cyd->sample_rate);
+											}
 										}
 									}
 								}
@@ -4390,7 +4512,15 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 							{
 								for (int sub = 0; sub < CYD_SUB_OSCS; ++sub)
 								{
-									cydflt_set_coeff(&cydchn->fm.ops[ops_index - 1].flts[j][sub], track_status->ops_status[ops_index - 1].filter_cutoff, track_status->ops_status[ops_index - 1].filter_resonance, mus->cyd->sample_rate);
+									if(mus->cyd->flags & CYD_USE_OLD_FILTER)
+									{
+										cydflt_set_coeff_old(&cydchn->fm.ops[ops_index - 1].flts[j][sub], track_status->ops_status[ops_index - 1].filter_cutoff, resonance_table[track_status->ops_status[ops_index - 1].filter_resonance & 3]);
+									}
+									
+									else
+									{
+										cydflt_set_coeff(&cydchn->fm.ops[ops_index - 1].flts[j][sub], track_status->ops_status[ops_index - 1].filter_cutoff, track_status->ops_status[ops_index - 1].filter_resonance, mus->cyd->sample_rate);
+									}
 								}
 							}
 							
@@ -5948,7 +6078,15 @@ void mus_trigger_fm_op_internal(CydFm* fm, MusInstrument* ins, CydChannel* cydch
 		{
 			for (int sub = 0; sub < CYD_SUB_OSCS; ++sub)
 			{
-				cydflt_set_coeff(&fm->ops[i].flts[j][sub], ins->ops[i].cutoff, ins->ops[i].resonance, mus->cyd->sample_rate);
+				if(mus->cyd->flags & CYD_USE_OLD_FILTER)
+				{
+					cydflt_set_coeff_old(&fm->ops[i].flts[j][sub], ins->ops[i].cutoff, resonance_table[ins->ops[i].resonance & 3]);
+				}
+				
+				else
+				{
+					cydflt_set_coeff(&fm->ops[i].flts[j][sub], ins->ops[i].cutoff, ins->ops[i].resonance, mus->cyd->sample_rate);
+				}
 			}
 		}
 	}
@@ -9401,6 +9539,16 @@ int mus_load_song_RW(RWops *ctx, MusSong *song, CydWavetableEntry *wavetable_ent
 		{
 			debug("Unsupported song version");
 			return 0;
+		}
+		
+		if(version < 28)
+		{
+			song->use_old_filter = true; //so correct filter is used
+		}
+		
+		else
+		{
+			song->use_old_filter = false;
 		}
 
 		if (version >= 6)

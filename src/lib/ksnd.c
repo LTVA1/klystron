@@ -34,6 +34,18 @@ KLYSAPI KSong* KSND_LoadSong(KPlayer* player, const char *path)
 	
 	if (mus_load_song(path, &song->song, song->wavetable_entries))
 	{
+		if(song->song.use_old_filter)
+		{
+			player->cyd.flags |= CYD_USE_OLD_FILTER;
+			debug("Using old filter!");
+		}
+		
+		else
+		{
+			player->cyd.flags &= ~CYD_USE_OLD_FILTER;
+			debug("Using new filter!");
+		}
+		
 		return song;
 	}
 	

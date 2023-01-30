@@ -148,44 +148,44 @@ Sint32 cydflt_output_bp(CydFilter *flt)
 	return (Sint32)(flt->outputf * 2147483647);
 }
 
-/*void cydflt_set_coeff(CydFilter *flt, Uint16 frequency, Uint16 resonance)
+void cydflt_set_coeff_old(CydFilter *flt, Uint16 frequency, Uint16 resonance)
 {
-	flt->q = 2048 - frequency;
-	flt->p = frequency + ((Sint32)(0.8f * 2048.0f) * frequency / 2048 * flt->q) / 2048;
-	flt->f = flt->p + flt->p - 2048;
-	flt->q = resonance;
+	flt->_q = 4096 - frequency;
+	flt->_p = frequency + ((Sint32)(0.8f * 4096.0f) * frequency / 4096 * flt->_q) / 4096;
+	flt->_f = flt->_p + flt->_p - 4096;
+	flt->_q = resonance;
 }
 
-void cydflt_cycle(CydFilter *flt, Sint32 input)
+void cydflt_cycle_old(CydFilter *flt, Sint32 input)
 {
-	input -= flt->q * flt->b4 / 2048; //feedback
-	Sint32 t1 = flt->b1;  
-	flt->b1 = (input + flt->b0) * flt->p / 2048 - flt->b1 * flt->f / 2048;
-	Sint32 t2 = flt->b2;  
-	flt->b2 = (flt->b1 + t1) * flt->p / 2048 - flt->b2 * flt->f / 2048;
-	t1 = flt->b3;
-	flt->b3 = (flt->b2 + t2) * flt->p / 2048 - flt->b3 * flt->f / 2048;
-	flt->b4 = (flt->b3 + t1) * flt->p / 2048 - flt->b4 * flt->f / 2048;
+	input -= flt->_q * flt->_b4 / 4096; //feedback
+	Sint32 t1 = flt->_b1;  
+	flt->_b1 = (input + flt->_b0) * flt->_p / 4096 - flt->_b1 * flt->_f / 4096;
+	Sint32 t2 = flt->_b2;  
+	flt->_b2 = (flt->_b1 + t1) * flt->_p / 4096 - flt->_b2 * flt->_f / 4096;
+	t1 = flt->_b3;
+	flt->_b3 = (flt->_b2 + t2) * flt->_p / 4096 - flt->_b3 * flt->_f / 4096;
+	flt->_b4 = (flt->_b3 + t1) * flt->_p / 4096 - flt->_b4 * flt->_f / 4096;
 	
-	flt->b4 = my_min(32767, my_max(-32768, flt->b4));    //clipping
+	flt->_b4 = my_min(32767, my_max(-32768, flt->_b4));    //clipping
 	
-	flt->b0 = input;
+	flt->_b0 = input;
 }
 
-Sint32 cydflt_output_lp(CydFilter *flt)
+Sint32 cydflt_output_lp_old(CydFilter *flt)
 {
-	return flt->b4;
-}
-
-
-Sint32 cydflt_output_hp(CydFilter *flt)
-{
-	return flt->b0 - flt->b4;
+	return flt->_b4;
 }
 
 
-Sint32 cydflt_output_bp(CydFilter *flt)
+Sint32 cydflt_output_hp_old(CydFilter *flt)
 {
-	return 3 * (flt->b3 - flt->b4);
-}*/
+	return flt->_b0 - flt->_b4;
+}
+
+
+Sint32 cydflt_output_bp_old(CydFilter *flt)
+{
+	return 3 * (flt->_b3 - flt->_b4);
+}
 

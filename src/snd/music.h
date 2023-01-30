@@ -404,6 +404,8 @@ typedef struct
 	Sint8 default_panning[MUS_MAX_CHANNELS];
 	char **wavetable_names;
 	int num_wavetables;
+	
+	bool use_old_filter;
 } MusSong;
 
 typedef struct

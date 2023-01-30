@@ -57,6 +57,11 @@ typedef struct {
 	
 	Sint32 output;
 	Sint32 input;
+	
+	/* OLD FILTER BELOW: */
+	
+	Sint64 _f, _q, _p;
+	Sint64 _b0, _b1, _b2, _b3, _b4; //filter coefficients
 } CydFilter;
 
 void cydflt_cycle(CydFilter *flt, Sint32 input);
@@ -67,18 +72,10 @@ Sint32 cydflt_output_lp(CydFilter *flt);
 Sint32 cydflt_output_hp(CydFilter *flt);
 Sint32 cydflt_output_bp(CydFilter *flt);
 
-/*typedef struct
-{
-	Sint32 f, q, p;
-	Sint32 b0, b1, b2, b3, b4;             //filter coefficients
-} CydFilter;*/
+//0..4095
+void cydflt_set_coeff_old(CydFilter *flt, Uint16 frequency, Uint16 cutoff);
 
-//0..2047
-/*void cydflt_set_coeff(CydFilter *flt, Uint16 frequency, Uint16 cutoff);
-
-void cydflt_cycle(CydFilter *flt, Sint32 input);
-Sint32 cydflt_output_lp(CydFilter *flt);
-Sint32 cydflt_output_hp(CydFilter *flt);
-Sint32 cydflt_output_bp(CydFilter *flt);
-
-#endif*/
+void cydflt_cycle_old(CydFilter *flt, Sint32 input);
+Sint32 cydflt_output_lp_old(CydFilter *flt);
+Sint32 cydflt_output_hp_old(CydFilter *flt);
+Sint32 cydflt_output_bp_old(CydFilter *flt);
