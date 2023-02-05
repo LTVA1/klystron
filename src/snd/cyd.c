@@ -344,7 +344,7 @@ void createCombinedWF(Uint16 wfarray[], float bitmul, float bitstrength, float t
 	}
 }
 
-long map_Arduino(long x, long in_min, long in_max, long out_min, long out_max)
+Uint64 map_Arduino(Uint64 x, Uint64 in_min, Uint64 in_max, Uint64 out_min, Uint64 out_max)
 {
 	return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min; //don't ask me just easiest wavegen+oscview setup involved arduino
 }
