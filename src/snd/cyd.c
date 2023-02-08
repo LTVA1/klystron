@@ -2039,7 +2039,7 @@ Sint32 cyd_fm_op_env_output(const CydEngine *cyd, Uint32 chn_flags, const CydFmO
 	{
 		if(chn_flags & CYD_FM_OP_ENABLE_EXPONENTIAL_DECAY)
 		{
-			Sint64 out = ((Sint64)input * (cyd->lookup_table_exponential[(Uint32)((((double)adsr->envelope - (double)0xff0000) * (double)32 / ((double)32 - (double)adsr->s) / (double)0x800) - (double)1) & (EXP_LUT_SIZE - 1)])) / 65536 * (Sint32)(adsr->volume) / MAX_VOLUME;// * (32 - adsr->s) / 32; //so decay (and release below) go curvy like this  \_
+			Sint64 out = ((Sint64)input * (cyd->lookup_table_exponential[(Sint32)((((double)adsr->envelope - (double)0xff0000) * (double)32 / ((double)32 - (double)adsr->s) / (double)0x800) - (double)1) & (EXP_LUT_SIZE - 1)])) / 65536 * (Sint32)(adsr->volume) / MAX_VOLUME;// * (32 - adsr->s) / 32; //so decay (and release below) go curvy like this  \_
 			return (Sint64)((double)out * (double)(cyd->lookup_table[1023] - cyd->lookup_table[adsr->s * 32]) / (double)cyd->lookup_table[1023]) + (Sint64)((double)((Sint64)input * (Sint32)(adsr->volume) / MAX_VOLUME) * (double)cyd->lookup_table[adsr->s * 32] / (double)cyd->lookup_table[1023]);
 		}
 		
@@ -2053,7 +2053,7 @@ Sint32 cyd_fm_op_env_output(const CydEngine *cyd, Uint32 chn_flags, const CydFmO
 	{
 		if(chn_flags & CYD_FM_OP_ENABLE_EXPONENTIAL_RELEASE)
 		{
-			Sint64 out = ((Sint64)input * (cyd->lookup_table_exponential[(Uint32)((((double)adsr->envelope - (double)(adsr->s << 19)) * (double)32 / ((double)adsr->s) / (double)0x800) - (double)1) & (EXP_LUT_SIZE - 1)])) / 65536 * (Sint32)(adsr->volume) / MAX_VOLUME;
+			Sint64 out = ((Sint64)input * (cyd->lookup_table_exponential[(Sint32)((((double)adsr->envelope - (double)(adsr->s << 19)) * (double)32 / ((double)adsr->s) / (double)0x800) - (double)1) & (EXP_LUT_SIZE - 1)])) / 65536 * (Sint32)(adsr->volume) / MAX_VOLUME;
 			return (Sint64)((double)out * (double)(cyd->lookup_table[adsr->s * 32]) / (double)cyd->lookup_table[1023]);
 		}
 		
@@ -2120,7 +2120,7 @@ Sint32 cyd_env_output(const CydEngine *cyd, Uint32 chn_flags, const CydAdsr *ads
 		{
 			if(chn_flags & CYD_CHN_ENABLE_EXPONENTIAL_DECAY)
 			{
-				Sint64 out = ((Sint64)input * (cyd->lookup_table_exponential[(Uint32)((((double)adsr->envelope - (double)0xff0000) * (double)32 / ((double)32 - (double)adsr->s) / (double)0x800) - (double)1) & (EXP_LUT_SIZE - 1)])) / 65536 * (Sint32)(adsr->volume) / MAX_VOLUME;// * (32 - adsr->s) / 32; //so decay (and release below) go curvy like this  \_
+				Sint64 out = ((Sint64)input * (cyd->lookup_table_exponential[(Sint32)((((double)adsr->envelope - (double)0xff0000) * (double)32 / ((double)32 - (double)adsr->s) / (double)0x800) - (double)1) & (EXP_LUT_SIZE - 1)])) / 65536 * (Sint32)(adsr->volume) / MAX_VOLUME;// * (32 - adsr->s) / 32; //so decay (and release below) go curvy like this  \_
 				return (Sint64)((double)out * (double)(cyd->lookup_table[1023] - cyd->lookup_table[adsr->s * 32]) / (double)cyd->lookup_table[1023]) + (Sint64)((double)((Sint64)input * (Sint32)(adsr->volume) / MAX_VOLUME) * (double)cyd->lookup_table[adsr->s * 32] / (double)cyd->lookup_table[1023]);
 			}
 			
@@ -2134,7 +2134,7 @@ Sint32 cyd_env_output(const CydEngine *cyd, Uint32 chn_flags, const CydAdsr *ads
 		{
 			if(chn_flags & CYD_CHN_ENABLE_EXPONENTIAL_RELEASE)
 			{
-				Sint64 out = ((Sint64)input * (cyd->lookup_table_exponential[(Uint32)((((double)adsr->envelope - (double)(adsr->s << 19)) * (double)32 / ((double)adsr->s) / (double)0x800) - (double)1) & (EXP_LUT_SIZE - 1)])) / 65536 * (Sint32)(adsr->volume) / MAX_VOLUME;
+				Sint64 out = ((Sint64)input * (cyd->lookup_table_exponential[(Sint32)((((double)adsr->envelope - (double)(adsr->s << 19)) * (double)32 / ((double)adsr->s) / (double)0x800) - (double)1) & (EXP_LUT_SIZE - 1)])) / 65536 * (Sint32)(adsr->volume) / MAX_VOLUME;
 				return (Sint64)((double)out * (double)(cyd->lookup_table[adsr->s * 32]) / (double)cyd->lookup_table[1023]);
 			}
 			
