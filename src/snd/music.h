@@ -565,6 +565,9 @@ enum
 	MUS_FX_PORTA_UP_LOG = 0x0500,
 	MUS_FX_PORTA_DN_LOG = 0x0600,
 	MUS_FX_SLIDE = 0x0300,
+	
+	MUS_FX_FAST_SLIDE = 0x2f00, //16 times faster than normal slide, so up to 16 semitones per tick
+	
 	MUS_FX_VIBRATO = 0x0400,
 	MUS_FX_TREMOLO = 0x2400, //wasn't there
 	MUS_FX_PWM = 0x2500, //wasn't there

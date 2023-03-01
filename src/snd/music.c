@@ -7338,6 +7338,20 @@ int mus_advance_tick(void* udata)
 											}
 										}
 									}
+									
+									if ((track_status->pattern->step[track_status->pattern_step].command[i1] & 0xff00) == MUS_FX_FAST_SLIDE)
+									{
+										ctrl |= MUS_CTRL_SLIDE | MUS_CTRL_LEGATO;
+										speed = ((track_status->pattern->step[track_status->pattern_step].command[i1] & 0xff) << 4);
+										
+										if(pinst->fm_flags & CYD_FM_ENABLE_4OP)
+										{
+											for(int j = 0; j < CYD_FM_NUM_OPS; ++j)
+											{
+												speed_ops[j] = ((track_status->pattern->step[track_status->pattern_step].command[i1] & 0xff) << 4);
+											}
+										}
+									}
 								}
 
 								if (ctrl & MUS_CTRL_SLIDE)
