@@ -230,6 +230,7 @@ enum
 	MUS_FM_OP_QUARTER_FREQ = 2048,
 	MUS_FM_OP_SEVERAL_MACROS = 4096, //if operator has more than 1 macro
 	MUS_FM_OP_LINK_CSM_TIMER_NOTE = 8192, //if CSM timer note changes with FM operator note
+	MUS_FM_OP_USE_VOLUME_ENVELOPE = 16384,
 };
 
 enum {

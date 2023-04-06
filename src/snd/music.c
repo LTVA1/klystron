@@ -3877,7 +3877,26 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 						case 0:
 						case 0xFF:
 						{
-							cyd_set_wavetable_offset(cydchn, inst & 0xfff);
+							if(mus->song)
+							{
+								if((mus->song->flags & MUS_USE_OLD_SAMPLE_LOOP_BEHAVIOUR) && cydchn->wave_entry)
+								{
+									for (int s = 0; s < CYD_SUB_OSCS; ++s)
+									{
+										cydchn->subosc[s].wave.acc = (Uint64)(inst & 0xfff) * WAVETABLE_RESOLUTION * cydchn->wave_entry->samples / 0x1000;
+									}
+								}
+								
+								else
+								{
+									cyd_set_wavetable_offset(cydchn, inst & 0xfff);
+								}
+							}
+							
+							else
+							{
+								cyd_set_wavetable_offset(cydchn, inst & 0xfff);
+							}
 							
 							if(ops_index == 0xFF)
 							{

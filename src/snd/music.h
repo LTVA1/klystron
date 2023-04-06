@@ -812,6 +812,8 @@ enum //song flags
 	MUS_OPZ = 65536 << 1, // upon loading see if there are n free slots, if there are don't shift samples down
 	MUS_YMF825 = 65536 << 2, // the crazy 29 waveforms: https://cdn.discordapp.com/attachments/865523470984019998/959831173146751016/ws.png
 	MUS_PC_98 = 65536 << 3, // load PC-98 drum samples
+	
+	MUS_USE_OLD_SAMPLE_LOOP_BEHAVIOUR = 65536 << 4, //do not set loop points when playing imported XM or whatever
 };
 
 enum
