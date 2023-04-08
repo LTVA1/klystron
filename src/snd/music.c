@@ -6158,6 +6158,40 @@ void mus_trigger_fm_op_internal(CydFm* fm, MusInstrument* ins, CydChannel* cydch
 		fm->ops[i].subosc[s].wave.use_start_track_status_offset = false;
 		fm->ops[i].subosc[s].wave.use_end_track_status_offset = false;
 	}
+	
+	if(ins->ops[i].flags & MUS_FM_OP_USE_VOLUME_ENVELOPE)
+	{
+		fm->ops[i].adsr.num_vol_points = ins->ops[i].num_vol_points;
+		
+		fm->ops[i].adsr.vol_env_flags = ins->ops[i].vol_env_flags;
+		fm->ops[i].adsr.vol_env_sustain = ins->ops[i].vol_env_sustain;
+		fm->ops[i].adsr.vol_env_loop_start = ins->ops[i].vol_env_loop_start;
+		fm->ops[i].adsr.vol_env_loop_end = ins->ops[i].vol_env_loop_end;
+																								//this is coefficient to adjust (more or less) precisely to FT2 timing
+		fm->ops[i].adsr.vol_env_fadeout = (Uint32)((double)(ins->ops[i].vol_env_fadeout << 7) * 48000.0 / (double)mus->cyd->sample_rate * 1390.0 / 2485.0);
+		
+		fm->ops[i].adsr.current_vol_env_point = 0;
+		fm->ops[i].adsr.next_vol_env_point = 1;
+		
+		fm->ops[i].adsr.envelope = 0;
+		fm->ops[i].adsr.volume_envelope_output = 0;
+		fm->ops[i].adsr.use_volume_envelope = true;
+		fm->ops[i].adsr.advance_volume_envelope = true;
+		
+		fm->ops[i].adsr.curr_vol_fadeout_value = 0x7FFFFFFF;
+		
+		//ACC_LENGTH is (1 << 16) * 100
+		//since we want 100 deltax passed at 1 second
+		//so frequency is 1 hz
+		//(Uint64)(ACC_LENGTH) * (Uint64)(frequency) / (Uint64)cyd->sample_rate;
+		fm->ops[i].adsr.env_speed = (Uint64)((1 << 16) * 100) * (Uint64)(1) / (Uint64)mus->cyd->sample_rate;
+		
+		for(int j = 0; j < ins->ops[i].num_vol_points; ++j)
+		{
+			fm->ops[i].adsr.volume_envelope[j].x = (Uint32)ins->ops[i].volume_envelope[j].x << 16;
+			fm->ops[i].adsr.volume_envelope[j].y = (Uint16)ins->ops[i].volume_envelope[j].y << 8;
+		}
+	}
 }
 
 

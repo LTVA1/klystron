@@ -520,64 +520,100 @@ Uint32 cyd_cycle_fm_op_adsr(const CydEngine *eng, Uint32 flags, Uint32 ym_env_sh
 //remember that in SSG-EG mode envelope decay should be executed 6 times faster than in normal mode (http://gendev.spritesmind.net/forum/viewtopic.php?p=5716#5716)
 //while attack speed would stay unaffected
 #ifndef CYD_DISABLE_ENVELOPE
-		// SID style ADSR envelope
+	// SID style ADSR envelope
+	
+	if(adsr->use_volume_envelope)
+	{
+		if(adsr->envelope_state == DONE) return flags;
 		
-		if(adsr->passes == 0 && adsr->envelope_state == ATTACK)
+		if(adsr->envelope_state == RELEASE)
 		{
-			if((ssg_eg & SSG_EG_ENABLED) && (ssg_eg & SSG_EG_INV))
+			clamp(adsr->curr_vol_fadeout_value, -1 * (adsr->vol_env_fadeout), 0, 0x7FFFFFFF);
+			
+			if((adsr->vol_env_flags & MUS_ENV_SUSTAIN) && adsr->next_vol_env_point < adsr->num_vol_points)
 			{
-				adsr->envelope_state = DECAY;
-				adsr->env_speed = envspd(eng, adsr->d) * SSG_EG_SPEED_MULT;
-				adsr->envelope = (1 << 19);
+				adsr->advance_volume_envelope = true;
 			}
 		}
-
-		switch (adsr->envelope_state)
+		
+		if(adsr->advance_volume_envelope)
 		{
-			case SUSTAIN:
+			adsr->envelope += adsr->env_speed;
+		}
+		
+		if(adsr->envelope > adsr->volume_envelope[adsr->next_vol_env_point].x)
+		{
+			adsr->next_vol_env_point++;
+			adsr->current_vol_env_point++;
+		}
+		
+		if(adsr->vol_env_flags & MUS_ENV_LOOP)
+		{
+			if(adsr->current_vol_env_point == adsr->vol_env_loop_end) //loop
 			{
-				if(ssg_eg & SSG_EG_ENABLED)
+				adsr->current_vol_env_point = adsr->vol_env_loop_start;
+				adsr->next_vol_env_point = adsr->vol_env_loop_start + 1;
+				adsr->envelope = adsr->volume_envelope[adsr->current_vol_env_point].x;
+			}
+		}
+		
+		if((adsr->vol_env_flags & MUS_ENV_SUSTAIN) && adsr->current_vol_env_point == adsr->vol_env_sustain && adsr->envelope_state != RELEASE)
+		{
+			adsr->advance_volume_envelope = false;
+		}
+		
+		if(adsr->next_vol_env_point >= adsr->num_vol_points)
+		{
+			adsr->advance_volume_envelope = false;
+		}
+		
+		if(adsr->advance_volume_envelope)
+		{
+			double delta_prev = adsr->envelope - adsr->volume_envelope[adsr->current_vol_env_point].x;
+			//Uint64 delta_next = adsr->volume_envelope[adsr->next_vol_env_point].x - adsr->envelope;
+			
+			double x_next = adsr->volume_envelope[adsr->next_vol_env_point].x;
+			double x_prev = adsr->volume_envelope[adsr->current_vol_env_point].x;
+			
+			double volume_prev = adsr->volume_envelope[adsr->current_vol_env_point].y;
+			double volume_next = adsr->volume_envelope[adsr->next_vol_env_point].y;
+			
+			adsr->volume_envelope_output = ((Uint32)((volume_next - volume_prev) * delta_prev / (x_next - x_prev) + volume_prev)) << 16;
+		}
+		
+		if(adsr->curr_vol_fadeout_value <= (adsr->vol_env_fadeout) && adsr->envelope_state == RELEASE)
+		{
+			adsr->envelope_state = DONE;
+			if ((flags & (CYD_CHN_ENABLE_WAVE | CYD_CHN_WAVE_OVERRIDE_ENV)) != (CYD_CHN_ENABLE_WAVE | CYD_CHN_WAVE_OVERRIDE_ENV)) flags &= ~CYD_CHN_ENABLE_GATE;
+			adsr->envelope = 0;
+		}
+		
+		return flags;
+	}
+	
+	if(adsr->passes == 0 && adsr->envelope_state == ATTACK)
+	{
+		if((ssg_eg & SSG_EG_ENABLED) && (ssg_eg & SSG_EG_INV))
+		{
+			adsr->envelope_state = DECAY;
+			adsr->env_speed = envspd(eng, adsr->d) * SSG_EG_SPEED_MULT;
+			adsr->envelope = (1 << 19);
+		}
+	}
+
+	switch (adsr->envelope_state)
+	{
+		case SUSTAIN:
+		{
+			if(ssg_eg & SSG_EG_ENABLED)
+			{
+				adsr->passes++;
+				
+				if(!(ssg_eg & SSG_EG_HLD))
 				{
-					adsr->passes++;
-					
-					if(!(ssg_eg & SSG_EG_HLD))
+					if(!(ssg_eg & SSG_EG_INV))
 					{
-						if(!(ssg_eg & SSG_EG_INV))
-						{
-							if(ssg_eg & SSG_EG_ALT)
-							{
-								adsr->envelope_state = DECAY;
-								adsr->env_speed = envspd(eng, adsr->d) * SSG_EG_SPEED_MULT;
-							}
-							
-							else
-							{
-								adsr->envelope_state = DECAY;
-								adsr->env_speed = envspd(eng, adsr->d) * SSG_EG_SPEED_MULT;
-								adsr->envelope = 0xff0000;
-							}
-						}
-						
-						else
-						{
-							if(ssg_eg & SSG_EG_ALT)
-							{
-								adsr->envelope_state = DECAY;
-								adsr->env_speed = envspd(eng, adsr->d) * SSG_EG_SPEED_MULT;
-							}
-							
-							else
-							{
-								adsr->envelope_state = DECAY;
-								adsr->env_speed = envspd(eng, adsr->d) * SSG_EG_SPEED_MULT;
-								adsr->envelope = ((Uint32)1 << 19);
-							}
-						}
-					}
-					
-					else
-					{
-						if(adsr->passes < 1)
+						if(ssg_eg & SSG_EG_ALT)
 						{
 							adsr->envelope_state = DECAY;
 							adsr->env_speed = envspd(eng, adsr->d) * SSG_EG_SPEED_MULT;
@@ -585,211 +621,244 @@ Uint32 cyd_cycle_fm_op_adsr(const CydEngine *eng, Uint32 flags, Uint32 ym_env_sh
 						
 						else
 						{
-							if(ssg_eg & SSG_EG_ALT)
-							{
-								adsr->envelope = (ssg_eg & SSG_EG_INV) ? (1 << 19) : (0x1f << 19); return flags; break;
-							}
-							
-							else
-							{
-								return flags; break;
-							}
+							adsr->envelope_state = DECAY;
+							adsr->env_speed = envspd(eng, adsr->d) * SSG_EG_SPEED_MULT;
+							adsr->envelope = 0xff0000;
 						}
 					}
 					
+					else
+					{
+						if(ssg_eg & SSG_EG_ALT)
+						{
+							adsr->envelope_state = DECAY;
+							adsr->env_speed = envspd(eng, adsr->d) * SSG_EG_SPEED_MULT;
+						}
+						
+						else
+						{
+							adsr->envelope_state = DECAY;
+							adsr->env_speed = envspd(eng, adsr->d) * SSG_EG_SPEED_MULT;
+							adsr->envelope = ((Uint32)1 << 19);
+						}
+					}
+				}
+				
+				else
+				{
+					if(adsr->passes < 1)
+					{
+						adsr->envelope_state = DECAY;
+						adsr->env_speed = envspd(eng, adsr->d) * SSG_EG_SPEED_MULT;
+					}
+					
+					else
+					{
+						if(ssg_eg & SSG_EG_ALT)
+						{
+							adsr->envelope = (ssg_eg & SSG_EG_INV) ? (1 << 19) : (0x1f << 19); return flags; break;
+						}
+						
+						else
+						{
+							return flags; break;
+						}
+					}
+				}
+				
+				break;
+			}
+			
+			else
+			{
+				if(adsr->sr == 0)
+				{
+					return flags; break;
+				}
+				
+				else
+				{
+					if (adsr->envelope > adsr->env_speed)
+					{
+						adsr->envelope -= adsr->env_speed;
+					}
+					
+					else 
+					{
+						adsr->envelope_state = DONE;
+						adsr->passes = 0;
+						if ((flags & (CYD_FM_OP_ENABLE_WAVE | CYD_FM_OP_WAVE_OVERRIDE_ENV)) != (CYD_FM_OP_ENABLE_WAVE | CYD_FM_OP_WAVE_OVERRIDE_ENV) && !(flags & CYD_FM_OP_ENABLE_CSM_TIMER)) flags &= ~CYD_CHN_ENABLE_GATE;
+						adsr->envelope = 0;
+					}
 					break;
 				}
-				
-				else
-				{
-					if(adsr->sr == 0)
-					{
-						return flags; break;
-					}
-					
-					else
-					{
-						if (adsr->envelope > adsr->env_speed)
-						{
-							adsr->envelope -= adsr->env_speed;
-						}
-						
-						else 
-						{
-							adsr->envelope_state = DONE;
-							adsr->passes = 0;
-							if ((flags & (CYD_FM_OP_ENABLE_WAVE | CYD_FM_OP_WAVE_OVERRIDE_ENV)) != (CYD_FM_OP_ENABLE_WAVE | CYD_FM_OP_WAVE_OVERRIDE_ENV) && !(flags & CYD_FM_OP_ENABLE_CSM_TIMER)) flags &= ~CYD_CHN_ENABLE_GATE;
-							adsr->envelope = 0;
-						}
-						break;
-					}
-				}
 			}
-			
-			case DONE: return flags; break;
-			
-			case ATTACK:
-			if(ssg_eg & SSG_EG_ENABLED)
-			{
-				if(adsr->envelope < 0xff0000)
-				{
-					adsr->envelope += adsr->env_speed;
-				}
-				
-				if (adsr->envelope >= 0xff0000) 
-				{
-					adsr->envelope_state = DECAY;
-					adsr->envelope = 0xff0000;
-
-					adsr->env_speed = envspd(eng, adsr->d) * SSG_EG_SPEED_MULT;
-				}
-			}
-			
-			else
-			{
-				if(adsr->envelope < 0xff0000)
-				{
-					adsr->envelope += adsr->env_speed;
-				}
-				
-				if (adsr->envelope >= 0xff0000) 
-				{
-					adsr->envelope_state = DECAY;
-					adsr->envelope = 0xff0000;
-
-					adsr->env_speed = envspd(eng, adsr->d);
-					
-					if(env_ksl_mult != 0.0 && env_ksl_mult != 1.0)
-					{
-						adsr->env_speed = (int)((double)envspd(eng, adsr->d) * env_ksl_mult);
-					}
-				}
-			}
-			break;
-			
-			case DECAY:
-			if(ssg_eg & SSG_EG_ENABLED)
-			{
-				if(!(ssg_eg & SSG_EG_INV))
-				{
-					if(!(adsr->passes & 1))
-					{
-						if (adsr->envelope >= (1 << 19) + adsr->env_speed)
-						{
-							adsr->envelope -= adsr->env_speed;
-						}
-						
-						else
-						{
-							adsr->envelope = (1 << 19);
-							adsr->envelope_state = SUSTAIN;
-						}
-					}
-					
-					else
-					{
-						if (adsr->envelope <= 0xff0000 - adsr->env_speed)
-						{
-							adsr->envelope += adsr->env_speed;
-						}
-						
-						else
-						{
-							adsr->envelope = 0xff0000;
-							adsr->envelope_state = SUSTAIN;
-						}
-					}
-				}
-				
-				else
-				{
-					if(!(adsr->passes & 1))
-					{
-						if (adsr->envelope <= 0xff0000 - adsr->env_speed)
-						{
-							adsr->envelope += adsr->env_speed;
-						}
-						
-						else
-						{
-							adsr->envelope = 0xff0000;
-							adsr->envelope_state = SUSTAIN;
-						}
-					}
-					
-					else
-					{
-						if (adsr->envelope >= (1 << 19) + adsr->env_speed)
-						{
-							adsr->envelope -= adsr->env_speed;
-						}
-						
-						else
-						{
-							adsr->envelope = (1 << 19);
-							adsr->envelope_state = SUSTAIN;
-						}
-					}
-				}
-			}
-			
-			else
-			{
-				if (adsr->envelope >= ((Uint32)adsr->s << 19) + adsr->env_speed)
-				//if (adsr->envelope > ((Uint32)adsr->s << 19) + adsr->env_speed)
-				{
-					adsr->envelope -= adsr->env_speed;
-				}
-				
-				else
-				{
-					adsr->envelope = (Uint32)adsr->s << 19;
-					adsr->envelope_state = (adsr->s == 0) ? RELEASE : SUSTAIN;
-					
-					if(adsr->envelope_state == SUSTAIN && adsr->sr > 0)
-					{
-						if(env_ksl_mult == 0.0 || env_ksl_mult == 1.0)
-						{
-							adsr->env_speed = envspd(eng, (0xff - adsr->sr));
-						}
-						
-						else
-						{
-							adsr->env_speed = (int)((double)envspd(eng, (0xff - adsr->sr)) * env_ksl_mult);
-						}
-					}
-					
-					else
-					{
-						if(env_ksl_mult == 0.0 || env_ksl_mult == 1.0)
-						{
-							adsr->env_speed = envspd(eng, adsr->r);
-						}
-						
-						else
-						{
-							adsr->env_speed = (int)((double)envspd(eng, adsr->r) * env_ksl_mult);
-						}
-					}
-				}
-			}
-			break;
-			
-			case RELEASE:
-				if (adsr->envelope > adsr->env_speed)
-				{
-					adsr->envelope -= adsr->env_speed;
-				}
-				
-				else 
-				{
-					adsr->envelope_state = DONE;
-					adsr->passes = 0;
-					if ((flags & (CYD_FM_OP_ENABLE_WAVE | CYD_FM_OP_WAVE_OVERRIDE_ENV)) != (CYD_FM_OP_ENABLE_WAVE | CYD_FM_OP_WAVE_OVERRIDE_ENV) && !(flags & CYD_FM_OP_ENABLE_CSM_TIMER)) flags &= ~CYD_CHN_ENABLE_GATE;
-					adsr->envelope = 0;
-				}
-				break;
 		}
+		
+		case DONE: return flags; break;
+		
+		case ATTACK:
+		if(ssg_eg & SSG_EG_ENABLED)
+		{
+			if(adsr->envelope < 0xff0000)
+			{
+				adsr->envelope += adsr->env_speed;
+			}
+			
+			if (adsr->envelope >= 0xff0000) 
+			{
+				adsr->envelope_state = DECAY;
+				adsr->envelope = 0xff0000;
+
+				adsr->env_speed = envspd(eng, adsr->d) * SSG_EG_SPEED_MULT;
+			}
+		}
+		
+		else
+		{
+			if(adsr->envelope < 0xff0000)
+			{
+				adsr->envelope += adsr->env_speed;
+			}
+			
+			if (adsr->envelope >= 0xff0000) 
+			{
+				adsr->envelope_state = DECAY;
+				adsr->envelope = 0xff0000;
+
+				adsr->env_speed = envspd(eng, adsr->d);
+				
+				if(env_ksl_mult != 0.0 && env_ksl_mult != 1.0)
+				{
+					adsr->env_speed = (int)((double)envspd(eng, adsr->d) * env_ksl_mult);
+				}
+			}
+		}
+		break;
+		
+		case DECAY:
+		if(ssg_eg & SSG_EG_ENABLED)
+		{
+			if(!(ssg_eg & SSG_EG_INV))
+			{
+				if(!(adsr->passes & 1))
+				{
+					if (adsr->envelope >= (1 << 19) + adsr->env_speed)
+					{
+						adsr->envelope -= adsr->env_speed;
+					}
+					
+					else
+					{
+						adsr->envelope = (1 << 19);
+						adsr->envelope_state = SUSTAIN;
+					}
+				}
+				
+				else
+				{
+					if (adsr->envelope <= 0xff0000 - adsr->env_speed)
+					{
+						adsr->envelope += adsr->env_speed;
+					}
+					
+					else
+					{
+						adsr->envelope = 0xff0000;
+						adsr->envelope_state = SUSTAIN;
+					}
+				}
+			}
+			
+			else
+			{
+				if(!(adsr->passes & 1))
+				{
+					if (adsr->envelope <= 0xff0000 - adsr->env_speed)
+					{
+						adsr->envelope += adsr->env_speed;
+					}
+					
+					else
+					{
+						adsr->envelope = 0xff0000;
+						adsr->envelope_state = SUSTAIN;
+					}
+				}
+				
+				else
+				{
+					if (adsr->envelope >= (1 << 19) + adsr->env_speed)
+					{
+						adsr->envelope -= adsr->env_speed;
+					}
+					
+					else
+					{
+						adsr->envelope = (1 << 19);
+						adsr->envelope_state = SUSTAIN;
+					}
+				}
+			}
+		}
+		
+		else
+		{
+			if (adsr->envelope >= ((Uint32)adsr->s << 19) + adsr->env_speed)
+			//if (adsr->envelope > ((Uint32)adsr->s << 19) + adsr->env_speed)
+			{
+				adsr->envelope -= adsr->env_speed;
+			}
+			
+			else
+			{
+				adsr->envelope = (Uint32)adsr->s << 19;
+				adsr->envelope_state = (adsr->s == 0) ? RELEASE : SUSTAIN;
+				
+				if(adsr->envelope_state == SUSTAIN && adsr->sr > 0)
+				{
+					if(env_ksl_mult == 0.0 || env_ksl_mult == 1.0)
+					{
+						adsr->env_speed = envspd(eng, (0xff - adsr->sr));
+					}
+					
+					else
+					{
+						adsr->env_speed = (int)((double)envspd(eng, (0xff - adsr->sr)) * env_ksl_mult);
+					}
+				}
+				
+				else
+				{
+					if(env_ksl_mult == 0.0 || env_ksl_mult == 1.0)
+					{
+						adsr->env_speed = envspd(eng, adsr->r);
+					}
+					
+					else
+					{
+						adsr->env_speed = (int)((double)envspd(eng, adsr->r) * env_ksl_mult);
+					}
+				}
+			}
+		}
+		break;
+		
+		case RELEASE:
+			if (adsr->envelope > adsr->env_speed)
+			{
+				adsr->envelope -= adsr->env_speed;
+			}
+			
+			else 
+			{
+				adsr->envelope_state = DONE;
+				adsr->passes = 0;
+				if ((flags & (CYD_FM_OP_ENABLE_WAVE | CYD_FM_OP_WAVE_OVERRIDE_ENV)) != (CYD_FM_OP_ENABLE_WAVE | CYD_FM_OP_WAVE_OVERRIDE_ENV) && !(flags & CYD_FM_OP_ENABLE_CSM_TIMER)) flags &= ~CYD_CHN_ENABLE_GATE;
+				adsr->envelope = 0;
+			}
+			break;
+	}
 #endif
 	
 	return flags;

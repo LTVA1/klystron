@@ -71,6 +71,12 @@ typedef struct
 	Uint8 sr; //sustain rate, 0 means horizontal sustain, 63 immediate fall down
 } MusFmOpAdsr;
 
+typedef struct
+{
+	Uint16 x;
+	Uint8 y; //this is either panning or volume so 0-255 range
+} MusEnvPoint;
+
 typedef struct //wasn't there
 {
 	Uint8 harmonic; //freq mult
@@ -129,14 +135,18 @@ typedef struct //wasn't there
 	
 	Uint8 num_macros; //how many macros operator has, 1 by default, max 16
 	char program_names[MUS_MAX_MACROS_OP][MUS_MACRO_NAME_LEN + 1];
+	
+	Uint16 vol_env_fadeout;
+	
+	Uint8 num_vol_points;
+	Uint8 vol_env_loop_start;
+	Uint8 vol_env_loop_end;
+	Uint8 vol_env_sustain;
+	Uint8 vol_env_flags; //1 - sustain, 2 - loop
+	
+	MusEnvPoint volume_envelope[MUS_MAX_ENVELOPE_POINTS];
 
 } MusFmOp;
-
-typedef struct
-{
-	Uint16 x;
-	Uint8 y; //this is either panning or volume so 0-255 range
-} MusEnvPoint;
 
 typedef struct
 {

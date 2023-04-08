@@ -83,4 +83,26 @@ typedef struct
 	
 	Uint32 passes; //for SSG-EG
 	bool direction; //envelope direction for SSG-EG; 0 means normal, 1 means inverted
+	
+	bool use_volume_envelope;
+	
+	bool advance_volume_envelope;
+	
+	Uint8 current_vol_env_point;
+	Uint8 next_vol_env_point;
+	
+	Uint32 vol_env_fadeout;
+	
+	Sint32 curr_vol_fadeout_value;
+	
+	Uint32 volume_envelope_output;
+	
+	Uint8 num_vol_points;
+	Uint8 vol_env_loop_start;
+	Uint8 vol_env_loop_end;
+	Uint8 vol_env_sustain;
+	Uint8 vol_env_flags; //1 - sustain, 2 - loop
+	
+	CydEnvPoint volume_envelope[MUS_MAX_ENVELOPE_POINTS];
+	
 } CydFmOpAdsr;
