@@ -584,7 +584,7 @@ Uint32 cyd_cycle_fm_op_adsr(const CydEngine *eng, Uint32 flags, Uint32 ym_env_sh
 		if(adsr->curr_vol_fadeout_value <= (adsr->vol_env_fadeout) && adsr->envelope_state == RELEASE)
 		{
 			adsr->envelope_state = DONE;
-			if ((flags & (CYD_CHN_ENABLE_WAVE | CYD_CHN_WAVE_OVERRIDE_ENV)) != (CYD_CHN_ENABLE_WAVE | CYD_CHN_WAVE_OVERRIDE_ENV)) flags &= ~CYD_CHN_ENABLE_GATE;
+			if ((flags & (CYD_FM_OP_ENABLE_WAVE | CYD_FM_OP_WAVE_OVERRIDE_ENV)) != (CYD_FM_OP_ENABLE_WAVE | CYD_FM_OP_WAVE_OVERRIDE_ENV)) flags &= ~CYD_FM_OP_ENABLE_GATE;
 			adsr->envelope = 0;
 		}
 		
@@ -2091,6 +2091,11 @@ static Sint32 cyd_output_channel(CydEngine *cyd, CydChannel *chn)
 Sint32 cyd_fm_op_env_output(const CydEngine *cyd, Uint32 chn_flags, const CydFmOpAdsr *adsr, Sint32 input)
 {
 #ifndef CYD_DISABLE_ENVELOPE
+	if(adsr->use_volume_envelope)
+	{
+		return input * (Sint32)(adsr->volume_envelope_output >> 16) / 16384 * (Sint32)(adsr->curr_vol_fadeout_value >> 16) / 65536 * (Sint32)(adsr->volume) / MAX_VOLUME;
+	}
+	
 	if (adsr->envelope_state == ATTACK)
 	{
 		if(chn_flags & CYD_FM_OP_ENABLE_EXPONENTIAL_ATTACK)
@@ -2825,11 +2830,14 @@ void cyd_enable_gate(CydEngine *cyd, CydChannel *chn, Uint8 enable)
 					chn->fm.ops[i].adsr.envelope_state = ATTACK;
 					chn->fm.ops[i].adsr.envelope = 0x0;
 					
-					chn->fm.ops[i].adsr.env_speed = envspd(cyd, chn->fm.ops[i].adsr.a);
-					
-					if(chn->fm.ops[i].env_ksl_mult != 0.0 && chn->fm.ops[i].env_ksl_mult != 1.0)
+					if(!(chn->fm.ops[i].adsr.use_volume_envelope))
 					{
-						chn->fm.ops[i].adsr.env_speed = (int)((double)envspd(cyd, chn->fm.ops[i].adsr.a) * chn->fm.ops[i].env_ksl_mult);
+						chn->fm.ops[i].adsr.env_speed = envspd(cyd, chn->fm.ops[i].adsr.a);
+						
+						if(chn->fm.ops[i].env_ksl_mult != 0.0 && chn->fm.ops[i].env_ksl_mult != 1.0)
+						{
+							chn->fm.ops[i].adsr.env_speed = (int)((double)envspd(cyd, chn->fm.ops[i].adsr.a) * chn->fm.ops[i].env_ksl_mult);
+						}
 					}
 					
 					//cyd_cycle_adsr(cyd, 0, 0, &chn->fm.ops[i].adsr, chn->fm.ops[i].env_ksl_mult);
@@ -2922,13 +2930,16 @@ void cyd_enable_gate(CydEngine *cyd, CydChannel *chn, Uint8 enable)
 				chn->fm.ops[i].flags &= ~CYD_FM_OP_WAVE_OVERRIDE_ENV;
 				chn->fm.ops[i].adsr.envelope_state = RELEASE;
 				
-				chn->fm.ops[i].flags &= ~CYD_FM_OP_ENABLE_GATE;
-				
-				chn->fm.ops[i].adsr.env_speed = envspd(cyd, chn->fm.ops[i].adsr.r);
-				
-				if(chn->fm.ops[i].env_ksl_mult != 0.0 && chn->fm.ops[i].env_ksl_mult != 1.0)
+				if(!(chn->fm.ops[i].adsr.use_volume_envelope))
 				{
-					chn->fm.ops[i].adsr.env_speed = (int)((double)envspd(cyd, chn->fm.ops[i].adsr.r) * chn->fm.ops[i].env_ksl_mult);
+					chn->fm.ops[i].flags &= ~CYD_FM_OP_ENABLE_GATE;
+					
+					chn->fm.ops[i].adsr.env_speed = envspd(cyd, chn->fm.ops[i].adsr.r);
+					
+					if(chn->fm.ops[i].env_ksl_mult != 0.0 && chn->fm.ops[i].env_ksl_mult != 1.0)
+					{
+						chn->fm.ops[i].adsr.env_speed = (int)((double)envspd(cyd, chn->fm.ops[i].adsr.r) * chn->fm.ops[i].env_ksl_mult);
+					}
 				}
 			}
 		}

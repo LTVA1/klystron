@@ -3388,13 +3388,17 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 										cydchn->fm.ops[i].adsr.volume = prev_vol_cyd1;
 										
 										cydchn->fm.ops[i].adsr.envelope_state = ATTACK;
-										cydchn->fm.ops[i].adsr.envelope = 0x0;
 										
-										cydchn->fm.ops[i].adsr.env_speed = envspd(cyd, cydchn->fm.ops[i].adsr.a);
-										
-										if(cydchn->fm.ops[i].env_ksl_mult != 0.0 && cydchn->fm.ops[i].env_ksl_mult != 1.0)
+										if(!(cydchn->fm.ops[i].adsr.use_volume_envelope))
 										{
-											cydchn->fm.ops[i].adsr.env_speed = (int)((double)envspd(cyd, cydchn->fm.ops[i].adsr.a) * cydchn->fm.ops[i].env_ksl_mult);
+											cydchn->fm.ops[i].adsr.envelope = 0x0;
+										
+											cydchn->fm.ops[i].adsr.env_speed = envspd(cyd, cydchn->fm.ops[i].adsr.a);
+											
+											if(cydchn->fm.ops[i].env_ksl_mult != 0.0 && cydchn->fm.ops[i].env_ksl_mult != 1.0)
+											{
+												cydchn->fm.ops[i].adsr.env_speed = (int)((double)envspd(cyd, cydchn->fm.ops[i].adsr.a) * cydchn->fm.ops[i].env_ksl_mult);
+											}
 										}
 										
 										//cyd_cycle_adsr(cyd, 0, 0, &cydchn->fm.ops[i].adsr, cydchn->fm.ops[i].env_ksl_mult);
@@ -3425,13 +3429,17 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 								cydchn->fm.ops[ops_index - 1].adsr.volume = prev_vol_cyd1;
 								
 								cydchn->fm.ops[ops_index - 1].adsr.envelope_state = ATTACK;
-								cydchn->fm.ops[ops_index - 1].adsr.envelope = 0x0;
 								
-								cydchn->fm.ops[ops_index - 1].adsr.env_speed = envspd(cyd, cydchn->fm.ops[ops_index - 1].adsr.a);
-								
-								if(cydchn->fm.ops[ops_index - 1].env_ksl_mult != 0.0 && cydchn->fm.ops[ops_index - 1].env_ksl_mult != 1.0)
+								if(!(cydchn->fm.ops[ops_index - 1].adsr.use_volume_envelope))
 								{
-									cydchn->fm.ops[ops_index - 1].adsr.env_speed = (int)((double)envspd(cyd, cydchn->fm.ops[ops_index - 1].adsr.a) * cydchn->fm.ops[ops_index - 1].env_ksl_mult);
+									cydchn->fm.ops[ops_index - 1].adsr.envelope = 0x0;
+									
+									cydchn->fm.ops[ops_index - 1].adsr.env_speed = envspd(cyd, cydchn->fm.ops[ops_index - 1].adsr.a);
+									
+									if(cydchn->fm.ops[ops_index - 1].env_ksl_mult != 0.0 && cydchn->fm.ops[ops_index - 1].env_ksl_mult != 1.0)
+									{
+										cydchn->fm.ops[ops_index - 1].adsr.env_speed = (int)((double)envspd(cyd, cydchn->fm.ops[ops_index - 1].adsr.a) * cydchn->fm.ops[ops_index - 1].env_ksl_mult);
+									}
 								}
 								
 								//cyd_cycle_adsr(cyd, 0, 0, &cydchn->fm.ops[ops_index - 1].adsr, cydchn->fm.ops[ops_index - 1].env_ksl_mult);
@@ -5987,8 +5995,6 @@ void mus_trigger_fm_op_internal(CydFm* fm, MusInstrument* ins, CydChannel* cydch
 			chn->ops[i].program_tick[pr] = 0;
 			//chn->ops[i].program_loop = 1;
 			
-			
-			
 			for(int j = 0; j < MUS_MAX_NESTEDNESS; ++j)
 			{
 				chn->ops[i].program_loop[pr][j] = 1;
@@ -6158,6 +6164,8 @@ void mus_trigger_fm_op_internal(CydFm* fm, MusInstrument* ins, CydChannel* cydch
 		fm->ops[i].subosc[s].wave.use_start_track_status_offset = false;
 		fm->ops[i].subosc[s].wave.use_end_track_status_offset = false;
 	}
+	
+	fm->ops[i].adsr.use_volume_envelope = false;
 	
 	if(ins->ops[i].flags & MUS_FM_OP_USE_VOLUME_ENVELOPE)
 	{
@@ -6572,6 +6580,14 @@ int mus_trigger_instrument_internal(MusEngine* mus, int chan, MusInstrument *ins
 	
 	cyd_enable_gate(mus->cyd, cydchn, 1);
 	
+	if(mus->song)
+	{
+		if(cydchn->adsr.use_panning_envelope && (cydchn->init_panning != mus->song->default_panning[chan]))
+		{
+			cyd_set_panning(mus->cyd, cydchn, mus->song->default_panning[chan] + CYD_PAN_CENTER);
+		}
+	}
+	
 	cydchn->adsr.use_volume_envelope = false;
 	cydchn->adsr.use_panning_envelope = false;
 	
@@ -6758,13 +6774,17 @@ static void mus_advance_channel(MusEngine* mus, int chan)
 				mus_trigger_fm_op_internal(&mus->cyd->channel[chan].fm, chn->instrument, &mus->cyd->channel[chan], chn, track_status, mus, i, 0, chan, 1);
 				
 				mus->cyd->channel[chan].fm.ops[i].adsr.envelope_state = ATTACK;
-				mus->cyd->channel[chan].fm.ops[i].adsr.envelope = 0x0;
 				
-				mus->cyd->channel[chan].fm.ops[i].adsr.env_speed = envspd(mus->cyd, mus->cyd->channel[chan].fm.ops[i].adsr.a);
-				
-				if(mus->cyd->channel[chan].fm.ops[i].env_ksl_mult != 0.0 && mus->cyd->channel[chan].fm.ops[i].env_ksl_mult != 1.0)
+				if(!(ins->ops[i].flags & MUS_FM_OP_USE_VOLUME_ENVELOPE))
 				{
-					mus->cyd->channel[chan].fm.ops[i].adsr.env_speed = (int)((double)envspd(mus->cyd, mus->cyd->channel[chan].fm.ops[i].adsr.a) * mus->cyd->channel[chan].fm.ops[i].env_ksl_mult);
+					mus->cyd->channel[chan].fm.ops[i].adsr.envelope = 0x0;
+					
+					mus->cyd->channel[chan].fm.ops[i].adsr.env_speed = envspd(mus->cyd, mus->cyd->channel[chan].fm.ops[i].adsr.a);
+					
+					if(mus->cyd->channel[chan].fm.ops[i].env_ksl_mult != 0.0 && mus->cyd->channel[chan].fm.ops[i].env_ksl_mult != 1.0)
+					{
+						mus->cyd->channel[chan].fm.ops[i].adsr.env_speed = (int)((double)envspd(mus->cyd, mus->cyd->channel[chan].fm.ops[i].adsr.a) * mus->cyd->channel[chan].fm.ops[i].env_ksl_mult);
+					}
 				}
 				
 				//cyd_cycle_adsr(mus->cyd, 0, 0, &mus->cyd->channel[chan].fm.ops[i].adsr, mus->cyd->channel[chan].fm.ops[i].env_ksl_mult);
@@ -6778,8 +6798,6 @@ static void mus_advance_channel(MusEngine* mus, int chan)
 				}
 				
 				mus->cyd->channel[chan].fm.ops[i].flags |= CYD_FM_OP_ENABLE_GATE;
-				
-				
 				
 				chn->ops[i].trigger_delay--;
 			}
@@ -8569,13 +8587,36 @@ int mus_load_instrument_RW(Uint8 version, RWops *ctx, MusInstrument *inst, CydWa
 					VER_READ(version, 34, 0xff, &inst->ops[i].adsr, 0); //added sustain rate param
 				}
 				
+				if(inst->ops[i].flags & MUS_FM_OP_USE_VOLUME_ENVELOPE)
+				{
+					VER_READ(version, 41, 0xff, &inst->ops[i].vol_env_flags, 0);
+					VER_READ(version, 41, 0xff, &inst->ops[i].num_vol_points, 0);
+					
+					VER_READ(version, 41, 0xff, &inst->ops[i].vol_env_fadeout, 0);
+					
+					if(inst->ops[i].vol_env_flags & MUS_ENV_SUSTAIN)
+					{
+						VER_READ(version, 41, 0xff, &inst->ops[i].vol_env_sustain, 0);
+					}
+				
+					if(inst->ops[i].vol_env_flags & MUS_ENV_LOOP)
+					{
+						VER_READ(version, 41, 0xff, &inst->ops[i].vol_env_loop_start, 0);
+						VER_READ(version, 41, 0xff, &inst->ops[i].vol_env_loop_end, 0);
+					}
+					
+					for(int j = 0; j < inst->ops[i].num_vol_points; ++j)
+					{
+						VER_READ(version, 41, 0xff, &inst->ops[i].volume_envelope[j].x, 0);
+						VER_READ(version, 41, 0xff, &inst->ops[i].volume_envelope[j].y, 0);
+					}
+				}
 				
 				if((inst->ops[i].cydflags & CYD_FM_OP_ENABLE_FILTER) && version < 40)
 				{
 					inst->ops[i].slope = ((inst->ops[i].adsr.s & 0b11100000) >> 5);
 					inst->ops[i].flttype = (((inst->ops[i].adsr.a) & 0b11000000) >> 5) | (((inst->ops[i].adsr.d) & 0b01000000) >> 6);
 				}
-				
 				
 				inst->ops[i].adsr.s &= 0b00011111;
 				
@@ -8956,6 +8997,16 @@ int mus_load_instrument_RW(Uint8 version, RWops *ctx, MusInstrument *inst, CydWa
 				inst->ops[i].slide_speed &= 0xfff;
 			}
 			
+			if(inst->ops[i].flags & MUS_FM_OP_USE_VOLUME_ENVELOPE)
+			{
+				FIX_ENDIAN(inst->ops[i].vol_env_fadeout);
+				
+				for(int j = 0; j < inst->ops[i].num_vol_points; ++j)
+				{
+					FIX_ENDIAN(inst->ops[i].volume_envelope[j].x);
+				}
+			}
+			
 			FIX_ENDIAN(inst->ops[i].cutoff);
 			
 			for (int j = 0; j < progsteps; ++j)
@@ -9097,6 +9148,13 @@ void mus_get_default_instrument(MusInstrument *inst)
 		
 		inst->ops[i].adsr.a = 1 * ENVELOPE_SCALE;
 		inst->ops[i].adsr.d = 12 * ENVELOPE_SCALE;
+		
+		inst->ops[i].num_vol_points = 2;
+		inst->ops[i].volume_envelope[0].x = 0;
+		inst->ops[i].volume_envelope[0].y = 0;
+		inst->ops[i].volume_envelope[1].x = 0x80;
+		inst->ops[i].volume_envelope[1].y = 0x80;
+		
 		inst->ops[i].volume = MAX_VOLUME;
 		inst->ops[i].vol_ksl_level = 0x80;
 		inst->ops[i].env_ksl_level = 0x80;
@@ -9156,6 +9214,12 @@ void mus_get_empty_instrument(MusInstrument *inst)
 		inst->prog_period[i] = 1;
 	}
 	
+	inst->num_vol_points = 2;
+	inst->volume_envelope[0].x = 0;
+	inst->volume_envelope[0].y = 0;
+	inst->volume_envelope[1].x = 0x80;
+	inst->volume_envelope[1].y = 0x80;
+	
 	inst->program[0] = (Uint16*)malloc(MUS_PROG_LEN * sizeof(Uint16));
 	inst->program_unite_bits[0] = (Uint8*)malloc((MUS_PROG_LEN / 8 + 1) * sizeof(Uint8));
 	
@@ -9188,6 +9252,12 @@ void mus_get_empty_instrument(MusInstrument *inst)
 		inst->ops[i].program_unite_bits[0] = (Uint8*)malloc((MUS_PROG_LEN / 8 + 1) * sizeof(Uint8));
 		
 		inst->ops[i].num_macros = 1;
+		
+		inst->ops[i].num_vol_points = 2;
+		inst->ops[i].volume_envelope[0].x = 0;
+		inst->ops[i].volume_envelope[0].y = 0;
+		inst->ops[i].volume_envelope[1].x = 0x80;
+		inst->ops[i].volume_envelope[1].y = 0x80;
 		
 		inst->ops[i].base_note = MIDDLE_C;
 		inst->ops[i].noise_note = MIDDLE_C;
