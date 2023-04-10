@@ -12,7 +12,7 @@
 #include "cydoscstate.h" //wasn't there
 
 //const static Uint32 coarse_detune_table[] = { 0, 256 * 6 + 30, 256 * 8 - 40, 256 * 10 + 54 }; //0, 6, 8 and 10 (roughly) semitones up respectively
-const static Uint32 coarse_detune_table[] = { 0, 256 * 6, 256 * 7 + 81 / 100, 256 * 9 + 50 * 256 / 100 }; 
+const static Uint32 coarse_detune_table[] = { 0, 256 * 6, 256 * 7 + 81 * 256 / 100, 256 * 9 + 50 * 256 / 100 }; 
 
 typedef struct //wasn't there
 {
@@ -132,6 +132,8 @@ typedef struct
 	Uint8 alg; //4-op algorithm
 	
 	Uint8 fm_4op_vol;
+	
+	bool update_ops_adsr;
 } CydFm;
 
 #include "cyd.h"

@@ -898,7 +898,7 @@ void mus_set_fx(MusEngine *mus, MusSong *song);
 Uint32 mus_ext_sync(MusEngine *mus);
 Uint32 mus_get_playtime_at(MusSong *song, int position);
 
-void mus_trigger_fm_op_internal(CydFm* fm, MusInstrument* ins, CydChannel* cydchn, MusChannel* chn, MusTrackStatus* track, MusEngine* mus, Uint8 i/*op number*/, Uint16 note, int chan, bool retrig);
+void mus_trigger_fm_op_internal(CydFm* fm, MusInstrument* ins, CydChannel* cydchn, MusChannel* chn, MusTrackStatus* track, MusEngine* mus, Uint8 i/*op number*/, Uint16 note, int chan, bool retrig, bool update_adsr);
 void mus_get_empty_instrument(MusInstrument *inst);
 
 #endif

@@ -99,7 +99,7 @@ static Sint8 sine_table[VIB_TAB_SIZE];
 
 static const Uint16 resonance_table[] = {10, 512, 1300, 1950};
 
-static int mus_trigger_instrument_internal(MusEngine* mus, int chan, MusInstrument *ins, Uint16 note, int panning);
+static int mus_trigger_instrument_internal(MusEngine* mus, int chan, MusInstrument *ins, Uint16 note, int panning, bool update_adsr);
 
 #ifndef USESDL_RWOPS
 
@@ -3365,7 +3365,7 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 								Uint8 prev_vol_tr = track_status->volume;
 								Uint8 prev_vol_cyd = cydchn->adsr.volume;
 								
-								mus_trigger_instrument_internal(mus, chan, chn->instrument, chn->last_note, -1);
+								mus_trigger_instrument_internal(mus, chan, chn->instrument, chn->last_note, -1, false);
 								
 								track_status->volume = prev_vol_tr;
 								cydchn->adsr.volume = prev_vol_cyd;
@@ -3382,7 +3382,7 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 										Uint8 prev_vol_tr1 = track_status->ops_status[i].volume;
 										Uint8 prev_vol_cyd1 = cydchn->fm.ops[i].adsr.volume;
 										
-										mus_trigger_fm_op_internal(&cydchn->fm, chn->instrument, cydchn, chn, track_status, mus, i, chn->ops[i].last_note, chan, 0);
+										mus_trigger_fm_op_internal(&cydchn->fm, chn->instrument, cydchn, chn, track_status, mus, i, chn->ops[i].last_note, chan, 0, false);
 										
 										track_status->ops_status[i].volume = prev_vol_tr1;
 										cydchn->fm.ops[i].adsr.volume = prev_vol_cyd1;
@@ -3423,7 +3423,7 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 								Uint8 prev_vol_tr1 = track_status->ops_status[ops_index - 1].volume;
 								Uint8 prev_vol_cyd1 = cydchn->fm.ops[ops_index - 1].adsr.volume;
 								
-								mus_trigger_fm_op_internal(&cydchn->fm, chn->instrument, cydchn, chn, track_status, mus, ops_index - 1, chn->ops[ops_index - 1].last_note, chan, 0);
+								mus_trigger_fm_op_internal(&cydchn->fm, chn->instrument, cydchn, chn, track_status, mus, ops_index - 1, chn->ops[ops_index - 1].last_note, chan, 0, false);
 								
 								track_status->ops_status[ops_index - 1].volume = prev_vol_tr1;
 								cydchn->fm.ops[ops_index - 1].adsr.volume = prev_vol_cyd1;
@@ -5792,7 +5792,7 @@ static void do_4op_pwm(MusEngine* mus, int chan, int i /*op number*/)
 
 #endif
 
-void mus_trigger_fm_op_internal(CydFm* fm, MusInstrument* ins, CydChannel* cydchn, MusChannel* chn, MusTrackStatus* track, MusEngine* mus, Uint8 i/*op number*/, Uint16 note, int chan, bool retrig)
+void mus_trigger_fm_op_internal(CydFm* fm, MusInstrument* ins, CydChannel* cydchn, MusChannel* chn, MusTrackStatus* track, MusEngine* mus, Uint8 i/*op number*/, Uint16 note, int chan, bool retrig, bool update_adsr)
 {
 	fm->ops[i].flags = ins->ops[i].cydflags;
 	
@@ -5845,13 +5845,16 @@ void mus_trigger_fm_op_internal(CydFm* fm, MusInstrument* ins, CydChannel* cydch
 	fm->ops[i].tremolo = 0;
 	fm->ops[i].prev_tremolo = 0;
 	
-	fm->ops[i].adsr.a = ins->ops[i].adsr.a;
-	fm->ops[i].adsr.d = ins->ops[i].adsr.d;
-	fm->ops[i].adsr.s = ins->ops[i].adsr.s;
-	
-	fm->ops[i].adsr.sr = ins->ops[i].adsr.sr;
-	
-	fm->ops[i].adsr.r = ins->ops[i].adsr.r;
+	if(update_adsr)
+	{
+		fm->ops[i].adsr.a = ins->ops[i].adsr.a;
+		fm->ops[i].adsr.d = ins->ops[i].adsr.d;
+		fm->ops[i].adsr.s = ins->ops[i].adsr.s;
+		
+		fm->ops[i].adsr.sr = ins->ops[i].adsr.sr;
+		
+		fm->ops[i].adsr.r = ins->ops[i].adsr.r;
+	}
 	
 	fm->ops[i].adsr.passes = 0;
 	
@@ -6204,7 +6207,7 @@ void mus_trigger_fm_op_internal(CydFm* fm, MusInstrument* ins, CydChannel* cydch
 
 
 //***** USE THIS INSIDE MUS_ADVANCE_TICK TO AVOID MUTEX DEADLOCK
-int mus_trigger_instrument_internal(MusEngine* mus, int chan, MusInstrument *ins, Uint16 note, int panning)
+int mus_trigger_instrument_internal(MusEngine* mus, int chan, MusInstrument *ins, Uint16 note, int panning, bool update_adsr)
 {
 	mus->cyd->mus_volume = mus->volume;
 	
@@ -6435,11 +6438,14 @@ int mus_trigger_instrument_internal(MusEngine* mus, int chan, MusInstrument *ins
 	else
 	{
 		cydchn->flags &= ~CYD_CHN_ENABLE_YM_ENV;
-
-		cydchn->adsr.a = ins->adsr.a;
-		cydchn->adsr.d = ins->adsr.d;
-		cydchn->adsr.s = ins->adsr.s;
-		cydchn->adsr.r = ins->adsr.r;
+		
+		if(update_adsr)
+		{
+			cydchn->adsr.a = ins->adsr.a;
+			cydchn->adsr.d = ins->adsr.d;
+			cydchn->adsr.s = ins->adsr.s;
+			cydchn->adsr.r = ins->adsr.r;
+		}
 	}
 
 #ifndef CYD_DISABLE_WAVETABLE
@@ -6517,10 +6523,14 @@ int mus_trigger_instrument_internal(MusEngine* mus, int chan, MusInstrument *ins
 		
 		fm->fm_freq_LUT = ins->fm_freq_LUT;
 		
-		fm->adsr.a = ins->fm_adsr.a;
-		fm->adsr.d = ins->fm_adsr.d;
-		fm->adsr.s = ins->fm_adsr.s;
-		fm->adsr.r = ins->fm_adsr.r;
+		if(update_adsr)
+		{
+			fm->adsr.a = ins->fm_adsr.a;
+			fm->adsr.d = ins->fm_adsr.d;
+			fm->adsr.s = ins->fm_adsr.s;
+			fm->adsr.r = ins->fm_adsr.r;
+		}
+		
 		fm->adsr.volume = ins->fm_modulation;
 		
 		track->fm_volume = ins->fm_modulation;
@@ -6567,7 +6577,7 @@ int mus_trigger_instrument_internal(MusEngine* mus, int chan, MusInstrument *ins
 				
 				if(chn->ops[i].trigger_delay == 0)
 				{
-					mus_trigger_fm_op_internal(fm, ins, cydchn, chn, track, mus, i, temp_note, chan, 0);
+					mus_trigger_fm_op_internal(fm, ins, cydchn, chn, track, mus, i, temp_note, chan, 0, update_adsr);
 				}
 				
 				chn->ops[i].trigger_delay--;
@@ -6664,7 +6674,7 @@ int mus_trigger_instrument(MusEngine* mus, int chan, MusInstrument *ins, Uint16 
 {
 	cyd_lock(mus->cyd, 1);
 
-	chan = mus_trigger_instrument_internal(mus, chan, ins, note, panning);
+	chan = mus_trigger_instrument_internal(mus, chan, ins, note, panning, true);
 
 	cyd_lock(mus->cyd, 0);
 
@@ -6771,7 +6781,7 @@ static void mus_advance_channel(MusEngine* mus, int chan)
 			
 			if(chn->ops[i].trigger_delay == 0)
 			{
-				mus_trigger_fm_op_internal(&mus->cyd->channel[chan].fm, chn->instrument, &mus->cyd->channel[chan], chn, track_status, mus, i, 0, chan, 1);
+				mus_trigger_fm_op_internal(&mus->cyd->channel[chan].fm, chn->instrument, &mus->cyd->channel[chan], chn, track_status, mus, i, 0, chan, 1, mus->cyd->channel[chan].fm.update_ops_adsr);
 				
 				mus->cyd->channel[chan].fm.ops[i].adsr.envelope_state = ATTACK;
 				
@@ -7259,10 +7269,15 @@ int mus_advance_tick(void* udata)
 								track_status->pattern->step[track_status->pattern_step].note;
 							Uint8 inst = track_status->pattern->step[track_status->pattern_step].instrument;
 							MusInstrument *pinst = NULL;
+							
+							bool update_adsr = true; //update ADSR params; must not update them if no instrument is present (to help to utilize direct ADSR control commands)
+							cydchn->fm.update_ops_adsr = true;
 
 							if (inst == MUS_NOTE_NO_INSTRUMENT)
 							{
 								pinst = muschn->instrument;
+								update_adsr = false;
+								cydchn->fm.update_ops_adsr = false;
 							}
 							
 							else
@@ -7462,7 +7477,7 @@ int mus_advance_tick(void* udata)
 											}
 										}
 										
-										mus_trigger_instrument_internal(mus, i, pinst, note << 8, mus->song->default_panning[i] == mus->cyd->channel[i].init_panning ? (mus->song->default_panning[i] + CYD_PAN_CENTER) : -1);
+										mus_trigger_instrument_internal(mus, i, pinst, note << 8, mus->song->default_panning[i] == mus->cyd->channel[i].init_panning ? (mus->song->default_panning[i] + CYD_PAN_CENTER) : -1, update_adsr);
 										muschn->note = oldnote;
 										
 										if(pinst->fm_flags & CYD_FM_ENABLE_4OP)
@@ -7524,7 +7539,7 @@ int mus_advance_tick(void* udata)
 										}
 									}
 									
-									mus_trigger_instrument_internal(mus, i, pinst, note << 8, mus->song->default_panning[i] == mus->cyd->channel[i].init_panning ? (mus->song->default_panning[i] + CYD_PAN_CENTER) : -1);
+									mus_trigger_instrument_internal(mus, i, pinst, note << 8, mus->song->default_panning[i] == mus->cyd->channel[i].init_panning ? (mus->song->default_panning[i] + CYD_PAN_CENTER) : -1, update_adsr);
 									muschn->target_note = (((Uint16)note + pinst->base_note - MIDDLE_C) << 8) + pinst->finetune;
 
 									if (inst == MUS_NOTE_NO_INSTRUMENT)
