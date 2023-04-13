@@ -83,17 +83,29 @@ void slider(GfxDomain *dest_surface, const SDL_Rect *_area, const SDL_Event *eve
 	
 	if((_param == &mused.point_env_slider_param) && !(mused.show_point_envelope_editor)) return;
 	if((_param == &mused.point_env_slider_param) && mused.show_four_op_menu) return;
+	
 	if(((_param == &mused.four_op_slider_param) && mused.show_four_op_menu) || _param != &mused.four_op_slider_param)
 	{
 #endif
 		SliderParam *param = _param;
 		
-		int button_size = (param->orientation == SLIDER_HORIZONTAL) ? _area->h : _area->w;
-		int area_size = ((param->orientation == SLIDER_HORIZONTAL) ? _area->w : _area->h) - button_size * 2;
-		int area_start = ((param->orientation == SLIDER_HORIZONTAL) ? _area->x : _area->y) + button_size;
+		SDL_Rect my_area = { _area->x, _area->y, _area->w, _area->h };
+		copy_rect(&my_area, _area);
+		
+#ifndef STANDALONE_COMPILE
+		if((_param == &mused.program_slider_param) && !(mused.show_fm_settings))
+		{
+			my_area.y -= 60;
+			my_area.h += 60;
+		}
+#endif
+
+		int button_size = (param->orientation == SLIDER_HORIZONTAL) ? my_area.h : my_area.w;
+		int area_size = ((param->orientation == SLIDER_HORIZONTAL) ? my_area.w : my_area.h) - button_size * 2;
+		int area_start = ((param->orientation == SLIDER_HORIZONTAL) ? my_area.x : my_area.y) + button_size;
 		int bar_size = area_size;
 		int bar_top = area_start;
-		int sbsize = my_min(_area->w, _area->h);
+		int sbsize = my_min(my_area.w, my_area.h);
 		bool shrunk = false;
 		
 		if (param->last != param->first)
@@ -112,7 +124,7 @@ void slider(GfxDomain *dest_surface, const SDL_Rect *_area, const SDL_Event *eve
 			}
 		}
 		
-		SDL_Rect dragarea = { _area->x, _area->y, _area->w, _area->h };
+		SDL_Rect dragarea = { my_area.x, my_area.y, my_area.w, my_area.h };
 		
 		if (param->orientation == SLIDER_HORIZONTAL)
 		{
@@ -128,7 +140,7 @@ void slider(GfxDomain *dest_surface, const SDL_Rect *_area, const SDL_Event *eve
 		bevel(dest_surface, &dragarea, param->gfx, BEV_SLIDER_BG);
 		
 		{
-			SDL_Rect area = { _area->x, _area->y, _area->w, _area->h };
+			SDL_Rect area = { my_area.x, my_area.y, my_area.w, my_area.h };
 			
 			if (param->orientation == SLIDER_HORIZONTAL)
 			{
@@ -145,16 +157,16 @@ void slider(GfxDomain *dest_surface, const SDL_Rect *_area, const SDL_Event *eve
 		}
 		
 		{
-			SDL_Rect area = { _area->x, _area->y, _area->w, _area->h };
+			SDL_Rect area = { my_area.x, my_area.y, my_area.w, my_area.h };
 			
 			if (param->orientation == SLIDER_HORIZONTAL)
 			{
-				area.x += bar_top - _area->x;
+				area.x += bar_top - my_area.x;
 				area.w = bar_size;
 			}
 			else
 			{
-				area.y += bar_top - _area->y;
+				area.y += bar_top - my_area.y;
 				area.h = bar_size;
 			}
 			
@@ -176,7 +188,7 @@ void slider(GfxDomain *dest_surface, const SDL_Rect *_area, const SDL_Event *eve
 		}
 		
 		{
-			SDL_Rect area = { _area->x, _area->y, _area->w, _area->h };
+			SDL_Rect area = { my_area.x, my_area.y, my_area.w, my_area.h };
 			
 			if (param->orientation == SLIDER_HORIZONTAL)
 			{
@@ -193,7 +205,7 @@ void slider(GfxDomain *dest_surface, const SDL_Rect *_area, const SDL_Event *eve
 		}
 		
 		{
-			SDL_Rect area = { _area->x, _area->y, sbsize, sbsize };
+			SDL_Rect area = { my_area.x, my_area.y, sbsize, sbsize };
 			
 			button_event(dest_surface, event, &area, param->gfx, BEV_BUTTON, BEV_BUTTON_ACTIVE, param->orientation == SLIDER_HORIZONTAL ? DECAL_LEFTARROW : DECAL_UPARROW, modify_position, MAKEPTR(-param->granularity), param, 0);
 			
