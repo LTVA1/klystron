@@ -3586,6 +3586,65 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 			break;
 		}
 		
+		switch (inst & 0xfff0)
+		{
+			case MUS_FX_EXT_TOGGLE_FILTER:
+			{
+				switch(ops_index)
+				{
+					case 0:
+					case 0xFF:
+					{
+						if(inst & 0xf)
+						{
+							cydchn->flags |= CYD_CHN_ENABLE_FILTER;
+						}
+						
+						else
+						{
+							cydchn->flags &= ~(CYD_CHN_ENABLE_FILTER);
+						}
+						
+						if(ops_index == 0xFF)
+						{
+							for(int i = 0; i < CYD_FM_NUM_OPS; ++i)
+							{
+								if(inst & 0xf)
+								{
+									cydchn->fm.ops[i].flags |= CYD_FM_OP_ENABLE_FILTER;
+								}
+								
+								else
+								{
+									cydchn->fm.ops[i].flags &= ~(CYD_FM_OP_ENABLE_FILTER);
+								}
+							}
+						}
+						
+						break;
+					}
+					
+					default:
+					{
+						if(inst & 0xf)
+						{
+							cydchn->fm.ops[ops_index - 1].flags |= CYD_FM_OP_ENABLE_FILTER;
+						}
+						
+						else
+						{
+							cydchn->fm.ops[ops_index - 1].flags &= ~(CYD_FM_OP_ENABLE_FILTER);
+						}
+						
+						break;
+					}
+				}
+				break;
+			}
+			
+			default: break;
+		}
+		
 		switch (inst & 0xff00)
 		{
 			case MUS_FX_EXT:
@@ -4903,6 +4962,57 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 						{
 							track_status->ops_status[ops_index - 1].volume = my_min(MAX_VOLUME, inst & 0xff);
 							update_fm_op_volume(mus, track_status, chn, cydchn, track_status->ops_status[ops_index - 1].volume, ops_index - 1);
+							
+							break;
+						}
+					}
+				}
+				break;
+				
+				case MUS_FX_SET_ABSOLUTE_VOLUME:
+				{
+					switch(ops_index)
+					{
+						case 0:
+						case 0xFF:
+						{
+							track_status->volume = (inst & 0xff);
+							
+							Uint32 temp_flags = chn->instrument->flags;
+							chn->instrument->flags &= ~(MUS_INST_RELATIVE_VOLUME); //dirty but works
+							
+							update_volumes(mus, track_status, chn, cydchn, track_status->volume);
+							
+							chn->instrument->flags = temp_flags;
+							
+							if(ops_index == 0xFF)
+							{
+								for(int i = 0; i < CYD_FM_NUM_OPS; ++i)
+								{
+									track_status->ops_status[i].volume = (inst & 0xff);
+									
+									Uint32 temp_op_flags = chn->instrument->ops[i].flags;
+									chn->instrument->ops[i].flags &= ~(MUS_FM_OP_RELATIVE_VOLUME);
+									
+									update_fm_op_volume(mus, track_status, chn, cydchn, track_status->ops_status[i].volume, i);
+									
+									chn->instrument->ops[i].flags = temp_op_flags;
+								}
+							}
+							
+							break;
+						}
+						
+						default:
+						{
+							track_status->ops_status[ops_index - 1].volume = (inst & 0xff);
+							
+							Uint32 temp_op_flags = chn->instrument->ops[ops_index - 1].flags;
+							chn->instrument->ops[ops_index - 1].flags &= ~(MUS_FM_OP_RELATIVE_VOLUME);
+							
+							update_fm_op_volume(mus, track_status, chn, cydchn, track_status->ops_status[ops_index - 1].volume, ops_index - 1);
+							
+							chn->instrument->ops[ops_index - 1].flags = temp_op_flags;
 							
 							break;
 						}
@@ -7558,7 +7668,7 @@ int mus_advance_tick(void* udata)
 									}
 								}
 
-								if (inst != MUS_NOTE_NO_INSTRUMENT)
+								if (inst != MUS_NOTE_NO_INSTRUMENT && !(ctrl & MUS_CTRL_SLIDE))
 								{
 									if (pinst->flags & MUS_INST_RELATIVE_VOLUME)
 									{
@@ -7768,12 +7878,13 @@ int mus_advance_tick(void* udata)
 	
 	for(int i = 0; i < mus->cyd->n_channels; ++i)
 	{
-		MusTrackStatus *track_status = &mus->song_track[i];
 		CydChannel *cydchn = &mus->cyd->channel[i];
-		MusChannel *muschn = &mus->channel[i];
 		
 		if(cydchn->fm.flags & CYD_FM_ENABLE_ADDITIVE)
 		{
+			MusTrackStatus *track_status = &mus->song_track[i];
+			MusChannel *muschn = &mus->channel[i];
+		
 			update_volumes(mus, track_status, muschn, cydchn, mus->song_track[i].volume); //wasn't there
 		}
 	}
