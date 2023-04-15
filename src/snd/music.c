@@ -6988,11 +6988,11 @@ static void mus_advance_channel(MusEngine* mus, int chan)
 			{
 				ctrl |= MUS_CTRL_VIB;
 				
-				vibdep = (track_status->pattern->step[track_status->pattern_step].command[i] & 0x000f) << 2;
+				vibdep = (track_status->pattern->step[track_status->pattern_step].command[i] & 0x000f) << 4;
 				
 				track_status->vibrato_depth = vibdep;
 				
-				vibspd = (track_status->pattern->step[track_status->pattern_step].command[i] & 0x00f0) >> 2;
+				vibspd = (track_status->pattern->step[track_status->pattern_step].command[i] & 0x00f0) >> 1;
 				
 				track_status->vibrato_speed = vibspd;
 
@@ -7012,10 +7012,10 @@ static void mus_advance_channel(MusEngine* mus, int chan)
 				{
 					for(int j = 0; j < CYD_FM_NUM_OPS; ++j)
 					{
-						vibdep_ops[j] = (track_status->pattern->step[track_status->pattern_step].command[i] & 0x000f) << 2;
+						vibdep_ops[j] = (track_status->pattern->step[track_status->pattern_step].command[i] & 0x000f) << 4;
 						track_status->ops_status[j].vibrato_depth = vibdep_ops[j];
 						
-						vibspd_ops[j] = (track_status->pattern->step[track_status->pattern_step].command[i] & 0x00f0) >> 2;
+						vibspd_ops[j] = (track_status->pattern->step[track_status->pattern_step].command[i] & 0x00f0) >> 1;
 						track_status->ops_status[j].vibrato_speed = vibspd_ops[j];
 
 						if (vibspd_ops[j] == 0)
@@ -7037,11 +7037,11 @@ static void mus_advance_channel(MusEngine* mus, int chan)
 			{
 				ctrl |= MUS_CTRL_TREM;
 				
-				tremdep = (track_status->pattern->step[track_status->pattern_step].command[i] & 0x000f) << 2;
+				tremdep = (track_status->pattern->step[track_status->pattern_step].command[i] & 0x000f) << 4;
 				
 				track_status->tremolo_depth = tremdep;
 				
-				tremspd = (track_status->pattern->step[track_status->pattern_step].command[i] & 0x00f0) >> 2;
+				tremspd = (track_status->pattern->step[track_status->pattern_step].command[i] & 0x00f0) >> 1;
 				
 				track_status->tremolo_speed = tremspd;
 
@@ -7061,10 +7061,10 @@ static void mus_advance_channel(MusEngine* mus, int chan)
 				{
 					for(int j = 0; j < CYD_FM_NUM_OPS; ++j)
 					{
-						tremdep_ops[j] = (track_status->pattern->step[track_status->pattern_step].command[i] & 0x000f) << 2;
+						tremdep_ops[j] = (track_status->pattern->step[track_status->pattern_step].command[i] & 0x000f) << 4;
 						track_status->ops_status[j].tremolo_depth = tremdep_ops[j];
 						
-						tremspd_ops[j] = (track_status->pattern->step[track_status->pattern_step].command[i] & 0x00f0) >> 2;
+						tremspd_ops[j] = (track_status->pattern->step[track_status->pattern_step].command[i] & 0x00f0) >> 1;
 						track_status->ops_status[j].tremolo_speed = tremspd_ops[j];
 
 						if (!tremspd_ops[j])
@@ -7084,11 +7084,11 @@ static void mus_advance_channel(MusEngine* mus, int chan)
 			
 			if ((track_status->pattern->step[track_status->pattern_step].command[i] & 0xff00) == MUS_FX_FM_VIBRATO)
 			{
-				fm_vibdep = (track_status->pattern->step[track_status->pattern_step].command[i] & 0x000f) << 2;
+				fm_vibdep = (track_status->pattern->step[track_status->pattern_step].command[i] & 0x000f) << 4;
 				
 				track_status->fm_vibrato_depth = fm_vibdep;
 				
-				fm_vibspd = (track_status->pattern->step[track_status->pattern_step].command[i] & 0x00f0) >> 2;
+				fm_vibspd = (track_status->pattern->step[track_status->pattern_step].command[i] & 0x00f0) >> 1;
 				
 				track_status->fm_vibrato_speed = fm_vibspd;
 
@@ -7107,11 +7107,11 @@ static void mus_advance_channel(MusEngine* mus, int chan)
 			
 			if ((track_status->pattern->step[track_status->pattern_step].command[i] & 0xff00) == MUS_FX_FM_TREMOLO)
 			{
-				fm_tremdep = (track_status->pattern->step[track_status->pattern_step].command[i] & 0x000f) << 2;
+				fm_tremdep = (track_status->pattern->step[track_status->pattern_step].command[i] & 0x000f) << 4;
 				
 				track_status->fm_tremolo_depth = fm_tremdep;
 				
-				fm_tremspd = (track_status->pattern->step[track_status->pattern_step].command[i] & 0x00f0) >> 2;
+				fm_tremspd = (track_status->pattern->step[track_status->pattern_step].command[i] & 0x00f0) >> 1;
 				
 				track_status->fm_tremolo_speed = fm_tremspd;
 
@@ -7134,7 +7134,7 @@ static void mus_advance_channel(MusEngine* mus, int chan)
 				track_status->pwm_delay = 0;
 				
 				track_status->pwm_depth = (track_status->pattern->step[track_status->pattern_step].command[i] & 0x000f) << 4;
-				track_status->pwm_speed = (track_status->pattern->step[track_status->pattern_step].command[i] & 0x00f0) >> 4;
+				track_status->pwm_speed = (track_status->pattern->step[track_status->pattern_step].command[i] & 0x00f0) >> 1;
 				
 				if(cydchn->fm.flags & CYD_FM_ENABLE_4OP)
 				{
@@ -7143,7 +7143,7 @@ static void mus_advance_channel(MusEngine* mus, int chan)
 						track_status->ops_status[j].pwm_delay = 0;
 				
 						track_status->ops_status[j].pwm_depth = (track_status->pattern->step[track_status->pattern_step].command[i] & 0x000f) << 4;
-						track_status->ops_status[j].pwm_speed = (track_status->pattern->step[track_status->pattern_step].command[i] & 0x00f0) >> 4;
+						track_status->ops_status[j].pwm_speed = (track_status->pattern->step[track_status->pattern_step].command[i] & 0x00f0) >> 1;
 					}
 				}
 			}
@@ -7668,7 +7668,7 @@ int mus_advance_tick(void* udata)
 									}
 								}
 
-								if (inst != MUS_NOTE_NO_INSTRUMENT && !(ctrl & MUS_CTRL_SLIDE))
+								if (inst != MUS_NOTE_NO_INSTRUMENT)
 								{
 									if (pinst->flags & MUS_INST_RELATIVE_VOLUME)
 									{
@@ -10068,6 +10068,7 @@ int mus_load_song_RW(RWops *ctx, MusSong *song, CydWavetableEntry *wavetable_ent
 			
 			else if (steps > song->pattern[i].num_steps)
 			{
+				free(song->pattern[i].step);
 				song->pattern[i].step = calloc((size_t)steps, sizeof(song->pattern[i].step[0])); //realloc(song->pattern[i].step, (size_t)steps * sizeof(song->pattern[i].step[0]));
 			}
 
@@ -10204,6 +10205,23 @@ int mus_load_song_RW(RWops *ctx, MusSong *song, CydWavetableEntry *wavetable_ent
 								Uint8 temp = song->pattern[i].step[s].command[k] & 0xff;
 								song->pattern[i].step[s].command[k] &= 0xff00;
 								song->pattern[i].step[s].command[k] |= (temp + 12 * 5);
+							}
+						}
+					}
+					
+					if(version < 41)
+					{
+						for(int k = 0; k < MUS_MAX_COMMANDS; k++)
+						{
+							if((song->pattern[i].step[s].command[k] & 0xff00) == MUS_FX_VIBRATO)
+							//to account for different vibrato speed and depth
+							{
+								Uint8 temp = song->pattern[i].step[s].command[k] & 0xff;
+								
+								temp = ((temp & 0xf) / 4) | ((((temp & 0xf) >> 4) / 2) << 4);
+								
+								song->pattern[i].step[s].command[k] &= 0xff00;
+								song->pattern[i].step[s].command[k] |= temp;
 							}
 						}
 					}

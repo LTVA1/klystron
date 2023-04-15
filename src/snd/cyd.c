@@ -2809,14 +2809,14 @@ void cyd_enable_gate(CydEngine *cyd, CydChannel *chn, Uint8 enable)
 			}
 			//chn->adsr.env_speed = (int)((double)envspd(cyd, chn->adsr.a) * chn->env_ksl_mult);
 			
-			chn->flags = cyd_cycle_adsr(cyd, chn->flags, chn->ym_env_shape, &chn->adsr, chn->env_ksl_mult);
+			//chn->flags = cyd_cycle_adsr(cyd, chn->flags, chn->ym_env_shape, &chn->adsr, chn->env_ksl_mult);
 #ifndef CYD_DISABLE_FM	
 			chn->fm.adsr.envelope_state = ATTACK;
 			chn->fm.adsr.envelope = chn->fm.attack_start << 19;
 			//chn->fm.adsr.env_speed = envspd(cyd, chn->fm.adsr.a);
 			
 			chn->fm.adsr.env_speed = (int)((double)envspd(cyd, chn->fm.adsr.a) * (chn->fm.fm_env_ksl_mult == 0.0 ? 1 : chn->fm.fm_env_ksl_mult));
-			cyd_cycle_adsr(cyd, 0, 0, &chn->fm.adsr, chn->fm.fm_env_ksl_mult);
+			//cyd_cycle_adsr(cyd, 0, 0, &chn->fm.adsr, chn->fm.fm_env_ksl_mult);
 #endif
 #endif
 		}
@@ -2841,7 +2841,7 @@ void cyd_enable_gate(CydEngine *cyd, CydChannel *chn, Uint8 enable)
 					}
 					
 					//cyd_cycle_adsr(cyd, 0, 0, &chn->fm.ops[i].adsr, chn->fm.ops[i].env_ksl_mult);
-					cyd_cycle_fm_op_adsr(cyd, 0, 0, &chn->fm.ops[i].adsr, chn->fm.ops[i].env_ksl_mult, chn->fm.ops[i].ssg_eg_type | (((chn->fm.ops[i].flags & CYD_FM_OP_ENABLE_SSG_EG) ? 1 : 0) << 3));
+					//cyd_cycle_fm_op_adsr(cyd, 0, 0, &chn->fm.ops[i].adsr, chn->fm.ops[i].env_ksl_mult, chn->fm.ops[i].ssg_eg_type | (((chn->fm.ops[i].flags & CYD_FM_OP_ENABLE_SSG_EG) ? 1 : 0) << 3));
 					
 					//chn->fm.ops[i].trigger_delay--;
 				}
