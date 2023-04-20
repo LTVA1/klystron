@@ -1429,6 +1429,8 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 					{
 						for(int i = 0; i < CYD_FM_NUM_OPS; ++i)
 						{
+							cydchn->fm.ops[i].adsr.r = (inst & 0x3f);
+							
 							if (cydchn->fm.ops[i].adsr.envelope_state == RELEASE)
 							{
 								cydchn->fm.ops[i].adsr.env_speed = envspd(cyd, cydchn->fm.ops[i].adsr.r);
@@ -7134,7 +7136,7 @@ static void mus_advance_channel(MusEngine* mus, int chan)
 				track_status->pwm_delay = 0;
 				
 				track_status->pwm_depth = (track_status->pattern->step[track_status->pattern_step].command[i] & 0x000f) << 4;
-				track_status->pwm_speed = (track_status->pattern->step[track_status->pattern_step].command[i] & 0x00f0) >> 1;
+				track_status->pwm_speed = (track_status->pattern->step[track_status->pattern_step].command[i] & 0x00f0) >> 2;
 				
 				if(cydchn->fm.flags & CYD_FM_ENABLE_4OP)
 				{
@@ -7143,7 +7145,7 @@ static void mus_advance_channel(MusEngine* mus, int chan)
 						track_status->ops_status[j].pwm_delay = 0;
 				
 						track_status->ops_status[j].pwm_depth = (track_status->pattern->step[track_status->pattern_step].command[i] & 0x000f) << 4;
-						track_status->ops_status[j].pwm_speed = (track_status->pattern->step[track_status->pattern_step].command[i] & 0x00f0) >> 1;
+						track_status->ops_status[j].pwm_speed = (track_status->pattern->step[track_status->pattern_step].command[i] & 0x00f0) >> 2;
 					}
 				}
 			}
@@ -7668,7 +7670,7 @@ int mus_advance_tick(void* udata)
 									}
 								}
 
-								if (inst != MUS_NOTE_NO_INSTRUMENT)
+								if (inst != MUS_NOTE_NO_INSTRUMENT && !(pinst->flags & MUS_INST_KEEP_VOLUME_ON_SLIDE_AND_LEGATO))
 								{
 									if (pinst->flags & MUS_INST_RELATIVE_VOLUME)
 									{

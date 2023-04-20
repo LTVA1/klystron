@@ -266,6 +266,8 @@ enum
 	MUS_INST_SEVERAL_MACROS = 16384, //if instrument has more than 1 macro
 	MUS_INST_USE_VOLUME_ENVELOPE = 32768,
 	MUS_INST_USE_PANNING_ENVELOPE = 65536,
+	
+	MUS_INST_KEEP_VOLUME_ON_SLIDE_AND_LEGATO = 65536 << 1, //do not default to instrument volume when slide/legato control bits are set (mostly for fzt compatibility)
 };
 
 enum
