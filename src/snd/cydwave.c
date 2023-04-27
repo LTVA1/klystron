@@ -216,7 +216,7 @@ void cyd_wave_cycle(CydWaveState *wave, const CydWavetableEntry *wave_entry)
 		if (wave->direction == 0)
 		{
 			//wave->acc += wave->frequency;
-			wave->acc += (Sint32)((double)wave->frequency * ((double)0x10000 - (double)wave->start_offset - ((double)0x10000 - (double)wave->end_offset)) / (double)0x10000);
+			wave->acc += (Sint32)((Sint64)wave->frequency * ((Sint64)0x10000 - (Sint64)wave->start_offset - ((Sint64)0x10000 - (Sint64)wave->end_offset)) / (Sint64)0x10000);
 			
 			if ((wave_entry->flags & CYD_WAVE_LOOP) && wave_entry->loop_end != wave_entry->loop_begin)
 			{
@@ -267,7 +267,7 @@ void cyd_wave_cycle(CydWaveState *wave, const CydWavetableEntry *wave_entry)
 		
 		else
 		{
-			wave->acc -= (Sint32)((double)wave->frequency * ((double)0x10000 - (double)wave->start_offset - ((double)0x10000 - (double)wave->end_offset)) / (double)0x10000);
+			wave->acc -= (Sint32)((Sint64)wave->frequency * ((Sint64)0x10000 - (Sint64)wave->start_offset - ((Sint64)0x10000 - (Sint64)wave->end_offset)) / (Sint64)0x10000);
 			
 			if ((wave_entry->flags & CYD_WAVE_LOOP) && wave_entry->loop_end != wave_entry->loop_begin)
 			{
