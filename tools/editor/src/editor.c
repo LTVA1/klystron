@@ -35,7 +35,7 @@ void layer_load(Background *layer, FILE *f)
 	
 	if (layer->h > 0 && layer->w > 0) 
 	{
-		layer->data = malloc(layer->w*layer->h*sizeof(layer->data[0]));
+		layer->data = calloc(1, layer->w*layer->h*sizeof(layer->data[0]));
 		fread(layer->data, layer->w*layer->h, sizeof(layer->data[0]), f);
 	}
 }
@@ -58,7 +58,7 @@ void level_load(Level *level, FILE *f)
 	level->event = NULL;
 	if (level->n_events > 0)
 	{
-		level->event = malloc(sizeof(*level->event)*level->n_events);
+		level->event = calloc(1, sizeof(*level->event)*level->n_events);
 		for (int i = 0; i < level->n_events; ++i)
 			fread(&level->event[i], 1, sizeof(level->event[0]), f);
 	}

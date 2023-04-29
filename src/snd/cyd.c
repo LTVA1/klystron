@@ -355,10 +355,10 @@ void cyd_init(CydEngine *cyd, Uint32 sample_rate, int channels)
 	memset(cyd, 0, sizeof(*cyd));
 	
 	cyd->sample_rate = sample_rate;
-	cyd->lookup_table = malloc(sizeof(*cyd->lookup_table) * LUT_SIZE);
+	cyd->lookup_table = calloc(1, sizeof(*cyd->lookup_table) * LUT_SIZE);
 	cyd->oversample = MAX_OVERSAMPLE;
 #ifndef CYD_DISABLE_BUZZ
-	cyd->lookup_table_ym = malloc(sizeof(*cyd->lookup_table) * YM_LUT_SIZE);
+	cyd->lookup_table_ym = calloc(1, sizeof(*cyd->lookup_table) * YM_LUT_SIZE);
 #endif
 	
 #ifndef USENATIVEAPIS

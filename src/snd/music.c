@@ -8117,7 +8117,7 @@ static void load_wavetable_entry(Uint8 version, CydWavetableEntry* e, RWops *ctx
 	{
 		if (version < 15)
 		{
-			Sint16 *data = malloc(sizeof(data[0]) * e->samples);
+			Sint16 *data = calloc(1, sizeof(data[0]) * e->samples);
 
 			my_RWread(ctx, data, sizeof(data[0]), e->samples);
 
@@ -8131,7 +8131,7 @@ static void load_wavetable_entry(Uint8 version, CydWavetableEntry* e, RWops *ctx
 			Uint32 data_size = 0;
 			VER_READ(version, 15, 0xff, &data_size, 0);
 			FIX_ENDIAN(data_size);
-			Uint8 *compressed = malloc(sizeof(Uint8) * data_size);
+			Uint8 *compressed = calloc(1, sizeof(Uint8) * data_size);
 
 			my_RWread(ctx, compressed, sizeof(Uint8), (data_size + 7) / 8); // data_size is in bits
 
@@ -8339,8 +8339,8 @@ int mus_load_instrument_RW(Uint8 version, RWops *ctx, MusInstrument *inst, CydWa
 		{
 			if(pr > 0)
 			{
-				inst->program[pr] = (Uint16*)malloc(MUS_PROG_LEN * sizeof(Uint16));
-				inst->program_unite_bits[pr] = (Uint8*)malloc((MUS_PROG_LEN / 8 + 1) * sizeof(Uint8));
+				inst->program[pr] = (Uint16*)calloc(1, MUS_PROG_LEN * sizeof(Uint16));
+				inst->program_unite_bits[pr] = (Uint8*)calloc(1, (MUS_PROG_LEN / 8 + 1) * sizeof(Uint8));
 				
 				for (int p = 0; p < MUS_PROG_LEN; ++p)
 				{
@@ -8822,8 +8822,8 @@ int mus_load_instrument_RW(Uint8 version, RWops *ctx, MusInstrument *inst, CydWa
 					{
 						if(pr > 0)
 						{
-							inst->ops[i].program[pr] = (Uint16*)malloc(MUS_PROG_LEN * sizeof(Uint16));
-							inst->ops[i].program_unite_bits[pr] = (Uint8*)malloc((MUS_PROG_LEN / 8 + 1) * sizeof(Uint8));
+							inst->ops[i].program[pr] = (Uint16*)calloc(1, MUS_PROG_LEN * sizeof(Uint16));
+							inst->ops[i].program_unite_bits[pr] = (Uint8*)calloc(1, (MUS_PROG_LEN / 8 + 1) * sizeof(Uint8));
 							
 							for (int p = 0; p < MUS_PROG_LEN; ++p)
 							{
@@ -9253,8 +9253,8 @@ void mus_get_default_instrument(MusInstrument *inst)
 	inst->vibrato_shape = MUS_SHAPE_SINE;
 	inst->vibrato_delay = 0;
 	
-	inst->program[0] = (Uint16*)malloc(MUS_PROG_LEN * sizeof(Uint16));
-	inst->program_unite_bits[0] = (Uint8*)malloc((MUS_PROG_LEN / 8 + 1) * sizeof(Uint8));
+	inst->program[0] = (Uint16*)calloc(1, MUS_PROG_LEN * sizeof(Uint16));
+	inst->program_unite_bits[0] = (Uint8*)calloc(1, (MUS_PROG_LEN / 8 + 1) * sizeof(Uint8));
 	
 	inst->num_macros = 1;
 
@@ -9998,7 +9998,7 @@ int mus_load_song_RW(RWops *ctx, MusSong *song, CydWavetableEntry *wavetable_ent
 
 		if (song->instrument == NULL)
 		{
-			song->instrument = malloc((size_t)song->num_instruments * sizeof(song->instrument[0]));
+			song->instrument = calloc(1, (size_t)song->num_instruments * sizeof(song->instrument[0]));
 			memset(song->instrument, 0, (size_t)song->num_instruments * sizeof(song->instrument[0]));
 		}
 
@@ -10012,7 +10012,7 @@ int mus_load_song_RW(RWops *ctx, MusSong *song, CydWavetableEntry *wavetable_ent
 			if (song->num_sequences[i] > 0)
 			{
 				if (song->sequence[i] == NULL)
-					song->sequence[i] = malloc((size_t)song->num_sequences[i] * sizeof(song->sequence[0][0]));
+					song->sequence[i] = calloc(1, (size_t)song->num_sequences[i] * sizeof(song->sequence[0][0]));
 
 				if (version < 8)
 				{
@@ -10100,7 +10100,7 @@ int mus_load_song_RW(RWops *ctx, MusSong *song, CydWavetableEntry *wavetable_ent
 			{
 				int len = song->pattern[i].num_steps / 2 + (song->pattern[i].num_steps & 1);
 
-				Uint8 *packed = malloc(sizeof(Uint8) * len);
+				Uint8 *packed = calloc(1, sizeof(Uint8) * len);
 				Uint8 *current = packed;
 
 				my_RWread(ctx, packed, sizeof(Uint8), len);
@@ -10291,7 +10291,7 @@ int mus_load_song_RW(RWops *ctx, MusSong *song, CydWavetableEntry *wavetable_ent
 					load_wavetable_entry(version, &wavetable_entries[i], ctx);
 				}
 
-				song->wavetable_names = malloc(max_wt * sizeof(char*));
+				song->wavetable_names = calloc(1, max_wt * sizeof(char*));
 				memset(song->wavetable_names, 0, max_wt * sizeof(char*));
 
 				if (version >= 26)
@@ -10299,7 +10299,7 @@ int mus_load_song_RW(RWops *ctx, MusSong *song, CydWavetableEntry *wavetable_ent
 					for (int i = 0; i < max_wt; ++i)
 					{
 						Uint8 len = 0;
-						song->wavetable_names[i] = malloc(32 + 1);
+						song->wavetable_names[i] = calloc(1, 32 + 1);
 						memset(song->wavetable_names[i], 0, 32 + 1);
 
 						my_RWread(ctx, &len, 1, 1);
@@ -10311,7 +10311,7 @@ int mus_load_song_RW(RWops *ctx, MusSong *song, CydWavetableEntry *wavetable_ent
 				{
 					for (int i = 0; i < max_wt; ++i)
 					{
-						song->wavetable_names[i] = malloc(32 + 1);
+						song->wavetable_names[i] = calloc(1, 32 + 1);
 						memset(song->wavetable_names[i], 0, 32 + 1);
 					}
 				}
@@ -10334,7 +10334,7 @@ int mus_load_song_RW(RWops *ctx, MusSong *song, CydWavetableEntry *wavetable_ent
 					load_wavetable_entry(version, &wavetable_entries[i], ctx);
 				}
 
-				song->wavetable_names = malloc(max_wt * sizeof(char*));
+				song->wavetable_names = calloc(1, max_wt * sizeof(char*));
 				memset(song->wavetable_names, 0, max_wt * sizeof(char*));
 
 				if (version >= 26)
@@ -10342,7 +10342,7 @@ int mus_load_song_RW(RWops *ctx, MusSong *song, CydWavetableEntry *wavetable_ent
 					for (int i = 0; i < max_wt; ++i)
 					{
 						Uint8 len = 0;
-						song->wavetable_names[i] = malloc(MUS_WAVETABLE_NAME_LEN + 1);
+						song->wavetable_names[i] = calloc(1, MUS_WAVETABLE_NAME_LEN + 1);
 						memset(song->wavetable_names[i], 0, MUS_WAVETABLE_NAME_LEN + 1);
 
 						my_RWread(ctx, &len, 1, 1);
@@ -10354,7 +10354,7 @@ int mus_load_song_RW(RWops *ctx, MusSong *song, CydWavetableEntry *wavetable_ent
 				{
 					for (int i = 0; i < max_wt; ++i)
 					{
-						song->wavetable_names[i] = malloc(MUS_WAVETABLE_NAME_LEN + 1);
+						song->wavetable_names[i] = calloc(1, MUS_WAVETABLE_NAME_LEN + 1);
 						memset(song->wavetable_names[i], 0, MUS_WAVETABLE_NAME_LEN + 1);
 					}
 				}

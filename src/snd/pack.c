@@ -264,7 +264,7 @@ Uint8 * bitpack(const Sint16 *_buffer, const int n, int flags, Uint32 *packed_si
 	BitPtr bp;
 	bit_init(&bp, NULL, 0, 0);
 	
-	Sint16 *buffer = malloc(sizeof(Sint16) * n);
+	Sint16 *buffer = calloc(1, sizeof(Sint16) * n);
 	memcpy(buffer, _buffer, sizeof(Sint16) * n);
 	
 	if (flags & BITPACK_OPT_DELTA) delta_encode(buffer, n);
