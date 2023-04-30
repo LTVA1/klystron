@@ -98,6 +98,12 @@ void slider(GfxDomain *dest_surface, const SDL_Rect *_area, const SDL_Event *eve
 			my_area.y -= 60;
 			my_area.h += 60;
 		}
+		
+		if((_param == &mused.point_env_slider_param) && !(mused.show_fm_settings))
+		{
+			my_area.y -= 60;
+			my_area.h += 60;
+		}
 #endif
 
 		int button_size = (param->orientation == SLIDER_HORIZONTAL) ? my_area.h : my_area.w;
