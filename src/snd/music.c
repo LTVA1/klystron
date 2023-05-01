@@ -7719,9 +7719,9 @@ int mus_advance_tick(void* udata)
 							
 							else if ((command & 0xff00) == MUS_FX_SKIP_PATTERN)
 							{
-								mus->song_position += my_max(track_status->pattern->num_steps - track_status->pattern_step - 1, 0);
+								mus->song_position += my_max(track_status->pattern->num_steps - track_status->pattern_step - 1 + (command & 0xff), 0);
 								track_status->pattern = NULL;
-								track_status->pattern_step = 0;
+								track_status->pattern_step = (command & 0xff);
 								flag = 0;
 								break;
 							}
