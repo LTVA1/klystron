@@ -53,6 +53,8 @@ OTHER DEALINGS IN THE SOFTWARE.
 #define MUS_INSTRUMENT_NAME_LEN 255
 #define MUS_WAVETABLE_NAME_LEN MUS_INSTRUMENT_NAME_LEN
 
+#define MUS_MAX_INST_SAMPLES 255 /* samples per instrument (sample map) */
+
 #define MUS_MAX_COMMANDS 8
 
 #define DETUNE ((Sint32)(2))
@@ -241,6 +243,10 @@ typedef struct
 	Uint8 pan_env_flags; //1 - sustain, 2 - loop
 	
 	MusEnvPoint panning_envelope[MUS_MAX_ENVELOPE_POINTS];
+	
+	CydWavetableEntry** local_samples;
+	Uint8 num_local_samples;
+	char** local_sample_maps;
 
 } MusInstrument;
 
