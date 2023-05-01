@@ -838,6 +838,8 @@ enum //song flags
 	MUS_PC_98 = 65536 << 3, // load PC-98 drum samples
 	
 	MUS_USE_OLD_SAMPLE_LOOP_BEHAVIOUR = 65536 << 4, //do not set loop points when playing imported XM or whatever
+	
+	MUS_USE_GROOVE = 65536 << 5,
 };
 
 enum
