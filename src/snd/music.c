@@ -4636,6 +4636,8 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 					
 					else
 					{
+						mus->flags &= ~(MUS_ENGINE_USE_GROOVE);
+						
 						mus->song->song_speed = inst & 0xf;
 						if ((inst & 0xf0) == 0) mus->song->song_speed2 = mus->song->song_speed;
 						else mus->song->song_speed2 = (inst >> 4) & 0xf;
@@ -4648,6 +4650,7 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 					if (!from_program)
 					{
 						mus->song->song_speed = inst & 0xff;
+						mus->flags &= ~(MUS_ENGINE_USE_GROOVE);
 					}
 				}
 				break;
@@ -4657,6 +4660,7 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 					if (!from_program)
 					{
 						mus->song->song_speed2 = inst & 0xff;
+						mus->flags &= ~(MUS_ENGINE_USE_GROOVE);
 					}
 				}
 				break;
@@ -7696,7 +7700,33 @@ int mus_advance_tick(void* udata)
 
 			++mus->song_counter;
 			
-			if (mus->song_counter >= ((!(mus->song_position & 1)) ? mus->song->song_speed : mus->song->song_speed2))
+			bool advance_pattern_step = false;
+			
+			if(!(mus->flags & MUS_ENGINE_USE_GROOVE))
+			{
+				if(mus->song_counter >= ((!(mus->song_position & 1)) ? mus->song->song_speed : mus->song->song_speed2))
+				{
+					advance_pattern_step = true;
+				}
+			}
+			
+			if(mus->flags & MUS_ENGINE_USE_GROOVE)
+			{
+				if(mus->song->groove_length[mus->groove_number] > 0)
+				{
+					if(mus->song_counter >= mus->song->grooves[mus->groove_number][mus->song_position % mus->song->groove_length[mus->groove_number]])
+					{
+						advance_pattern_step = true;
+					}
+				}
+				
+				else // to not have a crash from modulo 0; just play at virtually speed 1
+				{
+					advance_pattern_step = true;
+				}
+			}
+			
+			if(advance_pattern_step)
 			{
 				for (int i = 0; i < mus->cyd->n_channels; ++i)
 				{
@@ -7988,6 +8018,20 @@ void mus_set_song(MusEngine *mus, MusSong *song, Uint16 position)
 					mus->channel[chan].ops[op].program_tick[pr] = 0;
 				}
 			}
+		}
+	}
+	
+	if(song != NULL && mus->song != NULL)
+	{
+		if(song->flags & MUS_USE_GROOVE)
+		{
+			mus->flags |= MUS_ENGINE_USE_GROOVE;
+			mus->groove_number = 0;
+		}
+		
+		else
+		{
+			mus->flags &= ~(MUS_ENGINE_USE_GROOVE);
 		}
 	}
 

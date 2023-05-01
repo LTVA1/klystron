@@ -47,6 +47,9 @@ OTHER DEALINGS IN THE SOFTWARE.
 
 #define MUS_MAX_CHANNELS CYD_MAX_CHANNELS
 
+#define MUS_MAX_GROOVES 32
+#define MUS_MAX_GROOVE_LENGTH 128
+
 #define MUS_VERSION 41
 
 #define MUS_SONG_TITLE_LEN 255
@@ -424,6 +427,10 @@ typedef struct
 	int num_wavetables;
 	
 	bool use_old_filter;
+	
+	Uint8 grooves[MUS_MAX_GROOVES][MUS_MAX_GROOVE_LENGTH];
+	Uint8 groove_length[MUS_MAX_GROOVES];
+	Uint8 num_grooves;
 } MusSong;
 
 typedef struct
@@ -496,6 +503,8 @@ typedef struct
 	Uint32 flags;
 	Uint32 ext_sync_ticks;
 	Uint32 pitch_mask;
+	
+	Uint8 groove_number;
 } MusEngine;
 
 
@@ -539,7 +548,9 @@ enum
 
 enum
 {
-	MUS_EXT_SYNC = 1
+	MUS_EXT_SYNC = 1,
+	
+	MUS_ENGINE_USE_GROOVE = 2,
 };
 
 #define MUS_NOTE_VOLUME_SET_PAN 0xa0
@@ -839,7 +850,8 @@ enum //song flags
 	
 	MUS_USE_OLD_SAMPLE_LOOP_BEHAVIOUR = 65536 << 4, //do not set loop points when playing imported XM or whatever
 	
-	MUS_USE_GROOVE = 65536 << 5,
+	MUS_USE_GROOVE = 65536 << 5, //used in song playback, can change
+	MUS_SAVE_GROOVE = 65536 << 6, //used in saving/loading only
 };
 
 enum
