@@ -3264,7 +3264,7 @@ void cyd_set_filter_coeffs(CydEngine * cyd, CydChannel *chn, Uint16 cutoff, Uint
 	{
 		for(int i = 0; i < (int)pow(2, chn->flt_slope); i++)
 		{
-			cydflt_set_coeff_old(&chn->flts[i], cutoff, resonance_table[resonance & 3]);
+			cydflt_set_coeff_old(&chn->flts[i], cutoff, resonance_table[(resonance >> 4) & 3]);
 		}
 	}
 	
