@@ -50,7 +50,7 @@ OTHER DEALINGS IN THE SOFTWARE.
 #define MUS_MAX_GROOVES 32
 #define MUS_MAX_GROOVE_LENGTH 128
 
-#define MUS_VERSION 41
+#define MUS_VERSION 42
 
 #define MUS_SONG_TITLE_LEN 255
 #define MUS_INSTRUMENT_NAME_LEN 255
@@ -663,6 +663,10 @@ enum
 	MUS_FX_CUTOFF_DN = 0x2200,
 	MUS_FX_CUTOFF_SET = 0x2900,
 	MUS_FX_RESONANCE_SET = 0x2a00,
+	
+	MUS_FX_RESONANCE_UP = 0x9100,
+	MUS_FX_RESONANCE_DOWN = 0x9200,
+	
 	MUS_FX_FILTER_TYPE = 0x2b00,
 	MUS_FX_FILTER_SLOPE = 0x0e30, //wasn't there
 	MUS_FX_CUTOFF_SET_COMBINED = 0x2c00,
@@ -773,7 +777,6 @@ enum
 	
 	MUS_FX_CUTOFF_FINE_SET = 0x6000,
 	MUS_FX_PW_FINE_SET = 0x8000, //wasn't there
-	MUS_FX_MORPH = 0x9000, //wasn't there //9xxy, morph to wave xx with speed of y //not implemented
 	
 	MUS_FX_WAVETABLE_END_POINT = 0xE000, //wasn't there if sample is looped, it would set ending point. Exxx
 	MUS_FX_WAVETABLE_END_POINT_UP = 0x4600, //wasn't there

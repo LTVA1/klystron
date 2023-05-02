@@ -4562,14 +4562,14 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 						case 0:
 						case 0xFF:
 						{
-							track_status->filter_resonance = inst & 15; //was `inst & 3;`
-							cyd_set_filter_coeffs(mus->cyd, cydchn, track_status->filter_cutoff, inst & 15); //cyd_set_filter_coeffs(mus->cyd, cydchn, track_status->filter_cutoff, inst & 3);
+							track_status->filter_resonance = inst & 0xff; //was `inst & 3;`
+							cyd_set_filter_coeffs(mus->cyd, cydchn, track_status->filter_cutoff, inst & 0xff); //cyd_set_filter_coeffs(mus->cyd, cydchn, track_status->filter_cutoff, inst & 3);
 							
 							if(ops_index == 0xFF)
 							{
 								for(int i = 0; i < CYD_FM_NUM_OPS; ++i)
 								{
-									track_status->ops_status[i].filter_resonance = (inst & 15);
+									track_status->ops_status[i].filter_resonance = (inst & 0xff);
 									
 									for(int j = 0; j < (int)pow(2, cydchn->fm.ops[i].flt_slope); ++j)
 									{
@@ -4577,7 +4577,7 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 										{
 											if(mus->cyd->flags & CYD_USE_OLD_FILTER)
 											{
-												cydflt_set_coeff_old(&cydchn->fm.ops[i].flts[j][sub], track_status->ops_status[i].filter_cutoff, resonance_table[track_status->ops_status[i].filter_resonance & 3]);
+												cydflt_set_coeff_old(&cydchn->fm.ops[i].flts[j][sub], track_status->ops_status[i].filter_cutoff, resonance_table[(track_status->ops_status[i].filter_resonance >> 4) & 3]);
 											}
 											
 											else
@@ -4594,7 +4594,7 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 						
 						default:
 						{
-							track_status->ops_status[ops_index - 1].filter_resonance = (inst & 15);
+							track_status->ops_status[ops_index - 1].filter_resonance = (inst & 0xff);
 							
 							for(int j = 0; j < (int)pow(2, cydchn->fm.ops[ops_index - 1].flt_slope); ++j)
 							{
@@ -4602,12 +4602,168 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 								{
 									if(mus->cyd->flags & CYD_USE_OLD_FILTER)
 									{
-										cydflt_set_coeff_old(&cydchn->fm.ops[ops_index - 1].flts[j][sub], track_status->ops_status[ops_index - 1].filter_cutoff, resonance_table[track_status->ops_status[ops_index - 1].filter_resonance & 3]);
+										cydflt_set_coeff_old(&cydchn->fm.ops[ops_index - 1].flts[j][sub], track_status->ops_status[ops_index - 1].filter_cutoff, resonance_table[(track_status->ops_status[ops_index - 1].filter_resonance >> 4) & 3]);
 									}
 									
 									else
 									{
 										cydflt_set_coeff(&cydchn->fm.ops[ops_index - 1].flts[j][sub], track_status->ops_status[ops_index - 1].filter_cutoff, track_status->ops_status[ops_index - 1].filter_resonance, mus->cyd->sample_rate);
+									}
+								}
+							}
+							
+							break;
+						}
+					}
+				}
+				break;
+				
+				case MUS_FX_RESONANCE_UP:
+				{
+					switch(ops_index)
+					{
+						case 0:
+						case 0xFF:
+						{
+							Sint16 temp = track_status->filter_resonance + (inst & 0xff);
+							
+							if(temp >= 0 && temp <= 0xff)
+							{
+								track_status->filter_resonance += (inst & 0xff); //was `inst & 3;`
+								cyd_set_filter_coeffs(mus->cyd, cydchn, track_status->filter_cutoff, track_status->filter_resonance); //cyd_set_filter_coeffs(mus->cyd, cydchn, track_status->filter_cutoff, inst & 3);
+							}
+							
+							if(ops_index == 0xFF)
+							{
+								for(int i = 0; i < CYD_FM_NUM_OPS; ++i)
+								{
+									Sint16 temp_op = track_status->ops_status[i].filter_resonance + (inst & 0xff);
+							
+									if(temp_op >= 0 && temp_op <= 0xff)
+									{
+										track_status->ops_status[i].filter_resonance += (inst & 0xff);
+										
+										for(int j = 0; j < (int)pow(2, cydchn->fm.ops[i].flt_slope); ++j)
+										{
+											for (int sub = 0; sub < CYD_SUB_OSCS; ++sub)
+											{
+												if(mus->cyd->flags & CYD_USE_OLD_FILTER)
+												{
+													cydflt_set_coeff_old(&cydchn->fm.ops[i].flts[j][sub], track_status->ops_status[i].filter_cutoff, resonance_table[(track_status->ops_status[i].filter_resonance >> 4) & 3]);
+												}
+												
+												else
+												{
+													cydflt_set_coeff(&cydchn->fm.ops[i].flts[j][sub], track_status->ops_status[i].filter_cutoff, track_status->ops_status[i].filter_resonance, mus->cyd->sample_rate);
+												}
+											}
+										}
+									}
+								}
+							}
+							
+							break;
+						}
+						
+						default:
+						{
+							Sint16 temp = track_status->ops_status[ops_index - 1].filter_resonance + (inst & 0xff);
+							
+							if(temp >= 0 && temp <= 0xff)
+							{
+								track_status->ops_status[ops_index - 1].filter_resonance += (inst & 0xff);
+								
+								for(int j = 0; j < (int)pow(2, cydchn->fm.ops[ops_index - 1].flt_slope); ++j)
+								{
+									for (int sub = 0; sub < CYD_SUB_OSCS; ++sub)
+									{
+										if(mus->cyd->flags & CYD_USE_OLD_FILTER)
+										{
+											cydflt_set_coeff_old(&cydchn->fm.ops[ops_index - 1].flts[j][sub], track_status->ops_status[ops_index - 1].filter_cutoff, resonance_table[(track_status->ops_status[ops_index - 1].filter_resonance >> 4) & 3]);
+										}
+										
+										else
+										{
+											cydflt_set_coeff(&cydchn->fm.ops[ops_index - 1].flts[j][sub], track_status->ops_status[ops_index - 1].filter_cutoff, track_status->ops_status[ops_index - 1].filter_resonance, mus->cyd->sample_rate);
+										}
+									}
+								}
+							}
+							
+							break;
+						}
+					}
+				}
+				break;
+				
+				case MUS_FX_RESONANCE_DOWN:
+				{
+					switch(ops_index)
+					{
+						case 0:
+						case 0xFF:
+						{
+							Sint16 temp = track_status->filter_resonance - (inst & 0xff);
+							
+							if(temp >= 0 && temp <= 0xff)
+							{
+								track_status->filter_resonance -= (inst & 0xff); //was `inst & 3;`
+								cyd_set_filter_coeffs(mus->cyd, cydchn, track_status->filter_cutoff, track_status->filter_resonance); //cyd_set_filter_coeffs(mus->cyd, cydchn, track_status->filter_cutoff, inst & 3);
+							}
+							
+							if(ops_index == 0xFF)
+							{
+								for(int i = 0; i < CYD_FM_NUM_OPS; ++i)
+								{
+									Sint16 temp_op = track_status->ops_status[i].filter_resonance - (inst & 0xff);
+							
+									if(temp_op >= 0 && temp_op <= 0xff)
+									{
+										track_status->ops_status[i].filter_resonance -= (inst & 0xff);
+										
+										for(int j = 0; j < (int)pow(2, cydchn->fm.ops[i].flt_slope); ++j)
+										{
+											for (int sub = 0; sub < CYD_SUB_OSCS; ++sub)
+											{
+												if(mus->cyd->flags & CYD_USE_OLD_FILTER)
+												{
+													cydflt_set_coeff_old(&cydchn->fm.ops[i].flts[j][sub], track_status->ops_status[i].filter_cutoff, resonance_table[(track_status->ops_status[i].filter_resonance >> 4) & 3]);
+												}
+												
+												else
+												{
+													cydflt_set_coeff(&cydchn->fm.ops[i].flts[j][sub], track_status->ops_status[i].filter_cutoff, track_status->ops_status[i].filter_resonance, mus->cyd->sample_rate);
+												}
+											}
+										}
+									}
+								}
+							}
+							
+							break;
+						}
+						
+						default:
+						{
+							Sint16 temp = track_status->ops_status[ops_index - 1].filter_resonance - (inst & 0xff);
+							
+							if(temp >= 0 && temp <= 0xff)
+							{
+								track_status->ops_status[ops_index - 1].filter_resonance -= (inst & 0xff);
+								
+								for(int j = 0; j < (int)pow(2, cydchn->fm.ops[ops_index - 1].flt_slope); ++j)
+								{
+									for (int sub = 0; sub < CYD_SUB_OSCS; ++sub)
+									{
+										if(mus->cyd->flags & CYD_USE_OLD_FILTER)
+										{
+											cydflt_set_coeff_old(&cydchn->fm.ops[ops_index - 1].flts[j][sub], track_status->ops_status[ops_index - 1].filter_cutoff, resonance_table[(track_status->ops_status[ops_index - 1].filter_resonance >> 4) & 3]);
+										}
+										
+										else
+										{
+											cydflt_set_coeff(&cydchn->fm.ops[ops_index - 1].flts[j][sub], track_status->ops_status[ops_index - 1].filter_cutoff, track_status->ops_status[ops_index - 1].filter_resonance, mus->cyd->sample_rate);
+										}
 									}
 								}
 							}
@@ -8569,19 +8725,24 @@ int mus_load_instrument_RW(Uint8 version, RWops *ctx, MusInstrument *inst, CydWa
 	
 	if(((inst->cydflags & CYD_CHN_ENABLE_FILTER) && version >= 31) || version < 31)
 	{
-		if(version < 33)
+		if(version < 33 || version >= 42)
 		{
 			VER_READ(version, 1, 0xff, &inst->cutoff, 0);
 			VER_READ(version, 1, 0xff, &inst->resonance, 0);
 		}
 		
-		else
+		if(version >= 33 && version < 42)
 		{
 			Uint16 temp = 0;
 			VER_READ(version, 33, 0xff, &temp, 0);
 			
 			inst->cutoff = temp & 0x0fff;
 			inst->resonance = (temp & 0xf000) >> 12;
+		}
+		
+		if(version < 42)
+		{
+			inst->resonance *= 16;
 		}
 		
 		if(version < 34)
@@ -8957,10 +9118,24 @@ int mus_load_instrument_RW(Uint8 version, RWops *ctx, MusInstrument *inst, CydWa
 				
 				if(inst->ops[i].cydflags & CYD_FM_OP_ENABLE_FILTER)
 				{
-					VER_READ(version, 34, 0xff, &inst->ops[i].cutoff, 0);
+					if(version < 42)
+					{
+						VER_READ(version, 34, 0xff, &inst->ops[i].cutoff, 0);
+						
+						inst->ops[i].resonance = inst->ops[i].cutoff >> 12;
+						inst->ops[i].cutoff &= 0xfff;
+					}
 					
-					inst->ops[i].resonance = inst->ops[i].cutoff >> 12;
-					inst->ops[i].cutoff &= 0xfff;
+					else
+					{
+						VER_READ(version, 34, 0xff, &inst->ops[i].cutoff, 0);
+						VER_READ(version, 34, 0xff, &inst->ops[i].resonance, 0);
+					}
+					
+					if(version < 42)
+					{
+						inst->ops[i].resonance *= 16;
+					}
 					
 					VER_READ(version, 40, 0xff, &inst->ops[i].flttype, 0);
 				}
@@ -9209,6 +9384,37 @@ int mus_load_instrument_RW(Uint8 version, RWops *ctx, MusInstrument *inst, CydWa
 		inst->fm_adsr.a *= ENVELOPE_SCALE;
 		inst->fm_adsr.d *= ENVELOPE_SCALE;
 		inst->fm_adsr.r *= ENVELOPE_SCALE;
+	}
+	
+	if(version < 42) // account for extended resonance range
+	{
+		for(int i = 0; i < inst->num_macros; i++)
+		{
+			for(int j = 0; j < MUS_PROG_LEN; j++)
+			{
+				if((inst->program[i][j] & 0xff00) == MUS_FX_RESONANCE_SET)
+				{
+					inst->program[i][j] = (inst->program[i][j] & 0xff00) | ((inst->program[i][j] & 0xff) * 16);
+				}
+			}
+		}
+		
+		if(inst->fm_flags & CYD_FM_ENABLE_4OP)
+		{
+			for(int i = 0; i < CYD_FM_NUM_OPS; ++i)
+			{
+				for(int j = 0; j < inst->ops[i].num_macros; j++)
+				{
+					for(int k = 0; k < MUS_PROG_LEN; k++)
+					{
+						if((inst->ops[i].program[j][k] & 0xff00) == MUS_FX_RESONANCE_SET)
+						{
+							inst->ops[i].program[j][k] = (inst->ops[i].program[j][k] & 0xff00) | ((inst->ops[i].program[j][k] & 0xff) * 16);
+						}
+					}
+				}
+			}
+		}
 	}
 
 	return 1;
@@ -10265,6 +10471,23 @@ int mus_load_song_RW(RWops *ctx, MusSong *song, CydWavetableEntry *wavetable_ent
 								Uint8 temp = song->pattern[i].step[s].command[k] & 0xff;
 								
 								temp = ((temp & 0xf) / 4) | ((((temp & 0xf) >> 4) / 2) << 4);
+								
+								song->pattern[i].step[s].command[k] &= 0xff00;
+								song->pattern[i].step[s].command[k] |= temp;
+							}
+						}
+					}
+					
+					if(version < 42)
+					{
+						for(int k = 0; k < MUS_MAX_COMMANDS; k++)
+						{
+							if((song->pattern[i].step[s].command[k] & 0xff00) == MUS_FX_RESONANCE_SET)
+							//to account for extended filter resonance range
+							{
+								Uint8 temp = song->pattern[i].step[s].command[k] & 0xff;
+								
+								temp = temp << 4;
 								
 								song->pattern[i].step[s].command[k] &= 0xff00;
 								song->pattern[i].step[s].command[k] |= temp;
