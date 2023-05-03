@@ -4794,9 +4794,17 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 					{
 						mus->flags &= ~(MUS_ENGINE_USE_GROOVE);
 						
-						mus->song->song_speed = inst & 0xf;
+						if((inst & 0xf) > 0)
+						{
+							mus->song->song_speed = inst & 0xf;
+						}
+						
 						if ((inst & 0xf0) == 0) mus->song->song_speed2 = mus->song->song_speed;
-						else mus->song->song_speed2 = (inst >> 4) & 0xf;
+						
+						else if(((inst >> 4) & 0xf) > 0)
+						{
+							mus->song->song_speed2 = (inst >> 4) & 0xf;
+						}
 					}
 				}
 				break;
@@ -4805,7 +4813,11 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 				{
 					if (!from_program)
 					{
-						mus->song->song_speed = inst & 0xff;
+						if((inst & 0xff) > 0)
+						{
+							mus->song->song_speed = inst & 0xff;
+						}
+						
 						mus->flags &= ~(MUS_ENGINE_USE_GROOVE);
 					}
 				}
@@ -4815,8 +4827,27 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 				{
 					if (!from_program)
 					{
-						mus->song->song_speed2 = inst & 0xff;
+						if((inst & 0xff) > 0)
+						{
+							mus->song->song_speed2 = inst & 0xff;
+						}
+						
 						mus->flags &= ~(MUS_ENGINE_USE_GROOVE);
+					}
+				}
+				break;
+				
+				case MUS_FX_SET_GROOVE:
+				{
+					if (!from_program)
+					{
+						Uint8 groove = (inst & 0xff);
+						
+						if(groove < MUS_MAX_GROOVES && mus->song->groove_length[groove] > 0)
+						{
+							mus->groove_number = (inst & 0xff);
+							mus->flags |= MUS_ENGINE_USE_GROOVE;
+						}
 					}
 				}
 				break;

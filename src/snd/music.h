@@ -642,6 +642,9 @@ enum
 	MUS_FX_SET_SPEED = 0x0f00,
 	MUS_FX_SET_SPEED1 = 0x4100, //wasn't there
 	MUS_FX_SET_SPEED2 = 0x4200, //wasn't there
+	
+	MUS_FX_SET_GROOVE = 0x9000,
+	
 	MUS_FX_SET_RATE = 0x1f00,
 	MUS_FX_SET_RATE_HIGHER_BYTE = 0x4300, //wasn't there
 	MUS_FX_PORTA_UP_SEMI = 0x1100,
