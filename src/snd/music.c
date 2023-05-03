@@ -10141,6 +10141,23 @@ int mus_load_song_RW(RWops *ctx, MusSong *song, CydWavetableEntry *wavetable_ent
 		{
 			my_RWread(ctx, &song->song_rate, 1, sizeof(song->song_rate));
 		}
+		
+		if(song->flags & MUS_SAVE_GROOVE)
+		{
+			Uint8 num_grooves = 0;
+			
+			my_RWread(ctx, &num_grooves, 1, sizeof(num_grooves));
+			
+			for(int i = 0; i < num_grooves; i++)
+			{
+				my_RWread(ctx, &song->groove_length[i], 1, sizeof(song->groove_length[i]));
+				
+				for(int j = 0; j < song->groove_length[i]; j++)
+				{
+					my_RWread(ctx, &song->grooves[i][j], 1, sizeof(song->grooves[i][j]));
+				}
+			}
+		}
 
 		if (version >= 9) my_RWread(ctx, &song->multiplex_period, 1, sizeof(song->multiplex_period));
 		else song->multiplex_period = 3;
