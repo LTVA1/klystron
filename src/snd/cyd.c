@@ -2903,6 +2903,16 @@ void cyd_enable_gate(CydEngine *cyd, CydChannel *chn, Uint8 enable)
 	else
 	{
 		chn->flags &= ~CYD_CHN_WAVE_OVERRIDE_ENV;
+		
+	#ifndef CYD_OLD_ENVELOPE_RELEASE
+		// Adjust envelope value to create a continuous transition between attack and release
+		if (chn->adsr.envelope_state == ATTACK)
+		{
+			float fenv = sqrtf((float)chn->adsr.envelope * 65536.0f * 256.0f);
+			chn->adsr.envelope = fenv;
+		}
+	#endif
+		
 		chn->adsr.envelope_state = RELEASE;
 		
 		//chn->adsr.env_speed = (int)((double)envspd(cyd, chn->adsr.r) * chn->env_ksl_mult);
@@ -2919,6 +2929,16 @@ void cyd_enable_gate(CydEngine *cyd, CydChannel *chn, Uint8 enable)
 		//chn->adsr.env_speed = envspd(cyd, chn->adsr.r);
 		
 #ifndef CYD_DISABLE_FM
+
+	#ifndef CYD_OLD_ENVELOPE_RELEASE
+		// Adjust envelope value to create a continuous modulator transition between attack and release
+		if (chn->fm.adsr.envelope_state == ATTACK)
+		{
+			float fenv = sqrtf((float)chn->fm.adsr.envelope * 65536.0f * 256.0f);
+			chn->fm.adsr.envelope = fenv;
+		}
+	#endif
+
 		chn->fm.adsr.envelope_state = RELEASE;
 		//chn->fm.adsr.env_speed = envspd(cyd, chn->fm.adsr.r);
 		chn->fm.adsr.env_speed = (int)((double)envspd(cyd, chn->fm.adsr.r) * (chn->fm.fm_env_ksl_mult == 0.0 ? 1 : chn->fm.fm_env_ksl_mult));
@@ -2928,6 +2948,16 @@ void cyd_enable_gate(CydEngine *cyd, CydChannel *chn, Uint8 enable)
 			for(int i = 0; i < CYD_FM_NUM_OPS; ++i)
 			{
 				chn->fm.ops[i].flags &= ~CYD_FM_OP_WAVE_OVERRIDE_ENV;
+				
+			#ifndef CYD_OLD_ENVELOPE_RELEASE
+				// Adjust envelope value to create a continuous modulator transition between attack and release
+				if (chn->fm.ops[i].adsr.envelope_state == ATTACK)
+				{
+					float fenv = sqrtf((float)chn->fm.ops[i].adsr.envelope * 65536.0f * 256.0f);
+					chn->fm.ops[i].adsr.envelope = fenv;
+				}
+			#endif
+				
 				chn->fm.ops[i].adsr.envelope_state = RELEASE;
 				
 				if(!(chn->fm.ops[i].adsr.use_volume_envelope))
