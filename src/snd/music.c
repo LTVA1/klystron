@@ -10411,7 +10411,7 @@ int mus_load_song_RW(RWops *ctx, MusSong *song, CydWavetableEntry *wavetable_ent
 					{
 						my_RWread(ctx, &song->pattern[i].step[s].note, 1, sizeof(song->pattern[i].step[s].note));
 						
-						if(version < 35 && song->pattern[i].step[s].note != MUS_NOTE_NONE && song->pattern[i].step[s].note != MUS_NOTE_RELEASE && song->pattern[i].step[s].note != MUS_NOTE_CUT && song->pattern[i].step[s].note != MUS_NOTE_MACRO_RELEASE)
+						if(version < 35 && song->pattern[i].step[s].note != MUS_NOTE_NONE && song->pattern[i].step[s].note != MUS_NOTE_RELEASE && song->pattern[i].step[s].note != MUS_NOTE_CUT && song->pattern[i].step[s].note != MUS_NOTE_MACRO_RELEASE && song->pattern[i].step[s].note != MUS_NOTE_RELEASE_WITHOUT_MACRO)
 						{
 							song->pattern[i].step[s].note += 12 * 5;
 						}
