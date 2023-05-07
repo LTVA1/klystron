@@ -99,4 +99,8 @@ OTHER DEALINGS IN THE SOFTWARE.
 
 #define clamp(val, add, _min, _max) val = my_min(_max, my_max(_min, (int)val + add))
 
+#ifndef UNUSED
+#define UNUSED(X) (void)(X)
+#endif
+
 #endif

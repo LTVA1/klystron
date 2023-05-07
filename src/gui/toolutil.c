@@ -120,7 +120,7 @@ char * expand_tilde(const char * path)
 	homedir = getenv("USERPROFILE");
 #endif
 	
-	char * final = malloc(strlen(homedir) + rest_len + 2);
+	char * final = calloc(1, strlen(homedir) + rest_len + 2);
 	
 	strcpy(final, homedir);
 	

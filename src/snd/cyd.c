@@ -1420,6 +1420,7 @@ static Sint32 cyd_output_fm_ops(CydEngine *cyd, CydChannel *chn, int chan_num, /
 		}
 		
 		Uint64 acc, noise_acc, wave_acc[CYD_SUB_OSCS];
+		UNUSED(noise_acc);
 		
 		chn->fm.ops[i].curr_tremolo = chn->fm.ops[i].tremolo;
 		
@@ -2906,7 +2907,7 @@ void cyd_enable_gate(CydEngine *cyd, CydChannel *chn, Uint8 enable)
 		
 	#ifndef CYD_OLD_ENVELOPE_RELEASE
 		// Adjust envelope value to create a continuous transition between attack and release
-		if (chn->adsr.envelope_state == ATTACK)
+		if (chn->adsr.envelope_state == ATTACK && !(chn->adsr.use_volume_envelope))
 		{
 			float fenv = sqrtf((float)chn->adsr.envelope * 65536.0f * 256.0f);
 			chn->adsr.envelope = fenv;
@@ -2932,7 +2933,7 @@ void cyd_enable_gate(CydEngine *cyd, CydChannel *chn, Uint8 enable)
 
 	#ifndef CYD_OLD_ENVELOPE_RELEASE
 		// Adjust envelope value to create a continuous modulator transition between attack and release
-		if (chn->fm.adsr.envelope_state == ATTACK)
+		if (chn->fm.adsr.envelope_state == ATTACK && !(chn->adsr.use_volume_envelope))
 		{
 			float fenv = sqrtf((float)chn->fm.adsr.envelope * 65536.0f * 256.0f);
 			chn->fm.adsr.envelope = fenv;
@@ -2951,7 +2952,7 @@ void cyd_enable_gate(CydEngine *cyd, CydChannel *chn, Uint8 enable)
 				
 			#ifndef CYD_OLD_ENVELOPE_RELEASE
 				// Adjust envelope value to create a continuous modulator transition between attack and release
-				if (chn->fm.ops[i].adsr.envelope_state == ATTACK)
+				if (chn->fm.ops[i].adsr.envelope_state == ATTACK && !(chn->adsr.use_volume_envelope))
 				{
 					float fenv = sqrtf((float)chn->fm.ops[i].adsr.envelope * 65536.0f * 256.0f);
 					chn->fm.ops[i].adsr.envelope = fenv;

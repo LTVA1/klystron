@@ -38,7 +38,7 @@ char32_t *unicode_strdup(const char32_t *s1)
   char32_t *str;
   size_t size = strlen(s1) * 4 + 1;
 
-  str = malloc(size);
+  str = calloc(1, size);
   if (str) {
     memcpy(str, s1, size);
   }
@@ -281,7 +281,7 @@ void font_write_va(const Font *font, GfxDomain *dest, const SDL_Rect *r, Uint16 
    va_list va_cpy;
    va_copy( va_cpy, va );
    const int len = vsnprintf(NULL, 0, text, va_cpy) + 1;
-   char * formatted = malloc(len * sizeof(*formatted));
+   char * formatted = calloc(1, len * sizeof(*formatted));
 
    va_end( va_cpy );
 #endif

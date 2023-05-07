@@ -151,7 +151,7 @@ static void add_file(int type, const char *name)
 	}
 	data.files[data.n_files].type = type;
 	data.files[data.n_files].name = strdup(name);
-	data.files[data.n_files].display_name = malloc(strlen(name) + 4); // TODO: figure out how much this goes past
+	data.files[data.n_files].display_name = calloc(1, strlen(name) + 4); // TODO: figure out how much this goes past
 	strcpy(data.files[data.n_files].display_name, name);
 	if (strlen(data.files[data.n_files].display_name) > LIST_WIDTH / data.largefont->w - 4)
 	{

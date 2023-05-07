@@ -249,8 +249,9 @@ typedef struct
 	
 	CydWavetableEntry** local_samples;
 	Uint8 num_local_samples;
-	char** local_sample_maps;
-
+	char** local_sample_names;
+	
+	Uint8 local_sample;
 } MusInstrument;
 
 enum
@@ -277,6 +278,7 @@ enum
 	MUS_INST_USE_PANNING_ENVELOPE = 65536,
 	
 	MUS_INST_KEEP_VOLUME_ON_SLIDE_AND_LEGATO = 65536 << 1, //do not default to instrument volume when slide/legato control bits are set (mostly for fzt compatibility)
+	MUS_INST_USE_LOCAL_SAMPLES = 65536 << 2,
 };
 
 enum

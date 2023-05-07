@@ -62,7 +62,7 @@ OTHER DEALINGS IN THE SOFTWARE.
 
 int * gfx_build_collision_mask(SDL_Surface *s)
 {
-	int * mask = malloc(sizeof(int) * s->w * s->h);
+	int * mask = calloc(1, sizeof(int) * s->w * s->h);
 
 #if SDL_VERSION_ATLEAST(1,3,0)
 	Uint32 key;
@@ -732,7 +732,7 @@ void gfx_domain_free(GfxDomain *domain)
 
 GfxDomain * gfx_create_domain(const char *title, Uint32 window_flags, int window_w, int window_h, int scale)
 {
-	GfxDomain *d = malloc(sizeof(GfxDomain));
+	GfxDomain *d = calloc(1, sizeof(GfxDomain));
 	d->screen_w = window_w / scale;
 	d->screen_h = window_h / scale;
 	d->scale = scale;

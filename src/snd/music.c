@@ -171,6 +171,33 @@ static RWops * RWFromFile(const char *name, const char *mode)
 #endif
 }
 
+void mus_free_inst_samples(MusInstrument* inst)
+{
+	for(int i = 0; i < inst->num_local_samples; i++)
+	{
+		if(inst->local_samples[i])
+		{
+			cyd_wave_entry_deinit(inst->local_samples[i]);
+			free(inst->local_samples[i]);
+		}
+		
+		if(inst->local_sample_names[i])
+		{
+			free(inst->local_sample_names[i]);
+		}
+	}
+	
+	if(inst->local_samples)
+	{
+		free(inst->local_samples);
+	}
+	
+	if(inst->local_sample_names)
+	{
+		free(inst->local_sample_names);
+	}
+}
+
 void mus_free_inst_programs(MusInstrument* inst) //because memory for programs is dynamically allocated we need to free() it when we delete/overwrite instrument
 {
 	for(int i = 0; i < MUS_MAX_MACROS_INST; ++i)
@@ -9484,6 +9511,7 @@ int mus_load_instrument_RW2(RWops *ctx, MusInstrument *inst, CydWavetableEntry *
 void mus_get_default_instrument(MusInstrument *inst)
 {
 	mus_free_inst_programs(inst);
+	mus_free_inst_samples(inst);
 	
 	memset(inst, 0, sizeof(*inst));
 	
@@ -9536,6 +9564,16 @@ void mus_get_default_instrument(MusInstrument *inst)
 	
 	inst->program[0] = (Uint16*)calloc(1, MUS_PROG_LEN * sizeof(Uint16));
 	inst->program_unite_bits[0] = (Uint8*)calloc(1, (MUS_PROG_LEN / 8 + 1) * sizeof(Uint8));
+	
+	inst->local_samples = (CydWavetableEntry**)calloc(1, sizeof(CydWavetableEntry*));
+	inst->local_sample_names = (char**)calloc(1, sizeof(char*));
+	
+	inst->local_samples[0] = (CydWavetableEntry*)calloc(1, sizeof(CydWavetableEntry));
+	inst->local_sample_names[0] = (char*)calloc(1, sizeof(char) * MUS_WAVETABLE_NAME_LEN);
+	
+	cyd_wave_entry_init(inst->local_samples[0], NULL, 0, 0, 0, 0, 0);
+	
+	inst->num_local_samples = 1;
 	
 	inst->num_macros = 1;
 
@@ -9591,8 +9629,8 @@ void mus_get_default_instrument(MusInstrument *inst)
 		inst->ops[i].CSM_timer_note = MIDDLE_C;
 		inst->ops[i].CSM_timer_finetune = 0;
 		
-		inst->ops[i].program[0] = (Uint16*)malloc(MUS_PROG_LEN * sizeof(Uint16));
-		inst->ops[i].program_unite_bits[0] = (Uint8*)malloc((MUS_PROG_LEN / 8 + 1) * sizeof(Uint8));
+		inst->ops[i].program[0] = (Uint16*)calloc(1, MUS_PROG_LEN * sizeof(Uint16));
+		inst->ops[i].program_unite_bits[0] = (Uint8*)calloc(1, (MUS_PROG_LEN / 8 + 1) * sizeof(Uint8));
 		
 		inst->ops[i].num_macros = 1;
 
@@ -9629,8 +9667,8 @@ void mus_get_empty_instrument(MusInstrument *inst)
 	inst->volume_envelope[1].x = 0x80;
 	inst->volume_envelope[1].y = 0x80;
 	
-	inst->program[0] = (Uint16*)malloc(MUS_PROG_LEN * sizeof(Uint16));
-	inst->program_unite_bits[0] = (Uint8*)malloc((MUS_PROG_LEN / 8 + 1) * sizeof(Uint8));
+	inst->program[0] = (Uint16*)calloc(1, MUS_PROG_LEN * sizeof(Uint16));
+	inst->program_unite_bits[0] = (Uint8*)calloc(1, (MUS_PROG_LEN / 8 + 1) * sizeof(Uint8));
 	
 	inst->num_macros = 1;
 	
@@ -9657,8 +9695,8 @@ void mus_get_empty_instrument(MusInstrument *inst)
 			inst->ops[i].prog_period[j] = 1;
 		}
 		
-		inst->ops[i].program[0] = (Uint16*)malloc(MUS_PROG_LEN * sizeof(Uint16));
-		inst->ops[i].program_unite_bits[0] = (Uint8*)malloc((MUS_PROG_LEN / 8 + 1) * sizeof(Uint8));
+		inst->ops[i].program[0] = (Uint16*)calloc(1, MUS_PROG_LEN * sizeof(Uint16));
+		inst->ops[i].program_unite_bits[0] = (Uint8*)calloc(1, (MUS_PROG_LEN / 8 + 1) * sizeof(Uint8));
 		
 		inst->ops[i].num_macros = 1;
 		

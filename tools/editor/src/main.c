@@ -356,7 +356,7 @@ void resize_layer(int w, int h)
 
 	BgCell * temp = layer->data;
 	
-	layer->data = malloc(sizeof(BgCell)*w*h);
+	layer->data = calloc(1, sizeof(BgCell)*w*h);
 	memset(layer->data, 0, sizeof(BgCell)*w*h);
 	
 	if (temp)
@@ -498,13 +498,13 @@ void init_magic_layer(int w, int h, TileDescriptor *desc, int tiles)
 {
 	level.layer[BRUSH_LAYER].w = 1;
 	level.layer[BRUSH_LAYER].h = 1;
-	level.layer[BRUSH_LAYER].data = malloc(level.layer[BRUSH_LAYER].w*level.layer[BRUSH_LAYER].h*sizeof(level.layer[BRUSH_LAYER].data[0]));
+	level.layer[BRUSH_LAYER].data = calloc(1, level.layer[BRUSH_LAYER].w*level.layer[BRUSH_LAYER].h*sizeof(level.layer[BRUSH_LAYER].data[0]));
 	memset(level.layer[BRUSH_LAYER].data, 0, level.layer[BRUSH_LAYER].w*level.layer[BRUSH_LAYER].h*sizeof(level.layer[BRUSH_LAYER].data[0]));
 	level.layer[BRUSH_LAYER].data[0].tile = selected_tile;
 
 	level.layer[MAGICK_LAYER].w = w / CELLSIZE;
 	level.layer[MAGICK_LAYER].h = h / CELLSIZE;
-	level.layer[MAGICK_LAYER].data = malloc(level.layer[MAGICK_LAYER].w*level.layer[MAGICK_LAYER].h*sizeof(level.layer[MAGICK_LAYER].data[0]));
+	level.layer[MAGICK_LAYER].data = calloc(1, level.layer[MAGICK_LAYER].w*level.layer[MAGICK_LAYER].h*sizeof(level.layer[MAGICK_LAYER].data[0]));
 	memset(level.layer[MAGICK_LAYER].data, 0, level.layer[MAGICK_LAYER].w*level.layer[MAGICK_LAYER].h*sizeof(level.layer[MAGICK_LAYER].data[0]));
 	
 	for (int i = 0; i < tiles; ++i)
@@ -545,7 +545,7 @@ void get_brush(int x1, int y1, int x2, int y2)
 	free(level.layer[BRUSH_LAYER].data);
 	level.layer[BRUSH_LAYER].w = x2 - x1 + 1;
 	level.layer[BRUSH_LAYER].h = y2 - y1 + 1;
-	level.layer[BRUSH_LAYER].data = malloc(level.layer[BRUSH_LAYER].w * level.layer[BRUSH_LAYER].h * sizeof(level.layer[BRUSH_LAYER].data[0]));
+	level.layer[BRUSH_LAYER].data = calloc(1, level.layer[BRUSH_LAYER].w * level.layer[BRUSH_LAYER].h * sizeof(level.layer[BRUSH_LAYER].data[0]));
 	memset(level.layer[BRUSH_LAYER].data, 0, level.layer[BRUSH_LAYER].w * level.layer[BRUSH_LAYER].h * sizeof(level.layer[BRUSH_LAYER].data[0]));
 	
 	for (int y = 0; y < level.layer[BRUSH_LAYER].h; ++y)
@@ -571,7 +571,7 @@ void get_brush(int x1, int y1, int x2, int y2)
 
 void swap(void *a, void *b, size_t size)
 {
-	void * ptr = malloc(size);
+	void * ptr = calloc(1, size);
 	memcpy(ptr, a, size);
 	memcpy(a, b, size);
 	memcpy(b, ptr, size);
@@ -699,7 +699,7 @@ void shift_layer(int dx, int dy)
 	int w = level.layer[current_layer].w;
 	int h = level.layer[current_layer].h;
 	
-	BgCell *temp = malloc(sizeof(BgCell)*w*h);
+	BgCell *temp = calloc(1, sizeof(BgCell)*w*h);
 	
 	for (int y = 0; y < h; ++y)
 		for (int x = 0; x < w; ++x)
@@ -728,7 +728,7 @@ void double_layer()
 	int w = level.layer[current_layer].w;
 	int h = level.layer[current_layer].h;
 	
-	BgCell *temp = malloc(sizeof(BgCell) * (w * 2) * (h * 2));
+	BgCell *temp = calloc(1, sizeof(BgCell) * (w * 2) * (h * 2));
 	
 	for (int y = 0; y < h * 2; ++y)
 		for (int x = 0; x < w * 2; ++x)

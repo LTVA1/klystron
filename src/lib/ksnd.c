@@ -150,7 +150,7 @@ KLYSAPI KPlayer* KSND_CreatePlayer(int sample_rate)
 
 KLYSAPI KPlayer* KSND_CreatePlayerUnregistered(int sample_rate)
 {
-	KPlayer *player = malloc(sizeof(*player));
+	KPlayer *player = calloc(1, sizeof(*player));
 	
 	player->cyd_registered = false;
 	
