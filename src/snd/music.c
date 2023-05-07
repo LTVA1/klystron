@@ -3680,7 +3680,7 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 		break;
 	}
 
-	if (tick == 0 || chn->prog_period[prog_number] < 2)
+	if (tick == 0)// || chn->prog_period[prog_number] < 2)
 	{
 		// --- commands that run only on tick 0
 		
@@ -5686,7 +5686,7 @@ static void mus_exec_track_command(MusEngine *mus, int chan, int first_tick)
 		default:
 			if (vol <= MAX_VOLUME)
 			{
-				do_command(mus, chan, first_tick ? 0 : mus->song_counter, MUS_FX_SET_VOLUME | (Uint16)(vol), 0, mus->channel[chan].instrument != NULL ? ((mus->channel[chan].instrument->fm_flags & CYD_FM_FOUROP_USE_MAIN_INST_PROG) ? 0xFF : 0) : 0, 0);
+				do_command(mus, chan, ((first_tick == 1) ? 0 : mus->song_counter), MUS_FX_SET_VOLUME | (Uint16)(vol), 0, mus->channel[chan].instrument != NULL ? ((mus->channel[chan].instrument->fm_flags & CYD_FM_FOUROP_USE_MAIN_INST_PROG) ? 0xFF : 0) : 0, 0);
 			}
 			break;
 	}
@@ -7909,7 +7909,7 @@ int mus_advance_tick(void* udata)
 					}
 				}
 
-				if (track_status->pattern) mus_exec_track_command(mus, i, mus->song_counter == delay);
+				if (track_status->pattern) mus_exec_track_command(mus, i, ((mus->song_counter == delay) ? 1 : 0));
 			}
 
 			++mus->song_counter;
