@@ -37,6 +37,7 @@ OTHER DEALINGS IN THE SOFTWARE.
 #endif
 
 #include "music_defs.h"
+#include "freqs.h"
 
 #define MUS_PROG_LEN 255
 #define MUS_MAX_NESTEDNESS 5
@@ -155,6 +156,13 @@ typedef struct //wasn't there
 
 typedef struct
 {
+	Uint8 note;
+	Uint8 sample;
+	Uint8 flags;
+} MusInstNoteToSample;
+
+typedef struct
+{
 	Uint32 flags;
 	Uint32 cydflags;
 	MusAdsr adsr;
@@ -252,7 +260,15 @@ typedef struct
 	char** local_sample_names;
 	
 	Uint8 local_sample;
+	
+	MusInstNoteToSample note_to_sample_array[FREQ_TAB_SIZE];
 } MusInstrument;
+
+enum
+{
+	MUS_NOTE_TO_SAMPLE_GLOBAL = 1, //true = global, false = local
+	MUS_NOTE_TO_SAMPLE_LOOP = 2, //if you need to loop sample
+};
 
 enum
 {
@@ -279,6 +295,8 @@ enum
 	
 	MUS_INST_KEEP_VOLUME_ON_SLIDE_AND_LEGATO = 65536 << 1, //do not default to instrument volume when slide/legato control bits are set (mostly for fzt compatibility)
 	MUS_INST_USE_LOCAL_SAMPLES = 65536 << 2,
+	
+	MUS_INST_BIND_LOCAL_SAMPLES_TO_NOTES = 65536 << 3,
 };
 
 enum
@@ -532,6 +550,11 @@ enum
 	MUS_NOTE_CUT = 0xfd,
 	MUS_NOTE_MACRO_RELEASE = 0xfc,
 	MUS_NOTE_RELEASE_WITHOUT_MACRO = 0xfb,
+};
+
+enum
+{
+	MUS_NOTE_TO_SAMPLE_NONE = 0xff,
 };
 
 enum

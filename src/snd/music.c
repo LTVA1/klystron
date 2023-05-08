@@ -173,28 +173,41 @@ static RWops * RWFromFile(const char *name, const char *mode)
 
 void mus_free_inst_samples(MusInstrument* inst)
 {
-	for(int i = 0; i < inst->num_local_samples; i++)
+	if(inst->local_samples)
 	{
-		if(inst->local_samples[i])
+		for(int i = 0; i < inst->num_local_samples; i++)
 		{
-			cyd_wave_entry_deinit(inst->local_samples[i]);
-			free(inst->local_samples[i]);
+			if(inst->local_samples[i])
+			{
+				cyd_wave_entry_deinit(inst->local_samples[i]);
+				free(inst->local_samples[i]);
+				inst->local_samples[i] = NULL;
+			}
 		}
-		
-		if(inst->local_sample_names[i])
+	}
+	
+	if(inst->local_sample_names)
+	{
+		for(int i = 0; i < inst->num_local_samples; i++)
 		{
-			free(inst->local_sample_names[i]);
+			if(inst->local_sample_names[i])
+			{
+				free(inst->local_sample_names[i]);
+				inst->local_sample_names[i] = NULL;
+			}
 		}
 	}
 	
 	if(inst->local_samples)
 	{
 		free(inst->local_samples);
+		inst->local_samples = NULL;
 	}
 	
 	if(inst->local_sample_names)
 	{
 		free(inst->local_sample_names);
+		inst->local_sample_names = NULL;
 	}
 }
 
@@ -205,11 +218,13 @@ void mus_free_inst_programs(MusInstrument* inst) //because memory for programs i
 		if(inst->program[i])
 		{
 			free(inst->program[i]);
+			inst->program[i] = NULL;
 		}
 		
 		if(inst->program_unite_bits[i])
 		{
 			free(inst->program_unite_bits[i]);
+			inst->program_unite_bits[i] = NULL;
 		}
 	}
 	
@@ -220,11 +235,13 @@ void mus_free_inst_programs(MusInstrument* inst) //because memory for programs i
 			if(inst->ops[op].program[i])
 			{
 				free(inst->ops[op].program[i]);
+				inst->ops[op].program[i] = NULL;
 			}
 			
 			if(inst->ops[op].program_unite_bits[i])
 			{
 				free(inst->ops[op].program_unite_bits[i]);
+				inst->ops[op].program_unite_bits[i] = NULL;
 			}
 		}
 	}
@@ -5684,7 +5701,7 @@ static void mus_exec_track_command(MusEngine *mus, int chan, int first_tick)
 			break;
 
 		default:
-			if (vol <= MAX_VOLUME)
+			if (vol <= MAX_VOLUME && track_status->pattern->step[track_status->pattern_step].note != MUS_NOTE_CUT)
 			{
 				do_command(mus, chan, ((first_tick == 1) ? 0 : mus->song_counter), MUS_FX_SET_VOLUME | (Uint16)(vol), 0, mus->channel[chan].instrument != NULL ? ((mus->channel[chan].instrument->fm_flags & CYD_FM_FOUROP_USE_MAIN_INST_PROG) ? 0xFF : 0) : 0, 0);
 			}
@@ -6779,14 +6796,38 @@ int mus_trigger_instrument_internal(MusEngine* mus, int chan, MusInstrument *ins
 	}
 
 #ifndef CYD_DISABLE_WAVETABLE
-	if (ins->cydflags & CYD_CHN_ENABLE_WAVE)
+	if(!(ins->flags & MUS_INST_USE_LOCAL_SAMPLES))
 	{
-		cyd_set_wave_entry(cydchn, &mus->cyd->wavetable_entries[ins->wavetable_entry]);
+		if (ins->cydflags & CYD_CHN_ENABLE_WAVE)
+		{
+			cyd_set_wave_entry(cydchn, &mus->cyd->wavetable_entries[ins->wavetable_entry]);
+		}
+		
+		else
+		{
+			cyd_set_wave_entry(cydchn, NULL);
+		}
 	}
 	
 	else
 	{
-		cyd_set_wave_entry(cydchn, NULL);
+		if (ins->cydflags & CYD_CHN_ENABLE_WAVE)
+		{
+			if(ins->num_local_samples > ins->local_sample)
+			{
+				cyd_set_wave_entry(cydchn, ins->local_samples[ins->local_sample]);
+			}
+			
+			else
+			{
+				cyd_set_wave_entry(cydchn, NULL);
+			}
+		}
+		
+		else
+		{
+			cyd_set_wave_entry(cydchn, NULL);
+		}
 	}
 	
 	for(int i = 0; i < CYD_SUB_OSCS; ++i)
@@ -7633,8 +7674,11 @@ int mus_advance_tick(void* udata)
 									{
 										for(int i1 = 0; i1 < CYD_FM_NUM_OPS; ++i1)
 										{
-											cydchn->fm.ops[i1].adsr.volume = 0;
-											track_status->ops_status[i1].volume = 0;
+											if(!(muschn->ops[i].flags & MUS_FM_OP_DISABLED))
+											{
+												cydchn->fm.ops[i1].adsr.volume = 0;
+												track_status->ops_status[i1].volume = 0;
+											}
 										}
 									}
 								}
@@ -9585,6 +9629,11 @@ void mus_get_default_instrument(MusInstrument *inst)
 	for (int p = 0; p < MUS_PROG_LEN / 8 + 1; ++p)
 	{
 		inst->program_unite_bits[0][p] = 0;
+	}
+	
+	for(int i = 0; i < FREQ_TAB_SIZE; i++)
+	{
+		inst->note_to_sample_array[i] = (MusInstNoteToSample) { .note = i, .sample = MUS_NOTE_TO_SAMPLE_NONE, .flags = 0 };
 	}
 	
 	for(int i = 0; i < CYD_FM_NUM_OPS; ++i)
