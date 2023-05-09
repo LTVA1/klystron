@@ -57,8 +57,6 @@ typedef struct
 	Uint32 sample_rate;
 	Uint32 samples, loop_begin, loop_end; //begin and end
 	
-	Uint32 loop_point; //when wave plays some part only once and then loops through the next part
-	
 	Uint16 base_note;
 	Sint16 *data; 
 } CydWavetableEntry;
