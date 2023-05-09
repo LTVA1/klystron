@@ -184,6 +184,8 @@ void mus_free_inst_samples(MusInstrument* inst)
 				inst->local_samples[i] = NULL;
 			}
 		}
+		
+		inst->num_local_samples = 0;
 	}
 	
 	if(inst->local_sample_names)
@@ -196,6 +198,8 @@ void mus_free_inst_samples(MusInstrument* inst)
 				inst->local_sample_names[i] = NULL;
 			}
 		}
+		
+		inst->num_local_samples = 0;
 	}
 	
 	if(inst->local_samples)
@@ -5402,6 +5406,7 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 							if ((inst & 255) < CYD_WAVE_MAX_ENTRIES)
 							{
 								cydchn->wave_entry = &mus->cyd->wavetable_entries[inst & 255];
+								chn->flags &= ~(MUS_INST_USE_LOCAL_SAMPLES);
 							}
 							
 							if(ops_index == 0xFF)
@@ -5427,6 +5432,33 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 							
 							break;
 						}
+					}
+				}
+				break;
+				
+				case MUS_FX_SET_LOCAL_SAMPLE:
+				{
+					switch(ops_index)
+					{
+						case 0:
+						case 0xFF:
+						{
+							if(chn->instrument)
+							{
+								if(chn->instrument->local_samples)
+								{
+									if(chn->instrument->num_local_samples > (inst & 0xff))
+									{
+										cydchn->wave_entry = chn->instrument->local_samples[inst & 0xff];
+										chn->flags |= MUS_INST_USE_LOCAL_SAMPLES;
+									}
+								}
+							}
+							
+							break;
+						}
+						
+						default: break;
 					}
 				}
 				break;
@@ -6687,6 +6719,116 @@ int mus_trigger_instrument_internal(MusEngine* mus, int chan, MusInstrument *ins
 		mus_set_noise_fixed_pitch_note(mus, chan, (Uint16)(ins->base_note << 8), 1, ins->flags & MUS_INST_QUARTER_FREQ ? 4 : 1);
 		chn->noise_note = ins->base_note;
 	}
+	
+	#ifndef CYD_DISABLE_WAVETABLE
+	if(!(ins->flags & MUS_INST_USE_LOCAL_SAMPLES))
+	{
+		if (ins->cydflags & CYD_CHN_ENABLE_WAVE)
+		{
+			cyd_set_wave_entry(cydchn, &mus->cyd->wavetable_entries[ins->wavetable_entry]);
+		}
+		
+		else
+		{
+			cyd_set_wave_entry(cydchn, NULL);
+		}
+	}
+	
+	else
+	{
+		if(ins->flags & MUS_INST_BIND_LOCAL_SAMPLES_TO_NOTES)
+		{
+			if (ins->cydflags & CYD_CHN_ENABLE_WAVE)
+			{
+				if(ins->note_to_sample_array[note >> 8].sample != MUS_NOTE_TO_SAMPLE_NONE)
+				{
+					if(ins->note_to_sample_array[note >> 8].flags & MUS_NOTE_TO_SAMPLE_GLOBAL)
+					{
+						cyd_set_wave_entry(cydchn, &mus->cyd->wavetable_entries[ins->note_to_sample_array[note >> 8].sample]);
+					}
+					
+					else
+					{
+						if(ins->note_to_sample_array[note >> 8].sample < ins->num_local_samples)
+						{
+							cyd_set_wave_entry(cydchn, ins->local_samples[ins->note_to_sample_array[note >> 8].sample]);
+						}
+						
+						else
+						{
+							cyd_set_wave_entry(cydchn, NULL);
+						}
+					}
+				}
+				
+				else
+				{
+					cyd_set_wave_entry(cydchn, NULL);
+				}
+			}
+		}
+		
+		else
+		{
+			if (ins->cydflags & CYD_CHN_ENABLE_WAVE)
+			{
+				if(ins->num_local_samples > ins->local_sample)
+				{
+					cyd_set_wave_entry(cydchn, ins->local_samples[ins->local_sample]);
+				}
+				
+				else
+				{
+					cyd_set_wave_entry(cydchn, NULL);
+				}
+			}
+			
+			else
+			{
+				cyd_set_wave_entry(cydchn, NULL);
+			}
+		}
+	}
+	
+	for(int i = 0; i < CYD_SUB_OSCS; ++i)
+	{
+		cydchn->subosc[i].wave.end_offset = 0xffff;
+		cydchn->subosc[i].wave.start_offset = 0;
+		
+		cydchn->subosc[i].wave.start_point_track_status = 0;
+		cydchn->subosc[i].wave.end_point_track_status = 0;
+		
+		cydchn->subosc[i].wave.use_start_track_status_offset = false;
+		cydchn->subosc[i].wave.use_end_track_status_offset = false;
+		
+		cydchn->subosc[i].accumulator = 0;
+		cydchn->subosc[i].wave.acc = 0;
+	}
+
+#ifndef CYD_DISABLE_FM
+	if(ins->cydflags & CYD_CHN_ENABLE_FM)
+	{
+		if (ins->fm_flags & CYD_FM_ENABLE_WAVE)
+		{
+			cydfm_set_wave_entry(&cydchn->fm, &mus->cyd->wavetable_entries[ins->fm_wave]);
+		}
+		
+		else
+		{
+			cydfm_set_wave_entry(&cydchn->fm, NULL);
+		}
+		
+		cydchn->fm.wave.end_offset = 0xffff;
+		cydchn->fm.wave.start_offset = 0;
+		
+		cydchn->fm.wave.start_point_track_status = 0;
+		cydchn->fm.wave.end_point_track_status = 0;
+		
+		cydchn->fm.wave.use_start_track_status_offset = false;
+		cydchn->fm.wave.use_end_track_status_offset = false;
+	}
+#endif
+#endif
 
 	mus_set_note(mus, chan, ((Uint16)note) + ins->finetune, 1, ins->flags & MUS_INST_QUARTER_FREQ ? 4 : 1);
 	
@@ -6794,81 +6936,6 @@ int mus_trigger_instrument_internal(MusEngine* mus, int chan, MusInstrument *ins
 			cydchn->adsr.r = ins->adsr.r;
 		}
 	}
-
-#ifndef CYD_DISABLE_WAVETABLE
-	if(!(ins->flags & MUS_INST_USE_LOCAL_SAMPLES))
-	{
-		if (ins->cydflags & CYD_CHN_ENABLE_WAVE)
-		{
-			cyd_set_wave_entry(cydchn, &mus->cyd->wavetable_entries[ins->wavetable_entry]);
-		}
-		
-		else
-		{
-			cyd_set_wave_entry(cydchn, NULL);
-		}
-	}
-	
-	else
-	{
-		if (ins->cydflags & CYD_CHN_ENABLE_WAVE)
-		{
-			if(ins->num_local_samples > ins->local_sample)
-			{
-				cyd_set_wave_entry(cydchn, ins->local_samples[ins->local_sample]);
-			}
-			
-			else
-			{
-				cyd_set_wave_entry(cydchn, NULL);
-			}
-		}
-		
-		else
-		{
-			cyd_set_wave_entry(cydchn, NULL);
-		}
-	}
-	
-	for(int i = 0; i < CYD_SUB_OSCS; ++i)
-	{
-		cydchn->subosc[i].wave.end_offset = 0xffff;
-		cydchn->subosc[i].wave.start_offset = 0;
-		
-		cydchn->subosc[i].wave.start_point_track_status = 0;
-		cydchn->subosc[i].wave.end_point_track_status = 0;
-		
-		cydchn->subosc[i].wave.use_start_track_status_offset = false;
-		cydchn->subosc[i].wave.use_end_track_status_offset = false;
-		
-		cydchn->subosc[i].accumulator = 0;
-		cydchn->subosc[i].wave.acc = 0;
-	}
-
-#ifndef CYD_DISABLE_FM
-	if(ins->cydflags & CYD_CHN_ENABLE_FM)
-	{
-		if (ins->fm_flags & CYD_FM_ENABLE_WAVE)
-		{
-			cydfm_set_wave_entry(&cydchn->fm, &mus->cyd->wavetable_entries[ins->fm_wave]);
-		}
-		
-		else
-		{
-			cydfm_set_wave_entry(&cydchn->fm, NULL);
-		}
-		
-		cydchn->fm.wave.end_offset = 0xffff;
-		cydchn->fm.wave.start_offset = 0;
-		
-		cydchn->fm.wave.start_point_track_status = 0;
-		cydchn->fm.wave.end_point_track_status = 0;
-		
-		cydchn->fm.wave.use_start_track_status_offset = false;
-		cydchn->fm.wave.use_end_track_status_offset = false;
-	}
-#endif
-#endif
 
 #ifdef STEREOOUTPUT
 	if (panning != -1)
@@ -8890,6 +8957,55 @@ int mus_load_instrument_RW(Uint8 version, RWops *ctx, MusInstrument *inst, CydWa
 	
 	VER_READ(version, 12, 0xff, &inst->wavetable_entry, 0);
 	
+	if(inst->flags & MUS_INST_USE_LOCAL_SAMPLES)
+	{
+		mus_free_inst_samples(inst);
+		
+		VER_READ(version, 42, 0xff, &inst->num_local_samples, 0);
+		
+		inst->local_samples = (CydWavetableEntry**)calloc(1, sizeof(CydWavetableEntry*) * inst->num_local_samples);
+		inst->local_sample_names = (char**)calloc(1, sizeof(char*) * inst->num_local_samples);
+		
+		for(int i = 0; i < inst->num_local_samples; i++)
+		{
+			inst->local_samples[i] = (CydWavetableEntry*)calloc(1, sizeof(CydWavetableEntry));
+			cyd_wave_entry_init(inst->local_samples[i], NULL, 0, 0, 0, 0, 0);
+			
+			inst->local_sample_names[i] = (char*)calloc(1, sizeof(char) * MUS_WAVETABLE_NAME_LEN);
+			memset(inst->local_sample_names[i], 0, sizeof(char) * MUS_WAVETABLE_NAME_LEN);
+			
+			Uint8 wave_name_len = 0;
+			
+			VER_READ(version, 42, 0xff, &wave_name_len, 0);
+			
+			if(wave_name_len > 0)
+			{
+				_VER_READ(inst->local_sample_names[i], sizeof(inst->local_sample_names[i][0]) * wave_name_len);
+			}
+			
+			load_wavetable_entry(version, inst->local_samples[i], ctx);
+		}
+		
+		if(inst->flags & MUS_INST_BIND_LOCAL_SAMPLES_TO_NOTES)
+		{
+			Uint8 num_note_binds = 0;
+			
+			VER_READ(version, 42, 0xff, &num_note_binds, 0);
+			
+			for(int i = 0; i < num_note_binds; i++)
+			{
+				Uint8 note = 0;
+				
+				VER_READ(version, 42, 0xff, &note, 0);
+				
+				inst->note_to_sample_array[note].note = note;
+				
+				VER_READ(version, 42, 0xff, &inst->note_to_sample_array[note].flags, 0);
+				VER_READ(version, 42, 0xff, &inst->note_to_sample_array[note].sample, 0);
+			}
+		}
+	}
+	
 	if(((inst->cydflags & CYD_CHN_ENABLE_FM) && version >= 31) || version < 31)
 	{
 		VER_READ(version, 23, 0xff, &inst->fm_flags, 0);
@@ -9702,6 +9818,7 @@ void mus_get_default_instrument(MusInstrument *inst)
 void mus_get_empty_instrument(MusInstrument *inst)
 {
 	mus_free_inst_programs(inst);
+	mus_free_inst_samples(inst);
 	
 	memset(inst, 0, sizeof(*inst));
 	
@@ -10824,6 +10941,7 @@ void mus_free_song(MusSong *song)
 	for (int i = 0; i < song->num_instruments; ++i)
 	{
 		mus_free_inst_programs(&song->instrument[i]);
+		mus_free_inst_samples(&song->instrument[i]);
 	}
 	
 	free(song->instrument);

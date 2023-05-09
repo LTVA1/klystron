@@ -794,6 +794,9 @@ enum
 	MUS_FX_SET_SYNCSRC = 0x7a00,
 	MUS_FX_SET_RINGSRC = 0x7b00,
 	MUS_FX_SET_WAVETABLE_ITEM = 0x3b00,
+	
+	MUS_FX_SET_LOCAL_SAMPLE = 0x9b00,
+	
 	MUS_FX_SET_DOWNSAMPLE = 0x1e00,
 	
 	MUS_FX_WAVETABLE_OFFSET = 0x5000, //if sample is looped, it would set starting point
@@ -927,6 +930,7 @@ typedef struct RWops
 #endif
 
 void mus_free_inst_programs(MusInstrument* inst);
+void mus_free_inst_samples(MusInstrument* inst);
 
 int mus_advance_tick(void* udata);
 int mus_trigger_instrument(MusEngine* mus, int chan, MusInstrument *ins, Uint16 note, int panning);
