@@ -327,7 +327,7 @@ static void mus_set_wavetable_frequency(MusEngine *mus, int chan, Uint16 note)
 	CydChannel *cydchn = &mus->cyd->channel[chan];
 	MusTrackStatus *track_status = &mus->song_track[chan];
 
-	if (chn->instrument && (chn->instrument->cydflags & CYD_CHN_ENABLE_WAVE) && (cydchn->wave_entry))
+	if (chn->instrument && ((cydchn->flags & CYD_CHN_ENABLE_WAVE) || (chn->flags & MUS_INST_USE_LOCAL_SAMPLES)) && (cydchn->wave_entry))
 	{
 		for (int s = 0; s < CYD_SUB_OSCS; ++s)
 		{
@@ -5407,6 +5407,9 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 							{
 								cydchn->wave_entry = &mus->cyd->wavetable_entries[inst & 255];
 								chn->flags &= ~(MUS_INST_USE_LOCAL_SAMPLES);
+								cydchn->flags |= CYD_CHN_ENABLE_WAVE;
+								
+								mus_set_wavetable_frequency(mus, chan, chn->note);
 							}
 							
 							if(ops_index == 0xFF)
@@ -5451,6 +5454,9 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 									{
 										cydchn->wave_entry = chn->instrument->local_samples[inst & 0xff];
 										chn->flags |= MUS_INST_USE_LOCAL_SAMPLES;
+										cydchn->flags |= CYD_CHN_ENABLE_WAVE;
+										
+										mus_set_wavetable_frequency(mus, chan, chn->note);
 									}
 								}
 							}
