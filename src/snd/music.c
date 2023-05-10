@@ -5736,9 +5736,27 @@ static void mus_exec_track_command(MusEngine *mus, int chan, int first_tick)
 
 		case MUS_NOTE_VOLUME_FADE_DN:
 			do_command(mus, chan, mus->song_counter, MUS_FX_FADE_VOLUME | ((Uint16)(vol & 0xf)), 0, mus->channel[chan].instrument != NULL ? ((mus->channel[chan].instrument->fm_flags & CYD_FM_FOUROP_USE_MAIN_INST_PROG) ? 0xFF : 0) : 0, 0);
-			break;
+		break;
+		
+		case MUS_NOTE_VOLUME_FADE_DN_FINE:
+			do_command(mus, chan, mus->song_counter, MUS_FX_EXT_FADE_VOLUME_DN | ((Uint16)(vol & 0xf)), 0, mus->channel[chan].instrument != NULL ? ((mus->channel[chan].instrument->fm_flags & CYD_FM_FOUROP_USE_MAIN_INST_PROG) ? 0xFF : 0) : 0, 0);
+		break;
+		
+		case MUS_NOTE_VOLUME_FADE_UP_FINE:
+			if((vol & 0x0f) > 0) //because otherwise we have 0x80 which is valid volume value
+			{
+				do_command(mus, chan, mus->song_counter, MUS_FX_EXT_FADE_VOLUME_UP | ((Uint16)(vol & 0xf)), 0, mus->channel[chan].instrument != NULL ? ((mus->channel[chan].instrument->fm_flags & CYD_FM_FOUROP_USE_MAIN_INST_PROG) ? 0xFF : 0) : 0, 0);
+			}
+			
+			else
+			{
+				goto volume; //if we have 0x80 set the volume lol
+			}
+		break;
 
 		default:
+			volume:;
+			
 			if (vol <= MAX_VOLUME && track_status->pattern->step[track_status->pattern_step].note != MUS_NOTE_CUT)
 			{
 				do_command(mus, chan, ((first_tick == 1) ? 0 : mus->song_counter), MUS_FX_SET_VOLUME | (Uint16)(vol), 0, mus->channel[chan].instrument != NULL ? ((mus->channel[chan].instrument->fm_flags & CYD_FM_FOUROP_USE_MAIN_INST_PROG) ? 0xFF : 0) : 0, 0);
