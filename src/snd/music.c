@@ -9860,7 +9860,32 @@ void mus_get_empty_instrument(MusInstrument *inst)
 	inst->program[0] = (Uint16*)calloc(1, MUS_PROG_LEN * sizeof(Uint16));
 	inst->program_unite_bits[0] = (Uint8*)calloc(1, (MUS_PROG_LEN / 8 + 1) * sizeof(Uint8));
 	
+	inst->local_samples = (CydWavetableEntry**)calloc(1, sizeof(CydWavetableEntry*));
+	inst->local_sample_names = (char**)calloc(1, sizeof(char*));
+	
+	inst->local_samples[0] = (CydWavetableEntry*)calloc(1, sizeof(CydWavetableEntry));
+	inst->local_sample_names[0] = (char*)calloc(1, sizeof(char) * MUS_WAVETABLE_NAME_LEN);
+	
+	cyd_wave_entry_init(inst->local_samples[0], NULL, 0, 0, 0, 0, 0);
+	
+	inst->num_local_samples = 1;
+	
 	inst->num_macros = 1;
+
+	for (int p = 0; p < MUS_PROG_LEN; ++p)
+	{
+		inst->program[0][p] = MUS_FX_NOP;
+	}
+	
+	for (int p = 0; p < MUS_PROG_LEN / 8 + 1; ++p)
+	{
+		inst->program_unite_bits[0][p] = 0;
+	}
+	
+	for(int i = 0; i < FREQ_TAB_SIZE; i++)
+	{
+		inst->note_to_sample_array[i] = (MusInstNoteToSample) { .note = i, .sample = MUS_NOTE_TO_SAMPLE_NONE, .flags = 0 };
+	}
 	
 	inst->fm_4op_vol = 0x80;
 	
