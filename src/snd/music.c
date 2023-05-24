@@ -7179,7 +7179,7 @@ static void mus_advance_channel(MusEngine* mus, int chan)
 
 	MusInstrument *ins = chn->instrument;
 
-	if (ins->flags & MUS_INST_DRUM && chn->current_tick == 1)
+	if ((ins->flags & MUS_INST_DRUM) && chn->current_tick == 1)
 	{
 		cyd_set_waveform(&mus->cyd->channel[chan], ins->cydflags);
 	}
