@@ -43,7 +43,14 @@ void cyd_wave_entry_init(CydWavetableEntry *entry, const void *data, Uint32 n_sa
 {
 	if (data && n_samples > 0)
 	{
-		entry->data = realloc(entry->data, sizeof(*entry->data) * n_samples);
+		//entry->data = realloc(entry->data, sizeof(*entry->data) * n_samples);
+
+		if(entry->data != NULL)
+		{
+			free(entry->data);
+		}
+
+		entry->data = calloc(1, sizeof(entry->data[0]) * n_samples);
 		
 		for (int i = 0; i < n_samples; ++i)
 		{

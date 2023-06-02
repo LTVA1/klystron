@@ -314,6 +314,8 @@ typedef struct
 {
 	Uint32 note;
 	Sint16 arpeggio_note;
+
+	Sint16 finetune_note;
 	
 	Uint8 noise_note;
 	
@@ -348,6 +350,8 @@ typedef struct
 {
 	MusInstrument *instrument;
 	Uint32 note;
+
+	Sint16 finetune_note;
 	
 	Uint8 noise_note;
 	
@@ -599,6 +603,8 @@ enum
 	MUS_FX_SET_3RD_ARP_NOTE = 0x7500,
 	
 	MUS_FX_ARPEGGIO_DOWN = 0x2300, //arpeggio but semitones down instead of semitones up (for easy Furnace/Deflemask/FamiTracker/etc. import)
+
+	MUS_FX_PITCH = 0x9300,
 	
 	MUS_FX_SET_CSM_TIMER_NOTE = 0xf000,
 	MUS_FX_SET_CSM_TIMER_FINETUNE = 0xf300,

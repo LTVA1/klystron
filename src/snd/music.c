@@ -184,8 +184,6 @@ void mus_free_inst_samples(MusInstrument* inst)
 				inst->local_samples[i] = NULL;
 			}
 		}
-		
-		inst->num_local_samples = 0;
 	}
 	
 	if(inst->local_sample_names)
@@ -5177,6 +5175,35 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 				}
 				break;
 
+				case MUS_FX_PITCH:
+				{
+					switch(ops_index)
+					{
+						case 0:
+						case 0xFF:
+						{
+							chn->finetune_note = (inst & 0xff) - 0x80;
+
+							if(ops_index == 0xFF)
+							{
+								for(int i = 0; i < CYD_FM_NUM_OPS; ++i)
+								{
+									chn->ops[i].finetune_note = (inst & 0xff) - 0x80;
+								}
+							}
+							
+							break;
+						}
+						
+						default: 
+						{
+							chn->ops[ops_index - 1].finetune_note = (inst & 0xff) - 0x80;
+							break;
+						}
+					}
+				}
+				break;
+
 				case MUS_FX_SET_VOLUME:
 				{
 					switch(ops_index)
@@ -7609,7 +7636,7 @@ static void mus_advance_channel(MusEngine* mus, int chan)
 	
 	cydchn->fm.fm_vib = fm_vib;
 	
-	Sint32 note = (mus->channel[chan].fixed_note != 0xffff ? mus->channel[chan].fixed_note : mus->channel[chan].note) + vib + ((Sint16)mus->channel[chan].arpeggio_note << 8);
+	Sint32 note = (mus->channel[chan].fixed_note != 0xffff ? mus->channel[chan].fixed_note : mus->channel[chan].note) + vib + mus->channel[chan].finetune_note + ((Sint16)mus->channel[chan].arpeggio_note << 8);
 
 	if (note < 0) note = 0;
 	if (note > FREQ_TAB_SIZE << 8) note = (FREQ_TAB_SIZE - 1) << 8;
@@ -7635,7 +7662,7 @@ static void mus_advance_channel(MusEngine* mus, int chan)
 		for(int i = 0; i < CYD_FM_NUM_OPS; ++i)
 		{
 			//Sint32 note_ops = (mus->channel[chan].ops[i].note) + ops_vib[i] + ((Uint16)mus->channel[chan].ops[i].arpeggio_note << 8);
-			Sint32 note_ops = (mus->channel[chan].ops[i].fixed_note != 0xffff ? mus->channel[chan].ops[i].fixed_note : mus->channel[chan].ops[i].note) + ops_vib[i] + ((Sint16)mus->channel[chan].ops[i].arpeggio_note << 8);
+			Sint32 note_ops = (mus->channel[chan].ops[i].fixed_note != 0xffff ? mus->channel[chan].ops[i].fixed_note : mus->channel[chan].ops[i].note) + ops_vib[i] + mus->channel[chan].ops[i].finetune_note + ((Sint16)mus->channel[chan].ops[i].arpeggio_note << 8);
 
 			if (note_ops < 0) note_ops = 0;
 			if (note_ops > FREQ_TAB_SIZE << 8) note_ops = (FREQ_TAB_SIZE - 1) << 8;
@@ -8094,13 +8121,15 @@ int mus_advance_tick(void* udata)
 								Uint16 step = command & 0xff;
 								track_status->pattern_step = step;
 								flag = 0;
+								break;
 							}
 							
 							else if ((command & 0xff00) == MUS_FX_SKIP_PATTERN)
 							{
-								mus->song_position += my_max(track_status->pattern->num_steps - track_status->pattern_step - 1 + (command & 0xff), 0);
+								//mus->song_position += my_max(track_status->pattern->num_steps - track_status->pattern_step - 1 + (command & 0xff), 0);
+								mus->song_position += track_status->pattern->num_steps - track_status->pattern_step - 1 + (command & 0xff);
 								track_status->pattern = NULL;
-								track_status->pattern_step = (command & 0xff);
+								//track_status->pattern_step = (command & 0xff);
 								flag = 0;
 								break;
 							}
@@ -8325,6 +8354,8 @@ void mus_set_song(MusEngine *mus, MusSong *song, Uint16 position)
 	for(int chan = 0; chan < MUS_MAX_CHANNELS; ++chan) //so we reset the damn channels even if no prog reset flag is there
 	{
 		mus->channel[chan].program_flags = 0;
+
+		mus->channel[chan].finetune_note = 0;
 		
 		for(int n = 0; n < MUS_MAX_NESTEDNESS; ++n)
 		{
@@ -8348,6 +8379,8 @@ void mus_set_song(MusEngine *mus, MusSong *song, Uint16 position)
 		for(int op = 0; op < CYD_FM_NUM_OPS; ++op)
 		{
 			mus->channel[chan].ops[op].program_flags = 0;
+
+			mus->channel[chan].ops[op].finetune_note = 0;
 			
 			for(int n = 0; n < MUS_MAX_NESTEDNESS; ++n)
 			{
