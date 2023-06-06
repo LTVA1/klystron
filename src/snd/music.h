@@ -320,6 +320,8 @@ typedef struct
 	Uint8 noise_note;
 	
 	Uint8 volume;
+	Uint8 program_volume;
+	
 	// ------
 	Uint32 target_note, last_note, fixed_note;
 	volatile Uint32 flags;
@@ -356,6 +358,8 @@ typedef struct
 	Uint8 noise_note;
 	
 	Uint8 volume;
+	Uint8 program_volume;
+
 	// ------
 	Sint16 arpeggio_note;
 	Uint32 target_note, last_note, fixed_note;
@@ -648,6 +652,8 @@ enum
 	MUS_FX_FM_SET_EXPONENTIALS = 0x34c0, //wasn't there
 	
 	MUS_FX_SET_VOLUME = 0x0c00,
+
+	MUS_FX_SET_VOLUME_FROM_PROGRAM = 0x9400,
 	
 	MUS_FX_SET_ABSOLUTE_VOLUME = 0x7600,
 	

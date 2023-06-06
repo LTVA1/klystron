@@ -254,22 +254,22 @@ static void update_volumes(MusEngine *mus, MusTrackStatus *ts, MusChannel *chn, 
 	if (chn->instrument && (chn->instrument->flags & MUS_INST_RELATIVE_VOLUME))
 	{
 		ts->volume = volume;
-		cydchn->adsr.volume = (chn->flags & MUS_CHN_DISABLED) ? 0 : (int)chn->instrument->volume * volume / MAX_VOLUME * (int)mus->volume / MAX_VOLUME * (int)mus->play_volume / MAX_VOLUME * (int)chn->volume / MAX_VOLUME;
+		cydchn->adsr.volume = (chn->flags & MUS_CHN_DISABLED) ? 0 : (int)chn->instrument->volume * volume / MAX_VOLUME * (int)mus->volume / MAX_VOLUME * (int)mus->play_volume / MAX_VOLUME * (int)chn->volume / MAX_VOLUME * (int)chn->program_volume / MAX_VOLUME;
 		
 		if((cydchn->fm.flags & CYD_FM_ENABLE_ADDITIVE) && (cydchn->flags & CYD_CHN_ENABLE_FM))
 		{
-			cydchn->fm.adsr.volume = (chn->flags & MUS_CHN_DISABLED) ? 0 : (int)chn->instrument->fm_modulation * volume / MAX_VOLUME * (int)mus->volume / MAX_VOLUME * (int)mus->play_volume / MAX_VOLUME * (int)chn->volume / MAX_VOLUME;
+			cydchn->fm.adsr.volume = (chn->flags & MUS_CHN_DISABLED) ? 0 : (int)chn->instrument->fm_modulation * volume / MAX_VOLUME * (int)mus->volume / MAX_VOLUME * (int)mus->play_volume / MAX_VOLUME * (int)chn->volume / MAX_VOLUME * (int)chn->program_volume / MAX_VOLUME;
 		}
 	}
 	
 	else
 	{
 		ts->volume = volume;
-		cydchn->adsr.volume = (chn->flags & MUS_CHN_DISABLED) ? 0 : ts->volume * (int)mus->volume / MAX_VOLUME * (int)mus->play_volume / MAX_VOLUME * (int)chn->volume / MAX_VOLUME;
+		cydchn->adsr.volume = (chn->flags & MUS_CHN_DISABLED) ? 0 : ts->volume * (int)mus->volume / MAX_VOLUME * (int)mus->play_volume / MAX_VOLUME * (int)chn->volume / MAX_VOLUME * (int)chn->program_volume / MAX_VOLUME;
 		
 		if((cydchn->fm.flags & CYD_FM_ENABLE_ADDITIVE) && (cydchn->flags & CYD_CHN_ENABLE_FM))
 		{
-			cydchn->fm.adsr.volume = (chn->flags & MUS_CHN_DISABLED) ? 0 : ts->fm_volume * (int)mus->volume / MAX_VOLUME * (int)mus->play_volume / MAX_VOLUME * (int)mus->play_volume / MAX_VOLUME * (int)chn->volume / MAX_VOLUME;
+			cydchn->fm.adsr.volume = (chn->flags & MUS_CHN_DISABLED) ? 0 : ts->fm_volume * (int)mus->volume / MAX_VOLUME * (int)mus->play_volume / MAX_VOLUME * (int)mus->play_volume / MAX_VOLUME * (int)chn->volume / MAX_VOLUME * (int)chn->program_volume / MAX_VOLUME;
 			//debug("2, vol %d", cydchn->fm.adsr.volume);
 		}
 	}
@@ -281,14 +281,14 @@ static void update_fm_op_volume(MusEngine *mus, MusTrackStatus *track, MusChanne
 	{
 		track->ops_status[i].volume = volume;
 		
-		cydchn->fm.ops[i].adsr.volume = (chn->flags & MUS_CHN_DISABLED) ? 0 : ((int)chn->instrument->ops[i].volume * volume / MAX_VOLUME /* * (int)mus->volume / MAX_VOLUME */ * (int)mus->play_volume / MAX_VOLUME * (int)chn->volume / MAX_VOLUME);
+		cydchn->fm.ops[i].adsr.volume = (chn->flags & MUS_CHN_DISABLED) ? 0 : ((int)chn->instrument->ops[i].volume * volume / MAX_VOLUME /* * (int)mus->volume / MAX_VOLUME */ * (int)mus->play_volume / MAX_VOLUME * (int)chn->volume / MAX_VOLUME * (int)chn->ops[i].program_volume / MAX_VOLUME);
 	}
 	
 	else
 	{
 		track->ops_status[i].volume = volume;
 		
-		cydchn->fm.ops[i].adsr.volume = (chn->flags & MUS_CHN_DISABLED) ? 0 : (track->ops_status[i].volume /* * (int)mus->volume / MAX_VOLUME */ * (int)mus->play_volume / MAX_VOLUME * (int)chn->volume / MAX_VOLUME);
+		cydchn->fm.ops[i].adsr.volume = (chn->flags & MUS_CHN_DISABLED) ? 0 : (track->ops_status[i].volume /* * (int)mus->volume / MAX_VOLUME */ * (int)mus->play_volume / MAX_VOLUME * (int)chn->volume / MAX_VOLUME * (int)chn->ops[i].program_volume / MAX_VOLUME);
 	}
 }
 
@@ -5236,6 +5236,42 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 					}
 				}
 				break;
+
+				case MUS_FX_SET_VOLUME_FROM_PROGRAM:
+				{
+					if(from_program)
+					{
+						switch(ops_index)
+						{
+							case 0:
+							case 0xFF:
+							{
+								chn->program_volume = my_min(MAX_VOLUME, inst & 0xff);
+								update_volumes(mus, track_status, chn, cydchn, track_status->volume);
+								
+								if(ops_index == 0xFF)
+								{
+									for(int i = 0; i < CYD_FM_NUM_OPS; ++i)
+									{
+										chn->ops[i].program_volume = my_min(MAX_VOLUME, inst & 0xff);
+										update_fm_op_volume(mus, track_status, chn, cydchn, track_status->ops_status[i].volume, i);
+									}
+								}
+								
+								break;
+							}
+							
+							default:
+							{
+								chn->ops[ops_index - 1].program_volume = my_min(MAX_VOLUME, inst & 0xff);
+								update_fm_op_volume(mus, track_status, chn, cydchn, track_status->ops_status[ops_index - 1].volume, ops_index - 1);
+								
+								break;
+							}
+						}
+					}
+				}
+				break;
 				
 				case MUS_FX_SET_ABSOLUTE_VOLUME:
 				{
@@ -6412,6 +6448,7 @@ void mus_trigger_fm_op_internal(CydFm* fm, MusInstrument* ins, CydChannel* cydch
 	
 	chn->ops[i].arpeggio_note = 0;
 	chn->ops[i].fixed_note = 0xffff;
+	chn->ops[i].finetune_note = 0;
 	
 	chn->ops[i].current_tick = 0;
 	
@@ -6494,6 +6531,7 @@ void mus_trigger_fm_op_internal(CydFm* fm, MusInstrument* ins, CydChannel* cydch
 	track->ops_status[i].slide_speed = 0;
 	
 	update_fm_op_volume(mus, track, chn, cydchn, ((ins->ops[i].flags & MUS_FM_OP_RELATIVE_VOLUME) ? MAX_VOLUME : ins->ops[i].volume), i);
+	chn->ops[i].program_volume = MAX_VOLUME;
 	
 	if(fm->ops[i].flags & CYD_FM_OP_ENABLE_KEY_SYNC)
 	{
@@ -6742,6 +6780,7 @@ int mus_trigger_instrument_internal(MusEngine* mus, int chan, MusInstrument *ins
 	
 	chn->arpeggio_note = 0;
 	chn->fixed_note = 0xffff;
+	chn->finetune_note = 0;
 	cydchn->fx_bus = ins->fx_bus;
 
 	if (ins->flags & MUS_INST_DRUM)
@@ -6922,6 +6961,7 @@ int mus_trigger_instrument_internal(MusEngine* mus, int chan, MusInstrument *ins
 	track->slide_speed = 0;
 
 	update_volumes(mus, track, chn, cydchn, (ins->flags & MUS_INST_RELATIVE_VOLUME) ? MAX_VOLUME : ins->volume);
+	chn->program_volume = MAX_VOLUME;
 
 	cydchn->sync_source = ins->sync_source == 0xff ? chan : ins->sync_source;
 	cydchn->ring_mod = ins->ring_mod == 0xff ? chan : ins->ring_mod;
@@ -8356,6 +8396,8 @@ void mus_set_song(MusEngine *mus, MusSong *song, Uint16 position)
 		mus->channel[chan].program_flags = 0;
 
 		mus->channel[chan].finetune_note = 0;
+
+		mus->channel[chan].program_volume = MAX_VOLUME;
 		
 		for(int n = 0; n < MUS_MAX_NESTEDNESS; ++n)
 		{
@@ -8381,6 +8423,8 @@ void mus_set_song(MusEngine *mus, MusSong *song, Uint16 position)
 			mus->channel[chan].ops[op].program_flags = 0;
 
 			mus->channel[chan].ops[op].finetune_note = 0;
+
+			mus->channel[chan].ops[op].program_volume = MAX_VOLUME;
 			
 			for(int n = 0; n < MUS_MAX_NESTEDNESS; ++n)
 			{
