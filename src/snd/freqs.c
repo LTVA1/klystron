@@ -243,19 +243,16 @@ Uint32 get_freq(int note)
 {
 	if (note <= 0)
 	{
-		//debug("freq sent 1 %d Hz", frequency_table[0]);
 		return frequency_table[0];
 	}
 		
 	if (note >= (FREQ_TAB_SIZE << 8))
 	{
-		//debug("freq sent 2 %d Hz", frequency_table[FREQ_TAB_SIZE - 1]);
 		return frequency_table[FREQ_TAB_SIZE - 1];
 	}
 
 	if ((note & 0xff) == 0)
 	{
-		//debug("freq sent 3 %d Hz", frequency_table[(note >> 8)]);
 		return frequency_table[(note >> 8)];
 	}
 	
@@ -263,8 +260,6 @@ Uint32 get_freq(int note)
 	{
 		Uint64 f1 = frequency_table[(note >> 8)];
 		Uint64 f2 = frequency_table[((note >> 8) + 1)];
-		
-		//debug("freq sent 4 %d Hz", f1 + ((f2 - f1) * (note & 0xff)) / 256);
 		
 		return f1 + (Uint64)((f2 - f1) * (note & 0xff)) / 256;
 	}

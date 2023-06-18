@@ -8173,6 +8173,26 @@ int mus_advance_tick(void* udata)
 								flag = 0;
 								break;
 							}
+
+							else if ((command & 0xff00) == MUS_FX_JUMP_SEQUENCE_POSITION) //Bxx style effect, jump to order position xx (well, for it to make sense patterns must be aligned)
+							{
+								if((command & 0xff) < mus->song->num_sequences[i])
+								{
+									mus->song_position = mus->song->sequence[i][command & 0xff].position - 1;
+
+									for(int chns = 0; chns < mus->song->num_channels; ++chns)
+									{
+										mus->song_track[chns].pattern = &mus->song->pattern[mus->song->sequence[chns][command & 0xff].pattern];
+										mus->song_track[chns].pattern_step = 0;
+										mus->song_track[chns].sequence_position = command & 0xff;
+									}
+
+									//track_status->pattern = &mus->song->pattern[mus->song->sequence[i][command & 0xff].pattern];
+									//track_status->pattern_step = 0;
+									flag = 0;
+									break;
+								}
+							}
 							
 							else if ((command & 0xfff0) == MUS_FX_FT2_PATTERN_LOOP)
 							{
