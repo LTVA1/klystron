@@ -999,6 +999,59 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 			}
 		}
 		break;
+
+		case MUS_FX_GLISSANDO_CONTROL:
+		{
+			switch(ops_index)
+			{
+				case 0:
+				case 0xFF:
+				{
+					if(inst & 0xf)
+					{
+						chn->flags |= MUS_CHN_GLISSANDO;
+					}
+
+					else
+					{
+						chn->flags &= ~MUS_CHN_GLISSANDO;
+					}
+					
+					if(ops_index == 0xFF)
+					{
+						for(int i = 0; i < CYD_FM_NUM_OPS; ++i)
+						{
+							if(inst & 0xf)
+							{
+								chn->ops[i].flags |= MUS_FM_OP_GLISSANDO;
+							}
+
+							else
+							{
+								chn->ops[i].flags &= ~MUS_FM_OP_GLISSANDO;
+							}
+						}
+					}
+					
+					break;
+				}
+				
+				default:
+				{
+					if(inst & 0xf)
+					{
+						chn->ops[ops_index - 1].flags |= MUS_FM_OP_GLISSANDO;
+					}
+
+					else
+					{
+						chn->ops[ops_index - 1].flags &= ~MUS_CHN_GLISSANDO;
+					}
+					break;
+				}
+			}
+		}
+		break;
 		
 		case MUS_FX_FM_4OP_SET_DETUNE:
 		{
@@ -6701,7 +6754,7 @@ int mus_trigger_instrument_internal(MusEngine* mus, int chan, MusInstrument *ins
 	MusChannel *chn = &mus->channel[chan];
 	MusTrackStatus *track = &mus->song_track[chan];
 
-	chn->flags = MUS_CHN_PLAYING | (chn->flags & MUS_CHN_DISABLED);
+	chn->flags = MUS_CHN_PLAYING | (chn->flags & (MUS_CHN_DISABLED | MUS_CHN_GLISSANDO));
 	
 	for(int pr = 0; pr < ins->num_macros; ++pr)
 	{
@@ -6890,9 +6943,6 @@ int mus_trigger_instrument_internal(MusEngine* mus, int chan, MusInstrument *ins
 		
 		cydchn->subosc[i].wave.use_start_track_status_offset = false;
 		cydchn->subosc[i].wave.use_end_track_status_offset = false;
-		
-		cydchn->subosc[i].accumulator = 0;
-		cydchn->subosc[i].wave.acc = 0;
 	}
 
 #ifndef CYD_DISABLE_FM
@@ -7681,6 +7731,11 @@ static void mus_advance_channel(MusEngine* mus, int chan)
 	if (note < 0) note = 0;
 	if (note > FREQ_TAB_SIZE << 8) note = (FREQ_TAB_SIZE - 1) << 8;
 
+	if(mus->channel[chan].flags & MUS_CHN_GLISSANDO)
+	{
+		note &= MUS_GLISSANDO_MASK;
+	}
+
 	mus_set_note(mus, chan, note, 0, ins->flags & MUS_INST_QUARTER_FREQ ? 4 : 1);
 	
 	if(track_status->tremolo_delay == 0)
@@ -7706,6 +7761,11 @@ static void mus_advance_channel(MusEngine* mus, int chan)
 
 			if (note_ops < 0) note_ops = 0;
 			if (note_ops > FREQ_TAB_SIZE << 8) note_ops = (FREQ_TAB_SIZE - 1) << 8;
+
+			if(mus->channel[chan].ops[i].flags & MUS_FM_OP_GLISSANDO)
+			{
+				note_ops &= MUS_GLISSANDO_MASK;
+			}
 
 			//mus_set_note(mus, chan, note, 0, ins->flags & MUS_INST_QUARTER_FREQ ? 4 : 1);
 			mus_set_fm_op_note(mus, chan, &cydchn->fm, note_ops, i, 0, 1, ins);
@@ -8217,7 +8277,7 @@ int mus_advance_tick(void* udata)
 													
 													for(int chns = 0; chns < mus->song->num_channels; ++chns)
 													{
-														if(mus->song_track[chns].pattern_step >= delta)
+														if(mus->song_track[chns].pattern_step >= delta - 1)
 														{
 															mus->song_track[chns].pattern_step -= (delta);
 															mus->song_track[chns].sequence_position -= (delta);
@@ -8252,7 +8312,7 @@ int mus_advance_tick(void* udata)
 													
 													for(int chns = 0; chns < mus->song->num_channels; ++chns)
 													{
-														if(mus->song_track[chns].pattern_step >= delta)
+														if(mus->song_track[chns].pattern_step >= delta - 1)
 														{
 															mus->song_track[chns].pattern_step -= (delta);
 															mus->song_track[chns].sequence_position -= (delta);
@@ -8419,6 +8479,8 @@ void mus_set_song(MusEngine *mus, MusSong *song, Uint16 position)
 
 		mus->channel[chan].program_volume = MAX_VOLUME;
 		
+		mus->channel[chan].flags &= ~MUS_CHN_GLISSANDO; //disable glissando
+
 		for(int n = 0; n < MUS_MAX_NESTEDNESS; ++n)
 		{
 			mus->channel[chan].nestedness[n] = 0;
@@ -8445,6 +8507,8 @@ void mus_set_song(MusEngine *mus, MusSong *song, Uint16 position)
 			mus->channel[chan].ops[op].finetune_note = 0;
 
 			mus->channel[chan].ops[op].program_volume = MAX_VOLUME;
+
+			mus->channel[chan].ops[op].flags &= ~MUS_CHN_GLISSANDO;
 			
 			for(int n = 0; n < MUS_MAX_NESTEDNESS; ++n)
 			{

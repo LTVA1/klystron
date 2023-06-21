@@ -63,6 +63,8 @@ OTHER DEALINGS IN THE SOFTWARE.
 
 #define DETUNE ((Sint32)(2))
 
+#define MUS_GLISSANDO_MASK 0xFFFFFF00 /* masking note fraction (lowest byte) for Sint32 variable */
+
 typedef unsigned long char32_t;
 
 typedef struct
@@ -540,14 +542,18 @@ enum
 {
 	MUS_CHN_PLAYING = 1,
 	MUS_CHN_PROGRAM_RUNNING = 2,
-	MUS_CHN_DISABLED = 4
+	MUS_CHN_DISABLED = 4,
+
+	MUS_CHN_GLISSANDO = 8,
 };
 
 enum
 {
 	MUS_FM_OP_PLAYING = MUS_CHN_PLAYING,
 	MUS_FM_OP_PROGRAM_RUNNING = MUS_CHN_PROGRAM_RUNNING,
-	MUS_FM_OP_DISABLED = MUS_CHN_DISABLED
+	MUS_FM_OP_DISABLED = MUS_CHN_DISABLED,
+
+	MUS_FM_OP_GLISSANDO = MUS_CHN_GLISSANDO,
 };
 
 enum
@@ -647,6 +653,8 @@ enum
 	MUS_FX_FM_FADE_VOLUME = 0x4a00, //wasn't there
 	MUS_FX_FM_EXT_FADE_VOLUME_DN = 0x34a0, //wasn't there
 	MUS_FX_FM_EXT_FADE_VOLUME_UP = 0x34b0, //wasn't there
+
+	MUS_FX_GLISSANDO_CONTROL = 0x2e70, //wasn't there
 	
 	MUS_FX_SET_EXPONENTIALS = 0x0e40, //wasn't there
 	MUS_FX_FM_SET_EXPONENTIALS = 0x34c0, //wasn't there
@@ -672,7 +680,7 @@ enum
 	MUS_FX_NOISE_PHASE_RESET = 0x2e10,
 	MUS_FX_WAVE_PHASE_RESET = 0x2e20,
 	
-	MUS_FX_FT2_PATTERN_LOOP = 0x2e30,
+	MUS_FX_FT2_PATTERN_LOOP = 0x2e60,
 	
 	MUS_FX_EXT_PORTA_UP = 0x2e30,
 	MUS_FX_EXT_PORTA_DN = 0x2e40,
