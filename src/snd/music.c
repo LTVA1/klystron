@@ -5257,6 +5257,70 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 				}
 				break;
 
+				case MUS_FX_SLIDE_UP_SEMITONES:
+				{
+					switch(ops_index)
+					{
+						case 0:
+						case 0xFF:
+						{
+							chn->target_note = chn->note + ((inst & 0xf) << 8);
+							track_status->slide_speed = (inst & 0xf0) << 2;
+
+							if(ops_index == 0xFF)
+							{
+								for(int i = 0; i < CYD_FM_NUM_OPS; ++i)
+								{
+									chn->ops[i].target_note = chn->ops[i].note + ((inst & 0xf) << 8);
+									track_status->ops_status[i].slide_speed = (inst & 0xf0) << 2;
+								}
+							}
+							
+							break;
+						}
+						
+						default: 
+						{
+							chn->ops[ops_index - 1].target_note = chn->ops[ops_index - 1].note + ((inst & 0xf) << 8);
+							track_status->ops_status[ops_index - 1].slide_speed = (inst & 0xf0) << 2;
+							break;
+						}
+					}
+				}
+				break;
+
+				case MUS_FX_SLIDE_DN_SEMITONES:
+				{
+					switch(ops_index)
+					{
+						case 0:
+						case 0xFF:
+						{
+							chn->target_note = chn->note - ((inst & 0xf) << 8);
+							track_status->slide_speed = (inst & 0xf0) << 2;
+
+							if(ops_index == 0xFF)
+							{
+								for(int i = 0; i < CYD_FM_NUM_OPS; ++i)
+								{
+									chn->ops[i].target_note = chn->ops[i].note - ((inst & 0xf) << 8);
+									track_status->ops_status[i].slide_speed = (inst & 0xf0) << 2;
+								}
+							}
+							
+							break;
+						}
+						
+						default: 
+						{
+							chn->ops[ops_index - 1].target_note = chn->ops[ops_index - 1].note - ((inst & 0xf) << 8);
+							track_status->ops_status[ops_index - 1].slide_speed = (inst & 0xf0) << 2;
+							break;
+						}
+					}
+				}
+				break;
+
 				case MUS_FX_SET_VOLUME:
 				{
 					switch(ops_index)
@@ -7725,16 +7789,18 @@ static void mus_advance_channel(MusEngine* mus, int chan)
 	}
 	
 	cydchn->fm.fm_vib = fm_vib;
-	
-	Sint32 note = (mus->channel[chan].fixed_note != 0xffff ? mus->channel[chan].fixed_note : mus->channel[chan].note) + vib + mus->channel[chan].finetune_note + ((Sint16)mus->channel[chan].arpeggio_note << 8);
 
-	if (note < 0) note = 0;
-	if (note > FREQ_TAB_SIZE << 8) note = (FREQ_TAB_SIZE - 1) << 8;
+	Sint32 intermediate_note = (mus->channel[chan].fixed_note != 0xffff ? mus->channel[chan].fixed_note : mus->channel[chan].note);
 
 	if(mus->channel[chan].flags & MUS_CHN_GLISSANDO)
 	{
-		note &= MUS_GLISSANDO_MASK;
+		intermediate_note &= MUS_GLISSANDO_MASK;
 	}
+	
+	Sint32 note = intermediate_note + vib + mus->channel[chan].finetune_note + ((Sint16)mus->channel[chan].arpeggio_note << 8);
+
+	if (note < 0) note = 0;
+	if (note > FREQ_TAB_SIZE << 8) note = (FREQ_TAB_SIZE - 1) << 8;
 
 	mus_set_note(mus, chan, note, 0, ins->flags & MUS_INST_QUARTER_FREQ ? 4 : 1);
 	
@@ -7757,15 +7823,18 @@ static void mus_advance_channel(MusEngine* mus, int chan)
 		for(int i = 0; i < CYD_FM_NUM_OPS; ++i)
 		{
 			//Sint32 note_ops = (mus->channel[chan].ops[i].note) + ops_vib[i] + ((Uint16)mus->channel[chan].ops[i].arpeggio_note << 8);
-			Sint32 note_ops = (mus->channel[chan].ops[i].fixed_note != 0xffff ? mus->channel[chan].ops[i].fixed_note : mus->channel[chan].ops[i].note) + ops_vib[i] + mus->channel[chan].ops[i].finetune_note + ((Sint16)mus->channel[chan].ops[i].arpeggio_note << 8);
 
-			if (note_ops < 0) note_ops = 0;
-			if (note_ops > FREQ_TAB_SIZE << 8) note_ops = (FREQ_TAB_SIZE - 1) << 8;
+			Sint32 intermediate_note_ops = (mus->channel[chan].ops[i].fixed_note != 0xffff ? mus->channel[chan].ops[i].fixed_note : mus->channel[chan].ops[i].note);
 
 			if(mus->channel[chan].ops[i].flags & MUS_FM_OP_GLISSANDO)
 			{
-				note_ops &= MUS_GLISSANDO_MASK;
+				intermediate_note_ops &= MUS_GLISSANDO_MASK;
 			}
+
+			Sint32 note_ops = intermediate_note_ops + ops_vib[i] + mus->channel[chan].ops[i].finetune_note + ((Sint16)mus->channel[chan].ops[i].arpeggio_note << 8);
+
+			if (note_ops < 0) note_ops = 0;
+			if (note_ops > FREQ_TAB_SIZE << 8) note_ops = (FREQ_TAB_SIZE - 1) << 8;
 
 			//mus_set_note(mus, chan, note, 0, ins->flags & MUS_INST_QUARTER_FREQ ? 4 : 1);
 			mus_set_fm_op_note(mus, chan, &cydchn->fm, note_ops, i, 0, 1, ins);

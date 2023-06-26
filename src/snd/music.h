@@ -632,6 +632,9 @@ enum
 	MUS_FX_SET_EXT_ARP = 0x1000,
 	MUS_FX_PORTA_UP = 0x0100,
 	MUS_FX_PORTA_DN = 0x0200,
+
+	MUS_FX_SLIDE_UP_SEMITONES = 0x9600,
+	MUS_FX_SLIDE_DN_SEMITONES = 0x9700,
 	
 	MUS_FX_FM_PORTA_UP = 0x4800, //wasn't there //not implemented
 	MUS_FX_FM_PORTA_DN = 0x4900, //wasn't there //not implemented
