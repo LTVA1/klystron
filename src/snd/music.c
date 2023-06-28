@@ -41,9 +41,21 @@ OTHER DEALINGS IN THE SOFTWARE.
 #include "cydfx.h" //wasn't there
 #include "cyd.h"
 
+#ifndef STANDALONE_COMPILE
+
+#include "../../../src/mused.h" //wasn't there
+
+#endif
+
 #ifdef GENERATE_VIBRATO_TABLES
 
 #include <math.h>
+
+#endif
+
+#ifndef STANDALONE_COMPILE
+
+extern Mused mused;
 
 #endif
 
@@ -11041,25 +11053,34 @@ int mus_load_song_RW(RWops *ctx, MusSong *song, CydWavetableEntry *wavetable_ent
 
 				free(packed);
 			}
-			
-			for(int j = 1; j < MUS_MAX_COMMANDS; ++j)
+		}
+
+#ifndef STANDALONE_COMPILE
+		for(int ch = 0; ch < song->num_channels; ch++)
+		{
+			Uint8 cols = 0;
+
+			for(int i = 0; i < song->num_sequences[ch]; i++)
 			{
-				int counter = 0; //how many commands are in current column
-				
-				for(int s = 0; s < song->pattern[i].num_steps; ++s) //expand pattern to the rightmost column where at least one command is
+				MusPattern* pat = &song->pattern[song->sequence[ch][i].pattern];
+
+				for(int s = 0; s < pat->num_steps; s++)
 				{
-					if(song->pattern[i].step[s].command[j] != 0)
+					MusStep* step = &pat->step[s];
+
+					for(int com = 0; com < MUS_MAX_COMMANDS; com++)
 					{
-						counter++;
+						if(step->command[com] && com > cols)
+						{
+							cols = com;
+						}
 					}
 				}
-				
-				if(counter != 0)
-				{
-					song->pattern[i].command_columns = j;
-				}
 			}
+
+			mused.command_columns[ch] = cols;
 		}
+#endif
 		
 		if(version < 28)
 		{

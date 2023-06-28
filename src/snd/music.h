@@ -421,9 +421,6 @@ typedef struct
 	Uint16 num_steps;
 	Uint8 color;
 	
-	Uint8 command_columns; //wasn't there
-	Uint8 fourop_command_columns[CYD_FM_NUM_OPS];
-	
 	bool is_expanded_4op;
 	
 	Mus4opStep *four_op_step;
