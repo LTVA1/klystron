@@ -7679,7 +7679,7 @@ static void mus_advance_channel(MusEngine* mus, int chan)
 				track_status->pwm_delay = 0;
 				
 				track_status->pwm_depth = (track_status->pattern->step[track_status->pattern_step].command[i] & 0x000f) << 4;
-				track_status->pwm_speed = (track_status->pattern->step[track_status->pattern_step].command[i] & 0x00f0) >> 2;
+				track_status->pwm_speed = (track_status->pattern->step[track_status->pattern_step].command[i] & 0x00f0) >> 3;
 				
 				if(cydchn->fm.flags & CYD_FM_ENABLE_4OP)
 				{
@@ -7688,7 +7688,7 @@ static void mus_advance_channel(MusEngine* mus, int chan)
 						track_status->ops_status[j].pwm_delay = 0;
 				
 						track_status->ops_status[j].pwm_depth = (track_status->pattern->step[track_status->pattern_step].command[i] & 0x000f) << 4;
-						track_status->ops_status[j].pwm_speed = (track_status->pattern->step[track_status->pattern_step].command[i] & 0x00f0) >> 2;
+						track_status->ops_status[j].pwm_speed = (track_status->pattern->step[track_status->pattern_step].command[i] & 0x00f0) >> 3;
 					}
 				}
 			}
