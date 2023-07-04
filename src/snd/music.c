@@ -317,7 +317,7 @@ static void mus_set_buzz_frequency(MusEngine *mus, int chan, Uint16 note)
 {
 #ifndef CYD_DISABLE_BUZZ
 	MusChannel *chn = &mus->channel[chan];
-	if (chn->instrument && chn->instrument->flags & MUS_INST_YM_BUZZ)
+	if (chn->instrument) //&& chn->instrument->flags & MUS_INST_YM_BUZZ)
 	{
 #ifndef CYD_DISABLE_INACCURACY
 		Uint32 buzz_frequency = get_freq(note + chn->buzz_offset) & mus->pitch_mask;
@@ -708,6 +708,25 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 			
 			break;
 		}
+
+		case MUS_FX_BUZZ_TOGGLE:
+		{
+			if ((tick == (inst & 0xf) && (inst & 0xf)) || (mus->channel[chan].prog_period[prog_number] <= 1 && (inst & 0xf) == 1))
+			{
+				if(chn->instrument)
+				{
+					cydchn->flags |= CYD_CHN_ENABLE_YM_ENV;
+					cyd_set_env_shape(cydchn, cydchn->ym_env_shape);
+					mus_set_buzz_frequency(mus, chan, chn->note);
+				}
+			}
+
+			if(!(inst & 0xf))
+			{
+				cydchn->flags &= ~CYD_CHN_ENABLE_YM_ENV;
+			}
+		}
+		break;
 		
 		case MUS_FX_NOISE_PHASE_RESET:
 		{
@@ -7132,12 +7151,13 @@ int mus_trigger_instrument_internal(MusEngine* mus, int chan, MusInstrument *ins
 #endif
 	}
 
+	mus->channel[chan].buzz_offset = ins->buzz_offset;
+	cyd_set_env_shape(cydchn, ins->ym_env_shape);
+
 	if (ins->flags & MUS_INST_YM_BUZZ)
 	{
 #ifndef CYD_DISABLE_BUZZ
 		cydchn->flags |= CYD_CHN_ENABLE_YM_ENV;
-		cyd_set_env_shape(cydchn, ins->ym_env_shape);
-		mus->channel[chan].buzz_offset = ins->buzz_offset;
 #endif
 	}
 	

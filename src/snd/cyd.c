@@ -2761,9 +2761,12 @@ void cyd_set_wavetable_frequency(CydEngine *cyd, CydChannel *chn, int subosc, Ui
 void cyd_set_env_frequency(CydEngine *cyd, CydChannel *chn, Uint32 frequency)
 {
 #ifndef CYD_DISABLE_BUZZ
-	chn->subosc[0].buzz_detune_freq = frequency;
-	
-	chn->adsr.env_speed = (Uint64)YM_LENGTH / (Uint64)1024 * (Uint64)frequency / (Uint64)cyd->sample_rate;
+	if(chn->flags & CYD_CHN_ENABLE_YM_ENV)
+	{
+		chn->subosc[0].buzz_detune_freq = frequency;
+		
+		chn->adsr.env_speed = (Uint64)YM_LENGTH / (Uint64)1024 * (Uint64)frequency / (Uint64)cyd->sample_rate;
+	}
 #endif
 }
 

@@ -46,7 +46,7 @@ else
 		CFLAGS += -O3 -pg -Wall ${INCLUDEFLAGS}
 	else
 		ifeq ($(CFG),release)
-			CFLAGS += -O3 -Wall ${INCLUDEFLAGS} -s
+			CFLAGS += -O3 -Wall ${INCLUDEFLAGS} -s -ffast-math -fomit-frame-pointer
 		else
 			ifeq ($(CFG),size)
 				CFLAGS += -Os -Wall ${INCLUDEFLAGS} -s -ffast-math -fomit-frame-pointer -DREDUCESIZE
