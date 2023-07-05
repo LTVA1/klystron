@@ -39,8 +39,6 @@ OTHER DEALINGS IN THE SOFTWARE.
 #include "music_defs.h"
 #include "freqs.h"
 
-//#include "diskop.h"
-
 #define MUS_PROG_LEN 255
 #define MUS_MAX_NESTEDNESS 5
 
@@ -938,8 +936,6 @@ enum
 #define MUS_FX_SIG "cyd!efex"
 #define MUS_WAVEGEN_PATCH_SIG "cyd!wave_patch"
 
-#define VIB_TAB_SIZE 128
-
 #ifdef USESDL_RWOPS
 #include "SDL_rwops.h"
 typedef SDL_RWops RWops;
@@ -996,15 +992,5 @@ Uint32 mus_get_playtime_at(MusSong *song, int position);
 
 void mus_trigger_fm_op_internal(CydFm* fm, MusInstrument* ins, CydChannel* cydchn, MusChannel* chn, MusTrackStatus* track, MusEngine* mus, Uint8 i/*op number*/, Uint16 note, int chan, bool retrig, bool update_adsr);
 void mus_get_empty_instrument(MusInstrument *inst);
-
-
-
-void mus_set_buzz_frequency(MusEngine *mus, int chan, Uint16 note);
-void update_fm_op_volume(MusEngine *mus, MusTrackStatus *track, MusChannel *chn, CydChannel *cydchn, int volume, Uint8 i /*number of operator*/);
-void mus_set_slide(MusEngine *mus, int chan, Uint32 note);
-void update_volumes(MusEngine *mus, MusTrackStatus *ts, MusChannel *chn, CydChannel *cydchn, int volume);
-void update_all_volumes(MusEngine *mus);
-void mus_set_wavetable_frequency(MusEngine *mus, int chan, Uint16 note);
-int mus_trigger_instrument_internal(MusEngine* mus, int chan, MusInstrument *ins, Uint16 note, int panning, bool update_adsr);
 
 #endif
