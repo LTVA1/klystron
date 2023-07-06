@@ -49,7 +49,7 @@ static Sint32 cyd_wave_get_sample_no_interpolation(const CydWavetableEntry *entr
 static Sint32 cyd_wave_get_sample_linear(const CydWavetableEntry *entry, CydWaveAcc wave_acc, int direction)
 {
 	if (entry->data)
-	{	
+	{
 		if (direction == 0) 
 		{
 			int a = wave_acc / WAVETABLE_RESOLUTION;
@@ -102,70 +102,172 @@ static Sint32 cyd_wave_get_sample_linear(const CydWavetableEntry *entry, CydWave
 // Cosine interpolation by System64
 static Sint32 cyd_wave_get_sample_cosine(const CydWavetableEntry *entry, CydWaveAcc wave_acc, int direction)
 {
-    if (entry->data)
-    {    
-        if (direction == 0) 
-        {
-            int a = wave_acc / WAVETABLE_RESOLUTION;
-            int b = a + 1;
-            
-            if (a >= entry->samples || a < 0)
-                return 0;
-            
-            if ((entry->flags & CYD_WAVE_LOOP) && b >= entry->loop_end)
-            {
-                if (!(entry->flags & CYD_WAVE_PINGPONG))
-                    b = b - entry->loop_end + entry->loop_begin;
+	if (entry->data)
+	{
+		if (direction == 0) 
+		{
+			int a = wave_acc / WAVETABLE_RESOLUTION;
+			int b = a + 1;
+			
+			if (a >= entry->samples || a < 0)
+				return 0;
+			
+			if ((entry->flags & CYD_WAVE_LOOP) && b >= entry->loop_end)
+			{
+				if (!(entry->flags & CYD_WAVE_PINGPONG))
+					b = b - entry->loop_end + entry->loop_begin;
 				
-                else
-                    b = entry->loop_end - (b - entry->loop_end);
-            }
-            
-            if (b >= entry->samples)
-                return entry->data[a];
+				else
+					b = entry->loop_end - (b - entry->loop_end);
+			}
 			
-            else
-                {
-                    //double x = (double)((CydWaveAccSigned)wave_acc % WAVETABLE_RESOLUTION) / (double) WAVETABLE_RESOLUTION;
-                    //return (Sint32) (((1 - cos(M_PI * x)) / 2) * (entry->data[b] - entry->data[a]) + entry->data[a]);
-                    double x = (double)((CydWaveAccSigned)wave_acc & (WAVETABLE_RESOLUTION - 1)) / (double) WAVETABLE_RESOLUTION;
-                    //mu2 = (1-cos(mu*PI))/2;
-                    double x2 = (1 - cos(x * M_PI)) / 2.00000000;
-                    return (Sint32) (entry->data[a] * (1 - x2) + entry->data[b] * x2);
-                }
-        }
+			if (b >= entry->samples)
+				return entry->data[a];
+			
+			else
+				{
+					//double x = (double)((CydWaveAccSigned)wave_acc % WAVETABLE_RESOLUTION) / (double) WAVETABLE_RESOLUTION;
+					//return (Sint32) (((1 - cos(M_PI * x)) / 2) * (entry->data[b] - entry->data[a]) + entry->data[a]);
+					double x = (double)((CydWaveAccSigned)wave_acc & (WAVETABLE_RESOLUTION - 1)) / (double) WAVETABLE_RESOLUTION;
+					//mu2 = (1-cos(mu*PI))/2;
+					double x2 = (1 - cos(x * M_PI)) / 2.00000000;
+					return (Sint32) (entry->data[a] * (1 - x2) + entry->data[b] * x2);
+				}
+		}
 		
-        else
-        {
-            int a = wave_acc / WAVETABLE_RESOLUTION;
-            int b = a - 1;
-            
-            if (a >= entry->samples || a < 0)
-                return 0;
-            
-            if ((entry->flags & CYD_WAVE_LOOP) && b < (Sint32)entry->loop_begin)
-            {
-                if (!(entry->flags & CYD_WAVE_PINGPONG))
-                    b = b - entry->loop_begin + entry->loop_end;
-                else
-                    b = entry->loop_begin - (b - entry->loop_begin);
-            }
-            
-            if (b < 0)
-                return entry->data[a];
+		else
+		{
+			int a = wave_acc / WAVETABLE_RESOLUTION;
+			int b = a - 1;
 			
-            else
-            {
-                double x = (double)(WAVETABLE_RESOLUTION - ((CydWaveAccSigned)wave_acc & (WAVETABLE_RESOLUTION - 1))) / (double) WAVETABLE_RESOLUTION;
-                double x2 = (1 - cos(x * M_PI)) / 2.00000000;
-                return (Sint32) (entry->data[a] * (1 - x2) + entry->data[b] * x2);
-                // return (Sint32) (((1 - cos(M_PI * x)) / 2) * (entry->data[b] - entry->data[a]) + entry->data[a]);
-            }
-        }
-    }
+			if (a >= entry->samples || a < 0)
+				return 0;
+			
+			if ((entry->flags & CYD_WAVE_LOOP) && b < (Sint32)entry->loop_begin)
+			{
+				if (!(entry->flags & CYD_WAVE_PINGPONG))
+					b = b - entry->loop_begin + entry->loop_end;
+				else
+					b = entry->loop_begin - (b - entry->loop_begin);
+			}
+			
+			if (b < 0)
+				return entry->data[a];
+			
+			else
+			{
+				double x = (double)(WAVETABLE_RESOLUTION - ((CydWaveAccSigned)wave_acc & (WAVETABLE_RESOLUTION - 1))) / (double) WAVETABLE_RESOLUTION;
+				double x2 = (1 - cos(x * M_PI)) / 2.00000000;
+				return (Sint32) (entry->data[a] * (1 - x2) + entry->data[b] * x2);
+				// return (Sint32) (((1 - cos(M_PI * x)) / 2) * (entry->data[b] - entry->data[a]) + entry->data[a]);
+			}
+		}
+	}
 	
-    else
-        return 0;
+	else
+		return 0;
+}
+
+// Cubic spline interpolation by System64
+static Sint32 cyd_wave_get_sample_cubic(const CydWavetableEntry *entry, CydWaveAcc wave_acc, int direction)
+{
+	if (entry->data)
+	{    
+		if (direction == 0) 
+		{
+			double t = (double)wave_acc / (double)WAVETABLE_RESOLUTION;
+			int b = (int)t;
+			int a = b - 1;
+			int c = b + 1;
+			int d = b + 2;
+			
+			// if (b >= entry->samples || b < 0)
+			//     return 0;
+			
+			if ((entry->flags & CYD_WAVE_LOOP))
+			{
+				if (!(entry->flags & CYD_WAVE_PINGPONG))
+				{
+					if (b >= (Sint32)entry->loop_end)
+					{
+						t = t - (double)(entry->loop_end + entry->loop_begin);
+						a = a - entry->loop_end + entry->loop_begin;
+						b = b - entry->loop_end + entry->loop_begin;
+						c = c - entry->loop_end + entry->loop_begin;
+						d = d - entry->loop_end + entry->loop_begin;
+					}
+				}
+					
+				else
+				{
+					if (b >= (Sint32)entry->loop_end)
+					{
+						t = t - (double)(entry->loop_end + entry->loop_begin);
+						a = entry->loop_end - (a - entry->loop_end);
+						b = entry->loop_end - (b - entry->loop_end);
+						c = entry->loop_end - (c - entry->loop_end);
+						d = entry->loop_end - (d - entry->loop_end);
+					}
+				}
+			}
+
+			double mu = t - (double)b;
+			double mu2 = mu * mu;
+
+			double a0 = -0.5 * (double)entry->data[a] + 1.5 * (double)entry->data[b] - 1.5 * (double)entry->data[c] + 0.5 * (double)entry->data[d];
+			double a1 = (double)entry->data[a] - 2.5 * (double)entry->data[b] + 2 * (double)entry->data[c] - 0.5 * (double)entry->data[d];
+			double a2 = -0.5 * (double)entry->data[a] + 0.5 * (double)entry->data[c];
+			double a3 = (double)entry->data[b];
+			double interpolated = (a0 * mu * mu2 + a1 * mu2 + a2 * mu + a3);
+			return (Sint32)interpolated            ;
+		}
+		
+		else
+		{
+			double t = wave_acc / WAVETABLE_RESOLUTION;
+			int b = (int)t;
+			int a = b - 1;
+			int c = b + 1;
+			int d = b + 2;
+			
+			// if (b >= entry->samples || b < 0)
+			//     return 0;
+			
+			if ((entry->flags & CYD_WAVE_LOOP) && b < (Sint32)entry->loop_begin)
+			{
+				if (!(entry->flags & CYD_WAVE_PINGPONG))
+				{
+					t = t - (double)(entry->loop_begin + entry->loop_end);
+					a = a - entry->loop_begin + entry->loop_end;
+					b = b - entry->loop_begin + entry->loop_end;
+					c = c - entry->loop_begin + entry->loop_end;
+					d = d - entry->loop_begin + entry->loop_end;
+				}
+					
+				else
+				{
+					t = t - (double)(entry->loop_begin + entry->loop_end);
+					a = entry->loop_end - (a - entry->loop_end);
+					b = entry->loop_end - (b - entry->loop_end);
+					c = entry->loop_end - (c - entry->loop_end);
+					d = entry->loop_end - (d - entry->loop_end);
+				}
+			}
+
+			double mu = t - (double)b;
+			double mu2 = mu * mu;
+
+			double a0 = -0.5 * (double)entry->data[a] + 1.5 * (double)entry->data[b] - 1.5 * (double)entry->data[c] + 0.5 * (double)entry->data[d];
+			double a1 = (double)entry->data[a] - 2.5 * (double)entry->data[b] + 2 * (double)entry->data[c] - 0.5 * (double)entry->data[d];
+			double a2 = -0.5 * (double)entry->data[a] + 0.5 * (double)entry->data[c];
+			double a3 = (double)entry->data[b];
+			double interpolated = (a0 * mu * mu2 + a1 * mu2 + a2 * mu + a3);
+			return (Sint32)interpolated            ;
+		}
+	}
+	
+	else
+		return 0;
 }
 
 #endif // CYD_DISABLE_WAVETABLE
@@ -175,6 +277,7 @@ enum
 {
 	CYD_WAVE_INTERPOLATION_LINEAR = 0,
 	CYD_WAVE_INTERPOLATION_COSINE = 1,
+	CYD_WAVE_INTERPOLATION_CUBIC = 2,
 };
 
 
@@ -189,7 +292,7 @@ Sint32 cyd_wave_get_sample(const CydWaveState *state, const CydWavetableEntry *w
 	
 	else
 	{
-		int int_type = ((((wave_entry->flags) << 24) >> 24) & (CYD_WAVE_INTERPOLATION_BIT_1|CYD_WAVE_INTERPOLATION_BIT_2|CYD_WAVE_INTERPOLATION_BIT_3)) >> 5;
+		int int_type = (wave_entry->flags & (CYD_WAVE_INTERPOLATION_BIT_1|CYD_WAVE_INTERPOLATION_BIT_2|CYD_WAVE_INTERPOLATION_BIT_3)) >> 5;
 		
 		switch(int_type)
 		{
@@ -198,6 +301,9 @@ Sint32 cyd_wave_get_sample(const CydWaveState *state, const CydWavetableEntry *w
 				
 			case CYD_WAVE_INTERPOLATION_COSINE: 
 				return cyd_wave_get_sample_cosine(wave_entry, acc, state->direction); break;
+
+			case CYD_WAVE_INTERPOLATION_CUBIC: 
+				return cyd_wave_get_sample_cubic(wave_entry, acc, state->direction); break;
 		}
 	}
 	
