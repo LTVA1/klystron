@@ -299,6 +299,8 @@ enum
 	MUS_INST_USE_LOCAL_SAMPLES = 65536 << 2,
 	
 	MUS_INST_BIND_LOCAL_SAMPLES_TO_NOTES = 65536 << 3,
+
+	MUS_INST_RETRIGGER_ON_SLIDE = 65536 << 4, //for FamiTracker/other trackers where note is triggered even if slide command is present compatibility
 };
 
 enum

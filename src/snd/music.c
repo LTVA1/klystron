@@ -8137,6 +8137,51 @@ int mus_advance_tick(void* udata)
 								{
 									if (ctrl & MUS_CTRL_LEGATO)
 									{
+										if(pinst->flags & MUS_INST_RETRIGGER_ON_SLIDE)
+										{
+											Uint16 oldnote = 0;
+											Uint16 ops_notes[CYD_FM_NUM_OPS] = { 0 };
+
+											if(muschn->note != 0)
+											{
+												oldnote = muschn->note;
+												
+												if(pinst->fm_flags & CYD_FM_ENABLE_4OP)
+												{
+													for(int j = 0; j < CYD_FM_NUM_OPS; ++j)
+													{
+														ops_notes[j] = muschn->ops[j].note;
+													}
+												}
+											}
+											
+											mus_trigger_instrument_internal(mus, i, pinst, note << 8, mus->song->default_panning[i] == mus->cyd->channel[i].init_panning ? (mus->song->default_panning[i] + CYD_PAN_CENTER) : -1, update_adsr);
+
+											if(muschn->note != 0)
+											{
+												muschn->note = oldnote;
+												
+												if(pinst->fm_flags & CYD_FM_ENABLE_4OP)
+												{
+													for(int j = 0; j < CYD_FM_NUM_OPS; ++j)
+													{
+														muschn->ops[j].note = ops_notes[j];
+													}
+												}
+											}
+
+											if(muschn->note == 0)
+											{
+												muschn->note = (((Uint32)note + pinst->base_note - MIDDLE_C) << 8) + pinst->finetune;
+
+												mus_set_frequency(mus, i, note, ((pinst->flags & MUS_INST_QUARTER_FREQ) ? 4 : 1));
+
+												mus_set_wavetable_frequency(mus, i, note);
+
+												mus_set_buzz_frequency(mus, i, note);
+											}
+										}
+
 										mus_set_slide(mus, i, (((Uint16)note + pinst->base_note - MIDDLE_C) << 8) + pinst->finetune);
 										
 										if(pinst->fm_flags & CYD_FM_ENABLE_4OP)
@@ -8577,6 +8622,10 @@ void mus_set_song(MusEngine *mus, MusSong *song, Uint16 position)
 		mus->channel[chan].program_flags = 0;
 
 		mus->channel[chan].finetune_note = 0;
+
+		mus->channel[chan].note = 0;
+		mus->channel[chan].last_note = 0;
+		mus->channel[chan].target_note = 0;
 
 		mus->channel[chan].program_volume = MAX_VOLUME;
 		
