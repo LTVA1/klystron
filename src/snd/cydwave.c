@@ -173,39 +173,57 @@ static Sint32 cyd_wave_get_sample_cubic(const CydWavetableEntry *entry, CydWaveA
 {
 	if (entry->data)
 	{    
+		if(entry->loop_begin > 0 && entry->loop_begin == entry->loop_end)
+			return 0;
+		
+		Uint32 loop_end = entry->loop_end > 0 ? entry->loop_end : entry->samples - 1;
+
 		if (direction == 0) 
 		{
 			double t = (double)wave_acc / (double)WAVETABLE_RESOLUTION;
-			int b = (int)t;
-			int a = b - 1;
-			int c = b + 1;
-			int d = b + 2;
+			Sint64 b = (int)t;
+			Sint64 a = b - 1;
+			Sint64 c = b + 1;
+			Sint64 d = b + 2;
 
-			t = moduloF(t, (double)(entry->loop_end - entry->loop_begin)) + (double)entry->loop_begin;
-			a = modulo(a, entry->loop_end - entry->loop_begin) + entry->loop_begin;
-			b = modulo(b, entry->loop_end - entry->loop_begin) + entry->loop_begin;
-			c = modulo(c, entry->loop_end - entry->loop_begin) + entry->loop_begin;
-			d = modulo(d, entry->loop_end - entry->loop_begin) + entry->loop_begin;
-			
 			if ((entry->flags & CYD_WAVE_LOOP))
 			{
+				t = moduloF(t, (double)(entry->loop_end - entry->loop_begin)) + (double)entry->loop_begin;
+				a = modulo(a, loop_end - entry->loop_begin) + entry->loop_begin;
+				b = modulo(b, loop_end - entry->loop_begin) + entry->loop_begin;
+				c = modulo(c, loop_end - entry->loop_begin) + entry->loop_begin;
+				d = modulo(d, loop_end - entry->loop_begin) + entry->loop_begin;
 				if (!(entry->flags & CYD_WAVE_PINGPONG))
 				{
 					t = moduloF(t, (double)entry->loop_end) + (double)entry->loop_begin;
-					a = modulo(a, entry->loop_end) + entry->loop_begin;
-					b = modulo(b, entry->loop_end) + entry->loop_begin;
-					c = modulo(c, entry->loop_end) + entry->loop_begin;
-					d = modulo(d, entry->loop_end) + entry->loop_begin;
+					a = modulo(a, loop_end) + entry->loop_begin;
+					b = modulo(b, loop_end) + entry->loop_begin;
+					c = modulo(c, loop_end) + entry->loop_begin;
+					d = modulo(d, loop_end) + entry->loop_begin;
 				}
 					
 				else
 				{
 					t = moduloF(t, (double)(entry->loop_end - entry->loop_begin)) + (double)entry->loop_begin;
-					a = modulo(a, entry->loop_end - entry->loop_begin) + entry->loop_begin;
-					b = modulo(b, entry->loop_end - entry->loop_begin) + entry->loop_begin;
-					c = modulo(c, entry->loop_end - entry->loop_begin) + entry->loop_begin;
-					d = modulo(d, entry->loop_end - entry->loop_begin) + entry->loop_begin;
+					a = modulo(a, loop_end - entry->loop_begin) + entry->loop_begin;
+					b = modulo(b, loop_end - entry->loop_begin) + entry->loop_begin;
+					c = modulo(c, loop_end - entry->loop_begin) + entry->loop_begin;
+					d = modulo(d, loop_end - entry->loop_begin) + entry->loop_begin;
 				}
+			}
+
+			else
+			{
+				if(a < entry->loop_begin)
+					a = entry->loop_begin;
+				if(a > loop_end)
+					a = loop_end;
+				if(b > loop_end)
+					b = loop_end;
+				if(c > loop_end)
+					c = loop_end;
+				if(d > loop_end)
+					d = loop_end;
 			}
 
 			double mu = t - (double)b;
@@ -216,31 +234,34 @@ static Sint32 cyd_wave_get_sample_cubic(const CydWavetableEntry *entry, CydWaveA
 			double a2 = -0.5 * (double)entry->data[a] + 0.5 * (double)entry->data[c];
 			double a3 = (double)entry->data[b];
 			double interpolated = (a0 * mu * mu2 + a1 * mu2 + a2 * mu + a3);
-			
+
+			//if((Sint32)interpolated > 2 << 15 || (Sint32)interpolated < -(2 << 15))
+				//debug("ERROR-A : %d", (Sint32)interpolated);
+
 			return (Sint32)interpolated;
 		}
 		
 		else
 		{
 			double t = wave_acc / WAVETABLE_RESOLUTION;
-			int c = (int)t;
-			int d = c + 1;
-			int b = c - 1;
-			int a = c - 2;
+			Uint32 c = (int)t;
+			Uint32 d = c + 1;
+			Uint32 b = c - 1;
+			Uint32 a = c - 2;
 
 			t = moduloF(t, (double)(entry->loop_end - entry->loop_begin)) + (double)entry->loop_begin;
-			a = modulo(a, entry->loop_end - entry->loop_begin) + entry->loop_begin;
-			b = modulo(b, entry->loop_end - entry->loop_begin) + entry->loop_begin;
-			c = modulo(c, entry->loop_end - entry->loop_begin) + entry->loop_begin;
-			d = modulo(d, entry->loop_end - entry->loop_begin) + entry->loop_begin;
-			
+			a = modulo(a, loop_end - entry->loop_begin) + entry->loop_begin;
+			b = modulo(b, loop_end - entry->loop_begin) + entry->loop_begin;
+			c = modulo(c, loop_end - entry->loop_begin) + entry->loop_begin;
+			d = modulo(d, loop_end - entry->loop_begin) + entry->loop_begin;
+
 			if ((entry->flags & CYD_WAVE_LOOP))
 			{
 				t = moduloF(t, (double)(entry->loop_end - entry->loop_begin)) + (double)entry->loop_begin;
-				a = modulo(a, entry->loop_end - entry->loop_begin) + entry->loop_begin;
-				b = modulo(b, entry->loop_end - entry->loop_begin) + entry->loop_begin;
-				c = modulo(c, entry->loop_end - entry->loop_begin) + entry->loop_begin;
-				d = modulo(d, entry->loop_end - entry->loop_begin) + entry->loop_begin;
+				a = modulo(a, loop_end - entry->loop_begin) + entry->loop_begin;
+				b = modulo(b, loop_end - entry->loop_begin) + entry->loop_begin;
+				c = modulo(c, loop_end - entry->loop_begin) + entry->loop_begin;
+				d = modulo(d, loop_end - entry->loop_begin) + entry->loop_begin;
 			}
 
 			double mu = t - (double)b;
@@ -251,7 +272,10 @@ static Sint32 cyd_wave_get_sample_cubic(const CydWavetableEntry *entry, CydWaveA
 			double a2 = -0.5 * (double)entry->data[a] + 0.5 * (double)entry->data[c];
 			double a3 = (double)entry->data[b];
 			double interpolated = (a0 * mu * mu2 + a1 * mu2 + a2 * mu + a3);
-			
+
+			//if((Sint32)interpolated > 2 << 15 || (Sint32)interpolated < -(2 << 15))
+				//debug("ERROR-B : %d", (Sint32)interpolated);
+
 			return (Sint32)interpolated;
 		}
 	}

@@ -314,6 +314,12 @@ enum
 	MUS_FX_WAVE_SINE = 64,
 };
 
+enum
+{
+	MUS_TRANSPOSE_UP = 0,
+	MUS_TRANSPOSE_DOWN = 1,
+};
+
 typedef struct
 {
 	Uint32 note;
@@ -513,6 +519,11 @@ typedef struct
 	
 	bool in_loop;
 	Uint8 loops_left;
+
+	bool enable_delayed_transpose;
+	Sint8 transpose_delay;
+	Uint8 transpose_direction;
+	Uint8 transpose_semitones;
 	
 } MusTrackStatus;
 
@@ -634,6 +645,8 @@ enum
 
 	MUS_FX_SLIDE_UP_SEMITONES = 0x9600,
 	MUS_FX_SLIDE_DN_SEMITONES = 0x9700,
+
+	MUS_FX_DELAYED_TRANSPOSE = 0x9800,
 	
 	MUS_FX_FM_PORTA_UP = 0x4800, //wasn't there //not implemented
 	MUS_FX_FM_PORTA_DN = 0x4900, //wasn't there //not implemented

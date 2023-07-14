@@ -8317,6 +8317,40 @@ int mus_advance_tick(void* udata)
 					}
 				}
 
+				if (track_status->pattern) //it is here so it works at the same row with instrument trigger
+				{
+					for(int i1 = 0; i1 < MUS_MAX_COMMANDS; ++i1)
+					{
+						if ((track_status->pattern->step[track_status->pattern_step].command[i1] & 0xFF00) == MUS_FX_DELAYED_TRANSPOSE)
+						{
+							if(!(track_status->enable_delayed_transpose))
+							{
+								track_status->enable_delayed_transpose = true;
+								track_status->transpose_delay = ((track_status->pattern->step[track_status->pattern_step].command[i1] & 0x70) >> 4) + 1; //+ 1 because right after we subtract one tick
+								track_status->transpose_direction = (track_status->pattern->step[track_status->pattern_step].command[i1] & 0x80) ? MUS_TRANSPOSE_DOWN : MUS_TRANSPOSE_UP;
+								track_status->transpose_semitones = (track_status->pattern->step[track_status->pattern_step].command[i1] & 0xF);
+
+								//debug("enable transpose, semitones %d delay %d", track_status->transpose_semitones, track_status->transpose_delay);
+							}
+						}
+					}
+
+					if(track_status->enable_delayed_transpose)
+					{
+						track_status->transpose_delay--;
+
+						if(track_status->transpose_delay == 0)
+						{
+							Sint8 delta = track_status->transpose_semitones * ((track_status->transpose_direction == MUS_TRANSPOSE_DOWN) ? -1 : 1);
+							muschn->note += (Sint16)delta * 256;
+							muschn->last_note += (Sint16)delta * 256;
+							muschn->target_note += (Sint16)delta * 256;
+
+							//debug("did transpose");
+						}
+					}
+				}
+
 				if (track_status->pattern) mus_exec_track_command(mus, i, ((mus->song_counter == delay) ? 1 : 0));
 			}
 
@@ -8485,6 +8519,11 @@ int mus_advance_tick(void* udata)
 						if(flag != 0)
 						{
 							++track_status->pattern_step;
+
+							if(track_status->enable_delayed_transpose && track_status->transpose_delay < 0) //so the command is executed only once in pattern step
+							{
+								track_status->enable_delayed_transpose = false;
+							}
 						}
 						
 						if (track_status->pattern && track_status->pattern_step >= track_status->pattern->num_steps)
@@ -8598,6 +8637,11 @@ void mus_set_song(MusEngine *mus, MusSong *song, Uint16 position)
 		
 		mus->song_track[i].in_loop = false;
 		mus->song_track[i].loops_left = 0;
+
+		mus->song_track[i].enable_delayed_transpose = false;
+		mus->song_track[i].transpose_delay = 0;
+		mus->song_track[i].transpose_direction = 0;
+		mus->song_track[i].transpose_semitones = 0;
 
 		if (song)
 		{
