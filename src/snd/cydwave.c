@@ -343,7 +343,7 @@ void cyd_wave_cycle(CydWaveState *wave, const CydWavetableEntry *wave_entry)
 				{
 					if (wave->acc / WAVETABLE_RESOLUTION >= (Uint64)wave_entry->loop_end)
 					{
-						if (wave_entry->flags & CYD_WAVE_PINGPONG) 
+						if (wave_entry->flags & CYD_WAVE_PINGPONG)
 						{
 							wave->acc = (Uint64)wave_entry->loop_end * WAVETABLE_RESOLUTION - (wave->acc - (Uint64)wave_entry->loop_end * WAVETABLE_RESOLUTION);
 							wave->direction = 1;
