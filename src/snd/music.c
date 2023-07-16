@@ -10744,6 +10744,22 @@ int mus_load_song_RW(RWops *ctx, MusSong *song, CydWavetableEntry *wavetable_ent
 
 		if (version > 2) my_RWread(ctx, &song->flags, 1, sizeof(song->flags));
 		else song->flags = 0;
+
+		FIX_ENDIAN(song->flags);
+
+		if(song->flags & MUS_HAS_MESSAGE)
+		{
+			Uint32 len = 0;
+			my_RWread(ctx, &len, 1, sizeof(len));
+			FIX_ENDIAN(len);
+
+			song->song_message = (char*)calloc(1, sizeof(char) * len);
+
+			for(Uint32 i = 0; i < len; i++)
+			{
+				my_RWread(ctx, &song->song_message[i], 1, sizeof(song->song_message[0]));
+			}
+		}
 		
 		if((song->flags & MUS_16_BIT_RATE) && version >= 32)
 		{
@@ -10786,7 +10802,6 @@ int mus_load_song_RW(RWops *ctx, MusSong *song, CydWavetableEntry *wavetable_ent
 		FIX_ENDIAN(song->time_signature);
 		FIX_ENDIAN(song->sequence_step);
 		FIX_ENDIAN(song->num_patterns);
-		FIX_ENDIAN(song->flags);
 
 		for (int i = 0; i < (int)song->num_channels; ++i)
 		{
@@ -11169,7 +11184,7 @@ int mus_load_song_RW(RWops *ctx, MusSong *song, CydWavetableEntry *wavetable_ent
 		}
 
 #ifndef STANDALONE_COMPILE
-		for(int ch = 0; ch < song->num_channels; ch++)
+		for(int ch = 0; ch < song->num_channels; ch++) //show command columns per channel
 		{
 			Uint8 cols = 0;
 
@@ -11377,6 +11392,11 @@ void mus_free_song(MusSong *song)
 	free(song->wavetable_names);
 
 	free(song->pattern);
+
+	if(song->song_message)
+	{
+		free(song->song_message);
+	}
 }
 
 

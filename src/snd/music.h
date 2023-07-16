@@ -466,6 +466,9 @@ typedef struct
 	Uint8 grooves[MUS_MAX_GROOVES][MUS_MAX_GROOVE_LENGTH];
 	Uint8 groove_length[MUS_MAX_GROOVES];
 	Uint8 num_grooves;
+
+	char* song_message;
+	Uint32 song_message_length;
 } MusSong;
 
 typedef struct
@@ -916,8 +919,8 @@ enum //song flags
 	
 	MUS_16_BIT_RATE = 2048,
 	
-	MUS_HAS_DESCRIPTION = 4096,
-	MUS_SHOW_DESCRIPTION = 8192, // show description automatically when song is loaded, BETTER FUCKING LEAVE IT AS 0!!!
+	MUS_HAS_MESSAGE = 4096,
+	MUS_SHOW_MESSAGE = 8192, // show description automatically when song is loaded, BETTER FUCKING LEAVE IT AS 0!!!
 	
 	MUS_OPL_OPN = 16384, // generate/load waves for said chips, put them on first n places, shift other samples in the song n positions down and relink all references in instruments and songs (but before check if they already were generated)
 	MUS_OPL2 = 32768, // generate from presets, load samples from special folder ('res/samples')
