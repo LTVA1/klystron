@@ -6928,7 +6928,7 @@ int mus_trigger_instrument_internal(MusEngine* mus, int chan, MusInstrument *ins
 	
 	chn->arpeggio_note = 0;
 	chn->fixed_note = 0xffff;
-	chn->finetune_note = 0;
+	//chn->finetune_note = 0;
 	cydchn->fx_bus = ins->fx_bus;
 
 	if (ins->flags & MUS_INST_DRUM)
