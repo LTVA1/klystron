@@ -59,11 +59,11 @@ extern Mused mused;
 
 #endif
 
-#define VIB_TAB_SIZE 128
+#define VIB_TAB_SIZE 1024
 
 #ifndef GENERATE_VIBRATO_TABLES
 
-static const Sint8 rnd_table[VIB_TAB_SIZE] = {
+static const Sint8 rnd_table[VIB_TAB_SIZE / 2 / 4] = {
 	110, -1, 88, -31, 64,
 	-13, 29, -70, -113, 71,
 	99, -71, 74, 82, 52,
@@ -89,23 +89,80 @@ static const Sint8 rnd_table[VIB_TAB_SIZE] = {
 	66, 116, -45, 91, 1,
 	-96, -27, 17, 76, -82,
 	58, -7, 75, -35, 49,
-	3, -52, 40
+	3, -52, 40,
 };
 
-static const Sint8 sine_table[VIB_TAB_SIZE] =
+static const Sint16 sine_table[VIB_TAB_SIZE] =
 {
-	0, 6, 12, 18, 24, 31, 37, 43, 48, 54, 60, 65, 71, 76, 81, 85, 90, 94, 98, 102, 106, 109, 112,
+	/*0, 6, 12, 18, 24, 31, 37, 43, 48, 54, 60, 65, 71, 76, 81, 85, 90, 94, 98, 102, 106, 109, 112,
 	115, 118, 120, 122, 124, 125, 126, 127, 127, 127, 127, 127, 126, 125, 124, 122, 120, 118, 115, 112,
 	109, 106, 102, 98, 94, 90, 85, 81, 76, 71, 65, 60, 54, 48, 43, 37, 31, 24, 18, 12, 6,
 	0, -6, -12, -18, -24, -31, -37, -43, -48, -54, -60, -65, -71, -76, -81, -85, -90, -94, -98, -102,
 	-106, -109, -112, -115, -118, -120, -122, -124, -125, -126, -127, -127, -128, -127, -127, -126, -125, -124, -122,
-	-120, -118, -115, -112, -109, -106, -102, -98, -94, -90, -85, -81, -76, -71, -65, -60, -54, -48, -43, -37, -31, -24, -18, -12, -6
+	-120, -118, -115, -112, -109, -106, -102, -98, -94, -90, -85, -81, -76, -71, -65, -60, -54, -48, -43, -37, -31, -24, -18, -12, -6*/
+
+	0, 201, 402, 603, 804, 1005, 1206, 1407, 1608, 1809, 2009, 2210, 2410, 2611, 2811, 3012, 3212, 3412, 3612, 3811, 4011, 4210, 4410, 
+	4609, 4808, 5007, 5205, 5404, 5602, 5800, 5998, 6195, 6393, 6590, 6786, 6983, 7179, 7375, 7571, 7767, 7962, 8157, 8351, 8545, 8739, 
+	8933, 9126, 9319, 9512, 9704, 9896, 10087, 10278, 10469, 10659, 10849, 11039, 11228, 11417, 11605, 11793, 11980, 12167, 12353, 12539,
+	12725, 12910, 13094, 13279, 13462, 13645, 13828, 14010, 14191, 14372, 14553, 14732, 14912, 15090, 15269, 15446, 15623, 15800, 15976, 
+	16151, 16325, 16499, 16673, 16846, 17018, 17189, 17360, 17530, 17700, 17869, 18037, 18204, 18371, 18537, 18703, 18868, 19032, 19195, 
+	19357, 19519, 19680, 19841, 20000, 20159, 20317, 20475, 20631, 20787, 20942, 21096, 21250, 21403, 21554, 21705, 21856, 22005, 22154, 
+	22301, 22448, 22594, 22739, 22884, 23027, 23170, 23311, 23452, 23592, 23731, 23870, 24007, 24143, 24279, 24413, 24547, 24680, 24811, 
+	24942, 25072, 25201, 25329, 25456, 25582, 25708, 25832, 25955, 26077, 26198, 26319, 26438, 26556, 26674, 26790, 26905, 27019, 27133, 
+	27245, 27356, 27466, 27575, 27683, 27790, 27896, 28001, 28105, 28208, 28310, 28411, 28510, 28609, 28706, 28803, 28898, 28992, 29085, 
+	29177, 29268, 29358, 29447, 29534, 29621, 29706, 29791, 29874, 29956, 30037, 30117, 30195, 30273, 30349, 30424, 30498, 30571, 30643, 
+	30714, 30783, 30852, 30919, 30985, 31050, 31113, 31176, 31237, 31297, 31356, 31414, 31470, 31526, 31580, 31633, 31685, 31736, 31785, 
+	31833, 31880, 31926, 31971, 32014, 32057, 32098, 32137, 32176, 32213, 32250, 32285, 32318, 32351, 32382, 32412, 32441, 32469, 32495, 
+	32521, 32545, 32567, 32589, 32609, 32628, 32646, 32663, 32678, 32692, 32705, 32717, 32728, 32737, 32745, 32752, 32757, 32761, 32765, 
+	32766, 32767, 32766, 32765, 32761, 32757, 32752, 32745, 32737, 32728, 32717, 32705, 32692, 32678, 32663, 32646, 32628, 32609, 32589, 
+	32567, 32545, 32521, 32495, 32469, 32441, 32412, 32382, 32351, 32318, 32285, 32250, 32213, 32176, 32137, 32098, 32057, 32014, 31971, 
+	31926, 31880, 31833, 31785, 31736, 31685, 31633, 31580, 31526, 31470, 31414, 31356, 31297, 31237, 31176, 31113, 31050, 30985, 30919, 
+	30852, 30783, 30714, 30643, 30571, 30498, 30424, 30349, 30273, 30195, 30117, 30037, 29956, 29874, 29791, 29706, 29621, 29534, 29447, 
+	29358, 29268, 29177, 29085, 28992, 28898, 28803, 28706, 28609, 28510, 28411, 28310, 28208, 28105, 28001, 27896, 27790, 27683, 27575, 
+	27466, 27356, 27245, 27133, 27019, 26905, 26790, 26674, 26556, 26438, 26319, 26198, 26077, 25955, 25832, 25708, 25582, 25456, 25329, 
+	25201, 25072, 24942, 24811, 24680, 24547, 24413, 24279, 24143, 24007, 23870, 23731, 23592, 23452, 23311, 23170, 23027, 22884, 22739, 
+	22594, 22448, 22301, 22154, 22005, 21856, 21705, 21554, 21403, 21250, 21096, 20942, 20787, 20631, 20475, 20317, 20159, 20000, 19841, 
+	19680, 19519, 19357, 19195, 19032, 18868, 18703, 18537, 18371, 18204, 18037, 17869, 17700, 17530, 17360, 17189, 17018, 16846, 16673, 
+	16499, 16325, 16151, 15976, 15800, 15623, 15446, 15269, 15090, 14912, 14732, 14553, 14372, 14191, 14010, 13828, 13645, 13462, 13279, 
+	13094, 12910, 12725, 12539, 12353, 12167, 11980, 11793, 11605, 11417, 11228, 11039, 10849, 10659, 10469, 10278, 10087, 9896, 9704, 9512, 
+	9319, 9126, 8933, 8739, 8545, 8351, 8157, 7962, 7767, 7571, 7375, 7179, 6983, 6786, 6590, 6393, 6195, 5998, 5800, 5602, 5404, 5205, 
+	5007, 4808, 4609, 4410, 4210, 4011, 3811, 3612, 3412, 3212, 3012, 2811, 2611, 2410, 2210, 2009, 1809, 1608, 1407, 1206, 1005, 804, 
+	603, 402, 201, 0, -201, -402, -603, -804, -1005, -1206, -1407, -1608, -1809, -2009, -2210, -2410, -2611, -2811, -3012, -3212, -3412, 
+	-3612, -3811, -4011, -4210, -4410, -4609, -4808, -5007, -5205, -5404, -5602, -5800, -5998, -6195, -6393, -6590, -6786, -6983, -7179, 
+	-7375, -7571, -7767, -7962, -8157, -8351, -8545, -8739, -8933, -9126, -9319, -9512, -9704, -9896, -10087, -10278, -10469, -10659, -10849, 
+	-11039, -11228, -11417, -11605, -11793, -11980, -12167, -12353, -12539, -12725, -12910, -13094, -13279, -13462, -13645, -13828, -14010, 
+	-14191, -14372, -14553, -14732, -14912, -15090, -15269, -15446, -15623, -15800, -15976, -16151, -16325, -16499, -16673, -16846, -17018, 
+	-17189, -17360, -17530, -17700, -17869, -18037, -18204, -18371, -18537, -18703, -18868, -19032, -19195, -19357, -19519, -19680, -19841, 
+	-20000, -20159, -20317, -20475, -20631, -20787, -20942, -21096, -21250, -21403, -21554, -21705, -21856, -22005, -22154, -22301, -22448, 
+	-22594, -22739, -22884, -23027, -23170, -23311, -23452, -23592, -23731, -23870, -24007, -24143, -24279, -24413, -24547, -24680, -24811, 
+	-24942, -25072, -25201, -25329, -25456, -25582, -25708, -25832, -25955, -26077, -26198, -26319, -26438, -26556, -26674, -26790, -26905, 
+	-27019, -27133, -27245, -27356, -27466, -27575, -27683, -27790, -27896, -28001, -28105, -28208, -28310, -28411, -28510, -28609, -28706, 
+	-28803, -28898, -28992, -29085, -29177, -29268, -29358, -29447, -29534, -29621, -29706, -29791, -29874, -29956, -30037, -30117, -30195, 
+	-30273, -30349, -30424, -30498, -30571, -30643, -30714, -30783, -30852, -30919, -30985, -31050, -31113, -31176, -31237, -31297, -31356, 
+	-31414, -31470, -31526, -31580, -31633, -31685, -31736, -31785, -31833, -31880, -31926, -31971, -32014, -32057, -32098, -32137, -32176, 
+	-32213, -32250, -32285, -32318, -32351, -32382, -32412, -32441, -32469, -32495, -32521, -32545, -32567, -32589, -32609, -32628, -32646, 
+	-32663, -32678, -32692, -32705, -32717, -32728, -32737, -32745, -32752, -32757, -32761, -32765, -32766, -32767, -32766, -32765, -32761, 
+	-32757, -32752, -32745, -32737, -32728, -32717, -32705, -32692, -32678, -32663, -32646, -32628, -32609, -32589, -32567, -32545, -32521, 
+	-32495, -32469, -32441, -32412, -32382, -32351, -32318, -32285, -32250, -32213, -32176, -32137, -32098, -32057, -32014, -31971, -31926, 
+	-31880, -31833, -31785, -31736, -31685, -31633, -31580, -31526, -31470, -31414, -31356, -31297, -31237, -31176, -31113, -31050, -30985, 
+	-30919, -30852, -30783, -30714, -30643, -30571, -30498, -30424, -30349, -30273, -30195, -30117, -30037, -29956, -29874, -29791, -29706, 
+	-29621, -29534, -29447, -29358, -29268, -29177, -29085, -28992, -28898, -28803, -28706, -28609, -28510, -28411, -28310, -28208, -28105, 
+	-28001, -27896, -27790, -27683, -27575, -27466, -27356, -27245, -27133, -27019, -26905, -26790, -26674, -26556, -26438, -26319, -26198, 
+	-26077, -25955, -25832, -25708, -25582, -25456, -25329, -25201, -25072, -24942, -24811, -24680, -24547, -24413, -24279, -24143, -24007, 
+	-23870, -23731, -23592, -23452, -23311, -23170, -23027, -22884, -22739, -22594, -22448, -22301, -22154, -22005, -21856, -21705, -21554, 
+	-21403, -21250, -21096, -20942, -20787, -20631, -20475, -20317, -20159, -20000, -19841, -19680, -19519, -19357, -19195, -19032, -18868, 
+	-18703, -18537, -18371, -18204, -18037, -17869, -17700, -17530, -17360, -17189, -17018, -16846, -16673, -16499, -16325, -16151, -15976, 
+	-15800, -15623, -15446, -15269, -15090, -14912, -14732, -14553, -14372, -14191, -14010, -13828, -13645, -13462, -13279, -13094, -12910, 
+	-12725, -12539, -12353, -12167, -11980, -11793, -11605, -11417, -11228, -11039, -10849, -10659, -10469, -10278, -10087, -9896, -9704, 
+	-9512, -9319, -9126, -8933, -8739, -8545, -8351, -8157, -7962, -7767, -7571, -7375, -7179, -6983, -6786, -6590, -6393, -6195, -5998, -5800, 
+	-5602, -5404, -5205, -5007, -4808, -4609, -4410, -4210, -4011, -3811, -3612, -3412, -3212, -3012, -2811, -2611, -2410, -2210, -2009, -1809, 
+	-1608, -1407, -1206, -1005, -804, -603, -402, -201,
 };
 
 #else
 
-static Sint8 rnd_table[VIB_TAB_SIZE];
-static Sint8 sine_table[VIB_TAB_SIZE];
+static Sint8 rnd_table[VIB_TAB_SIZE / 2 / 4];
+static Sint16 sine_table[VIB_TAB_SIZE];
 
 #endif
 
@@ -659,8 +716,8 @@ void mus_init_engine(MusEngine *mus, CydEngine *cyd)
 #ifdef GENERATE_VIBRATO_TABLES
 	for (int i = 0; i < VIB_TAB_SIZE; ++i)
 	{
-		sine_table[i] = sin((float)i / VIB_TAB_SIZE * M_PI * 2) * 127;
-		rnd_table[i] = rand();
+		sine_table[i] = (Sint16)(sin((float)i / VIB_TAB_SIZE * M_PI * 2) * 32767.0);
+		rnd_table[i / 2 / 4] = rand();
 	}
 #endif
 }
@@ -6346,37 +6403,39 @@ static void mus_exec_4op_prog_tick(MusEngine *mus, int chan, int advance, int i 
 	}
 }
 
-static Sint8 mus_shape(Uint16 position, Uint8 shape)
+static Sint16 mus_shape(Uint16 position, Uint8 shape)
 {
 	switch (shape)
 	{
 		case MUS_SHAPE_SINE:
-			return sine_table[position & (VIB_TAB_SIZE - 1)];
+			return sine_table[(position / 64) & (VIB_TAB_SIZE - 1)];
 			break;
 
 		case MUS_SHAPE_SQUARE:
-			return ((position & (VIB_TAB_SIZE - 1)) & (VIB_TAB_SIZE / 2)) ? -128 : 127;
+			return (position & 0x8000) ? -32768 : 32767;
 			break;
 
 		case MUS_SHAPE_RAMP_UP:
-			return (position & (VIB_TAB_SIZE - 1)) * 2 - 128;
+			return position - 32768;
 			break;
 
 		case MUS_SHAPE_RAMP_DN:
-			return 127 - (position & (VIB_TAB_SIZE - 1)) * 2;
+			return 32767 - position;
 			break;
 			
 		case MUS_SHAPE_TRI_UP:
-			return ((position & (VIB_TAB_SIZE - 1)) & (VIB_TAB_SIZE / 2)) ? ((position & (VIB_TAB_SIZE - 1)) * 4) - 128 : 127 - (position & (VIB_TAB_SIZE - 1)) * 4;
+			return ((position & 0x8000) ? ((65535 - position) * 2) : (position * 2)) - 32768;
 			break;
+
+			//return ((((acc & (ACC_LENGTH / 2)) ? ~acc : acc) >> (ACC_BITS - OUTPUT_BITS - 2)) & (WAVE_AMP * 2 - 1));
 			
 		case MUS_SHAPE_TRI_DOWN:
-			return ((position & (VIB_TAB_SIZE - 1)) & (VIB_TAB_SIZE / 2)) ? 127 - (position & (VIB_TAB_SIZE - 1)) * 4 : ((position & (VIB_TAB_SIZE - 1)) * 4) - 128;
+			return ((position & 0x8000) ? (position * 2) : ((65535 - position) * 2)) - 32768;
 			break;
 
 		default:
 		case MUS_SHAPE_RANDOM:
-			return rnd_table[(position / 8) & (VIB_TAB_SIZE - 1)];
+			return rnd_table[(position / 256 / 2) & (VIB_TAB_SIZE / 2 / 4 - 1)] * 256;
 			break;
 	}
 }
@@ -6390,8 +6449,8 @@ static void do_pwm(MusEngine* mus, int chan)
 	MusInstrument *ins = chn->instrument;
 	MusTrackStatus *track_status = &mus->song_track[chan];
 
-	track_status->pwm_position += track_status->pwm_speed;
-	mus->cyd->channel[chan].pw = track_status->pw + mus_shape(track_status->pwm_position >> 1, ins->pwm_shape) * track_status->pwm_depth / 16; //mus->cyd->channel[chan].pw = track_status->pw + mus_shape(track_status->pwm_position >> 1, ins->pwm_shape) * track_status->pwm_depth / 32;
+	track_status->pwm_position += track_status->pwm_speed * 16;
+	mus->cyd->channel[chan].pw = track_status->pw + (Sint32)mus_shape(track_status->pwm_position, ins->pwm_shape) * (Sint32)track_status->pwm_depth / 16 / 256; //mus->cyd->channel[chan].pw = track_status->pw + mus_shape(track_status->pwm_position >> 1, ins->pwm_shape) * track_status->pwm_depth / 32;
 }
 
 static void do_4op_pwm(MusEngine* mus, int chan, int i /*op number*/)
@@ -6400,8 +6459,8 @@ static void do_4op_pwm(MusEngine* mus, int chan, int i /*op number*/)
 	MusInstrument *ins = chn->instrument;
 	MusTrackStatus *track_status = &mus->song_track[chan];
 
-	track_status->ops_status[i].pwm_position += track_status->ops_status[i].pwm_speed;
-	mus->cyd->channel[chan].fm.ops[i].pw = track_status->ops_status[i].pw + mus_shape(track_status->ops_status[i].pwm_position >> 1, ins->ops[i].pwm_shape) * track_status->ops_status[i].pwm_depth / 16; //mus->cyd->channel[chan].fm.ops[i].pw = track_status->ops_status[i].pw + mus_shape(track_status->ops_status[i].pwm_position >> 1, ins->ops[i].pwm_shape) * track_status->ops_status[i].pwm_depth / 32;
+	track_status->ops_status[i].pwm_position += track_status->ops_status[i].pwm_speed * 16;
+	mus->cyd->channel[chan].fm.ops[i].pw = track_status->ops_status[i].pw + mus_shape(track_status->ops_status[i].pwm_position, ins->ops[i].pwm_shape) * track_status->ops_status[i].pwm_depth / 16 / 256; //mus->cyd->channel[chan].fm.ops[i].pw = track_status->ops_status[i].pw + mus_shape(track_status->ops_status[i].pwm_position >> 1, ins->ops[i].pwm_shape) * track_status->ops_status[i].pwm_depth / 32;
 }
 
 #endif
@@ -7087,6 +7146,8 @@ int mus_trigger_instrument_internal(MusEngine* mus, int chan, MusInstrument *ins
 	track->vibrato_position = 0;
 	track->tremolo_position = 0;
 
+	track->panbrello_position = 0;
+
 	track->vibrato_delay = ins->vibrato_delay;
 	track->fm_vibrato_delay = ins->fm_vibrato_delay;
 	
@@ -7698,8 +7759,8 @@ static void mus_advance_channel(MusEngine* mus, int chan)
 			{
 				track_status->pwm_delay = 0;
 				
-				track_status->pwm_depth = (track_status->pattern->step[track_status->pattern_step].command[i] & 0x000f) << 4;
-				track_status->pwm_speed = (track_status->pattern->step[track_status->pattern_step].command[i] & 0x00f0) >> 3;
+				track_status->pwm_depth = ((track_status->pattern->step[track_status->pattern_step].command[i] & 0x000f) << 4);
+				track_status->pwm_speed = (track_status->pattern->step[track_status->pattern_step].command[i] & 0x00f0);
 				
 				if(cydchn->fm.flags & CYD_FM_ENABLE_4OP)
 				{
@@ -7707,10 +7768,16 @@ static void mus_advance_channel(MusEngine* mus, int chan)
 					{
 						track_status->ops_status[j].pwm_delay = 0;
 				
-						track_status->ops_status[j].pwm_depth = (track_status->pattern->step[track_status->pattern_step].command[i] & 0x000f) << 4;
-						track_status->ops_status[j].pwm_speed = (track_status->pattern->step[track_status->pattern_step].command[i] & 0x00f0) >> 3;
+						track_status->ops_status[j].pwm_depth = ((track_status->pattern->step[track_status->pattern_step].command[i] & 0x000f) << 4);
+						track_status->ops_status[j].pwm_speed = (track_status->pattern->step[track_status->pattern_step].command[i] & 0x00f0);
 					}
 				}
+			}
+
+			if ((track_status->pattern->step[track_status->pattern_step].command[i] & 0xff00) == MUS_FX_PANBRELLO)
+			{
+				track_status->panbrello_depth = ((track_status->pattern->step[track_status->pattern_step].command[i] & 0x000f) << 4) + 16;
+				track_status->panbrello_speed = (track_status->pattern->step[track_status->pattern_step].command[i] & 0x00f0) >> 1;
 			}
 		}
 	}
@@ -7722,6 +7789,8 @@ static void mus_advance_channel(MusEngine* mus, int chan)
 	
 	Sint16 trem = 0;
 	Sint16 fm_trem = 0;
+
+	Sint16 panbr = 0;
 	
 	Sint16 ops_vib[CYD_FM_NUM_OPS] = { 0 };
 	Sint16 ops_trem[CYD_FM_NUM_OPS] = { 0 };
@@ -7729,8 +7798,8 @@ static void mus_advance_channel(MusEngine* mus, int chan)
 #ifndef CYD_DISABLE_VIBRATO
 	if (((ctrl & MUS_CTRL_VIB) && !(ins->flags & MUS_INST_INVERT_VIBRATO_BIT)) || (!(ctrl & MUS_CTRL_VIB) && (ins->flags & MUS_INST_INVERT_VIBRATO_BIT)))
 	{
-		track_status->vibrato_position += vibspd;
-		vib = mus_shape(track_status->vibrato_position >> 1, ins->vibrato_shape) * vibdep / 64;
+		track_status->vibrato_position += vibspd * 256;
+		vib = (Sint32)mus_shape(track_status->vibrato_position, ins->vibrato_shape) * (Sint32)vibdep / 64 / 256;
 		if (track_status->vibrato_delay) --track_status->vibrato_delay;
 	}
 #endif
@@ -7739,8 +7808,8 @@ static void mus_advance_channel(MusEngine* mus, int chan)
 	{
 		if(track_status->tremolo_delay == 0)
 		{
-			track_status->tremolo_position += tremspd;
-			trem = mus_shape(track_status->tremolo_position >> 1, ins->tremolo_shape) * tremdep / 64;
+			track_status->tremolo_position += tremspd * 256;
+			trem = (Sint32)mus_shape(track_status->tremolo_position, ins->tremolo_shape) * (Sint32)tremdep / 64 / 256;
 		}
 		
 		if (track_status->tremolo_delay) --track_status->tremolo_delay;
@@ -7753,8 +7822,8 @@ static void mus_advance_channel(MusEngine* mus, int chan)
 
 	if(track_status->fm_vibrato_delay == 0)
 	{	
-		track_status->fm_vibrato_position += fm_vibspd;
-		fm_vib = mus_shape(track_status->fm_vibrato_position >> 1, ins->fm_vibrato_shape) * fm_vibdep / 64;
+		track_status->fm_vibrato_position += fm_vibspd * 256;
+		fm_vib = (Sint32)mus_shape(track_status->fm_vibrato_position, ins->fm_vibrato_shape) * (Sint32)fm_vibdep / 64 / 256;
 	}
 	
 	if(track_status->fm_tremolo_delay != 0)
@@ -7764,8 +7833,8 @@ static void mus_advance_channel(MusEngine* mus, int chan)
 
 	if(track_status->fm_tremolo_delay == 0)
 	{
-		track_status->fm_tremolo_position += fm_tremspd;
-		fm_trem = mus_shape(track_status->fm_tremolo_position >> 1, ins->fm_tremolo_shape) * fm_tremdep / 64;
+		track_status->fm_tremolo_position += fm_tremspd * 256;
+		fm_trem = (Sint32)mus_shape(track_status->fm_tremolo_position, ins->fm_tremolo_shape) * (Sint32)fm_tremdep / 64 / 256;
 	}
 	
 #ifndef CYD_DISABLE_PWM
@@ -7780,6 +7849,16 @@ static void mus_advance_channel(MusEngine* mus, int chan)
 	}
 #endif
 
+	if(track_status->panbrello_speed != 0)
+	{
+		track_status->panbrello_position += track_status->panbrello_speed * 16;
+		panbr = (Sint32)mus_shape(track_status->panbrello_position, track_status->panbrello_shape) * (Sint32)track_status->panbrello_depth / 256 / 256;
+
+		Sint16 temp = my_min(CYD_PAN_RIGHT, my_max(CYD_PAN_LEFT, panbr + cydchn->init_panning));
+
+		cyd_set_panning(mus->cyd, cydchn, temp);
+	}
+
 	if(cydchn->fm.flags & CYD_FM_ENABLE_4OP)
 	{
 		for(int i = 0; i < CYD_FM_NUM_OPS; ++i)
@@ -7788,9 +7867,9 @@ static void mus_advance_channel(MusEngine* mus, int chan)
 			{
 				if(track_status->ops_status[i].vibrato_delay == 0)
 				{
-					track_status->ops_status[i].vibrato_position += vibspd_ops[i];
+					track_status->ops_status[i].vibrato_position += vibspd_ops[i] * 256;
 					
-					ops_vib[i] = mus_shape(track_status->ops_status[i].vibrato_position >> 1, ins->ops[i].vibrato_shape) * vibdep_ops[i] / 64;
+					ops_vib[i] = (Sint32)mus_shape(track_status->ops_status[i].vibrato_position, ins->ops[i].vibrato_shape) * (Sint32)vibdep_ops[i] / 64 / 256;
 				}
 				
 				if (track_status->ops_status[i].vibrato_delay) --track_status->ops_status[i].vibrato_delay;
@@ -7800,8 +7879,8 @@ static void mus_advance_channel(MusEngine* mus, int chan)
 			{
 				if(track_status->ops_status[i].tremolo_delay == 0)
 				{
-					track_status->ops_status[i].tremolo_position += tremspd_ops[i];
-					ops_trem[i] = mus_shape(track_status->ops_status[i].tremolo_position >> 1, ins->ops[i].tremolo_shape) * tremdep_ops[i] / 64;
+					track_status->ops_status[i].tremolo_position += tremspd_ops[i] * 256;
+					ops_trem[i] = (Sint32)mus_shape(track_status->ops_status[i].tremolo_position, ins->ops[i].tremolo_shape) * (Sint32)tremdep_ops[i] / 64 / 256;
 				}
 				
 				if (track_status->ops_status[i].tremolo_delay) --track_status->ops_status[i].tremolo_delay;
@@ -8643,6 +8722,13 @@ void mus_set_song(MusEngine *mus, MusSong *song, Uint16 position)
 		mus->song_track[i].transpose_direction = 0;
 		mus->song_track[i].transpose_semitones = 0;
 
+		mus->song_track[i].tremolo_depth = 0;
+		mus->song_track[i].vibrato_depth = 0;
+		mus->song_track[i].panbrello_depth = 0;
+
+		mus->song_track[i].panbrello_speed = 0;
+		mus->song_track[i].panbrello_depth = 0;
+
 		if (song)
 		{
 			mus->channel[i].volume = song->default_volume[i];
@@ -9226,6 +9312,11 @@ int mus_load_instrument_RW(Uint8 version, RWops *ctx, MusInstrument *inst, CydWa
 		{
 			inst->pwm_depth /= 2;
 		}
+
+		if(version < 43)
+		{
+			inst->pwm_speed = my_min(0xff, (int)inst->pwm_speed * 0x10); //to account for better PWM low range
+		}
 		
 		VER_READ(version, 30, 0xff, &inst->pwm_delay, 0); //wasn't there
 		
@@ -9698,6 +9789,11 @@ int mus_load_instrument_RW(Uint8 version, RWops *ctx, MusInstrument *inst, CydWa
 					VER_READ(version, 34, 0xff, &inst->ops[i].pwm_depth, 0);
 					VER_READ(version, 34, 0xff, &inst->ops[i].pwm_shape, 0);
 					VER_READ(version, 34, 0xff, &inst->ops[i].pwm_delay, 0);
+
+					if(version < 43)
+					{
+						inst->ops[i].pwm_speed = my_min(0xff, (int)inst->pwm_speed * 0x10); //to account for better PWM low range
+					}
 					
 					VER_READ(version, 34, 0xff, &inst->ops[i].tremolo_speed, 0);
 					VER_READ(version, 34, 0xff, &inst->ops[i].tremolo_depth, 0);

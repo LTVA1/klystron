@@ -51,7 +51,7 @@ OTHER DEALINGS IN THE SOFTWARE.
 #define MUS_MAX_GROOVES 64
 #define MUS_MAX_GROOVE_LENGTH 128
 
-#define MUS_VERSION 42
+#define MUS_VERSION 43
 
 #define MUS_SONG_TITLE_LEN 255
 #define MUS_INSTRUMENT_NAME_LEN 255
@@ -153,8 +153,7 @@ typedef struct //wasn't there
 	Uint8 vol_env_flags; //1 - sustain, 2 - loop
 	
 	MusEnvPoint volume_envelope[MUS_MAX_ENVELOPE_POINTS];
-
-} MusFmOp;
+} MusFmOp; 
 
 typedef struct
 {
@@ -495,7 +494,7 @@ typedef struct
 	MusPattern *pattern;
 	Uint8 last_ctrl;
 	Uint16 pw, pattern_step, sequence_position, slide_speed;
-	Uint16 vibrato_position, pwm_position, tremolo_position;
+	Uint16 vibrato_position, pwm_position, tremolo_position, panbrello_position;
 	Sint8 note_offset;
 	Uint16 filter_cutoff;
 	Uint8 filter_resonance;
@@ -511,6 +510,8 @@ typedef struct
 	Uint8 tremolo_speed, tremolo_depth; //wasn't there
 	Uint8 vibrato_speed, vibrato_depth;
 	Uint8 pwm_speed, pwm_depth; //wasn't there
+
+	Uint16 panbrello_speed, panbrello_depth, panbrello_shape;
 	
 	Uint8 fm_tremolo_speed, fm_tremolo_depth, fm_tremolo_shape; //wasn't there
 	Uint8 fm_vibrato_speed, fm_vibrato_depth, fm_vibrato_shape; //wasn't there
@@ -722,6 +723,9 @@ enum
 	MUS_FX_SET_PANNING = 0x1800,
 	MUS_FX_PAN_LEFT = 0x1700,
 	MUS_FX_PAN_RIGHT = 0x1900,
+
+	MUS_FX_PANBRELLO = 0x9900,
+
 	MUS_FX_FADE_GLOBAL_VOLUME = 0x1a00,
 	MUS_FX_SET_GLOBAL_VOLUME = 0x1d00,
 	MUS_FX_SET_CHANNEL_VOLUME = 0x1c00,
