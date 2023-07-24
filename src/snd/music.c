@@ -1087,59 +1087,6 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 			}
 		}
 		break;
-
-		case MUS_FX_GLISSANDO_CONTROL:
-		{
-			switch(ops_index)
-			{
-				case 0:
-				case 0xFF:
-				{
-					if(inst & 0xf)
-					{
-						chn->flags |= MUS_CHN_GLISSANDO;
-					}
-
-					else
-					{
-						chn->flags &= ~MUS_CHN_GLISSANDO;
-					}
-					
-					if(ops_index == 0xFF)
-					{
-						for(int i = 0; i < CYD_FM_NUM_OPS; ++i)
-						{
-							if(inst & 0xf)
-							{
-								chn->ops[i].flags |= MUS_FM_OP_GLISSANDO;
-							}
-
-							else
-							{
-								chn->ops[i].flags &= ~MUS_FM_OP_GLISSANDO;
-							}
-						}
-					}
-					
-					break;
-				}
-				
-				default:
-				{
-					if(inst & 0xf)
-					{
-						chn->ops[ops_index - 1].flags |= MUS_FM_OP_GLISSANDO;
-					}
-
-					else
-					{
-						chn->ops[ops_index - 1].flags &= ~MUS_CHN_GLISSANDO;
-					}
-					break;
-				}
-			}
-		}
-		break;
 		
 		case MUS_FX_FM_4OP_SET_DETUNE:
 		{
@@ -3846,6 +3793,93 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 		
 		switch (inst & 0xfff0)
 		{
+			case MUS_FX_GLISSANDO_CONTROL:
+			{
+				switch(ops_index)
+				{
+					case 0:
+					case 0xFF:
+					{
+						if(inst & 0xf)
+						{
+							chn->flags |= MUS_CHN_GLISSANDO;
+						}
+
+						else
+						{
+							chn->flags &= ~MUS_CHN_GLISSANDO;
+						}
+						
+						if(ops_index == 0xFF)
+						{
+							for(int i = 0; i < CYD_FM_NUM_OPS; ++i)
+							{
+								if(inst & 0xf)
+								{
+									chn->ops[i].flags |= MUS_FM_OP_GLISSANDO;
+								}
+
+								else
+								{
+									chn->ops[i].flags &= ~MUS_FM_OP_GLISSANDO;
+								}
+							}
+						}
+						
+						break;
+					}
+					
+					default:
+					{
+						if(inst & 0xf)
+						{
+							chn->ops[ops_index - 1].flags |= MUS_FM_OP_GLISSANDO;
+						}
+
+						else
+						{
+							chn->ops[ops_index - 1].flags &= ~MUS_CHN_GLISSANDO;
+						}
+						break;
+					}
+				}
+			}
+			break;
+
+			case MUS_FX_PAN_LEFT_FINE:
+			{
+				if(ops_index == 0 || ops_index == 0xFF)
+				{
+					int p = cydchn->panning;
+					
+					p -= inst & 0xf;
+
+					p = my_min(CYD_PAN_RIGHT, my_max(CYD_PAN_LEFT, p));
+					
+					cydchn->init_panning = p;
+
+					cyd_set_panning(mus->cyd, cydchn, p);
+				}
+			}
+			break;
+
+			case MUS_FX_PAN_RIGHT_FINE:
+			{
+				if(ops_index == 0 || ops_index == 0xFF)
+				{
+					int p = cydchn->panning;
+					
+					p += inst & 0xf;
+
+					p = my_min(CYD_PAN_RIGHT, my_max(CYD_PAN_LEFT, p));
+					
+					cydchn->init_panning = p;
+
+					cyd_set_panning(mus->cyd, cydchn, p);
+				}
+			}
+			break;
+
 			case MUS_FX_EXT_PORTA_UP:
 			{
 				switch(ops_index)
