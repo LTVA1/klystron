@@ -484,6 +484,7 @@ typedef struct
 	Uint8 vibrato_delay, pwm_delay, tremolo_delay; //wasn't there
 	Uint8 tremolo_speed, tremolo_depth; //wasn't there
 	Uint8 vibrato_speed, vibrato_depth;
+	Uint8 vibrato_shape, tremolo_shape, pwm_shape;
 	Uint8 pwm_speed, pwm_depth; //wasn't there
 	Uint16 slide_speed;
 	Uint16 pw;
@@ -511,7 +512,9 @@ typedef struct
 	Uint8 vibrato_speed, vibrato_depth;
 	Uint8 pwm_speed, pwm_depth; //wasn't there
 
-	Uint16 panbrello_speed, panbrello_depth, panbrello_shape;
+	Uint8 vibrato_shape, tremolo_shape, pwm_shape, panbrello_shape;
+
+	Uint8 panbrello_speed, panbrello_depth;
 	
 	Uint8 fm_tremolo_speed, fm_tremolo_depth, fm_tremolo_shape; //wasn't there
 	Uint8 fm_vibrato_speed, fm_vibrato_depth, fm_vibrato_shape; //wasn't there

@@ -5357,13 +5357,13 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 						case 0:
 						case 0xFF:
 						{
-							chn->finetune_note = (inst & 0xff) - 0x80;
+							chn->finetune_note = ((inst & 0xff) - 0x80) * 2;
 
 							if(ops_index == 0xFF)
 							{
 								for(int i = 0; i < CYD_FM_NUM_OPS; ++i)
 								{
-									chn->ops[i].finetune_note = (inst & 0xff) - 0x80;
+									chn->ops[i].finetune_note = ((inst & 0xff) - 0x80) * 2;
 								}
 							}
 							
@@ -5372,7 +5372,7 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 						
 						default: 
 						{
-							chn->ops[ops_index - 1].finetune_note = (inst & 0xff) - 0x80;
+							chn->ops[ops_index - 1].finetune_note = ((inst & 0xff) - 0x80) * 2;
 							break;
 						}
 					}
@@ -6437,7 +6437,7 @@ static void mus_exec_4op_prog_tick(MusEngine *mus, int chan, int advance, int i 
 	}
 }
 
-static Sint16 mus_shape(Uint16 position, Uint8 shape)
+static Sint16 mus_shape(Uint16 position, Uint8 shape) //Sint16 range for all your smooth LFO needs!
 {
 	switch (shape)
 	{
@@ -6460,8 +6460,6 @@ static Sint16 mus_shape(Uint16 position, Uint8 shape)
 		case MUS_SHAPE_TRI_UP:
 			return ((position & 0x8000) ? ((65535 - position) * 2) : (position * 2)) - 32768;
 			break;
-
-			//return ((((acc & (ACC_LENGTH / 2)) ? ~acc : acc) >> (ACC_BITS - OUTPUT_BITS - 2)) & (WAVE_AMP * 2 - 1));
 			
 		case MUS_SHAPE_TRI_DOWN:
 			return ((position & 0x8000) ? (position * 2) : ((65535 - position) * 2)) - 32768;
@@ -6479,22 +6477,18 @@ static Sint16 mus_shape(Uint16 position, Uint8 shape)
 
 static void do_pwm(MusEngine* mus, int chan)
 {
-	MusChannel *chn = &mus->channel[chan];
-	MusInstrument *ins = chn->instrument;
 	MusTrackStatus *track_status = &mus->song_track[chan];
 
 	track_status->pwm_position += track_status->pwm_speed * 16;
-	mus->cyd->channel[chan].pw = track_status->pw + (Sint32)mus_shape(track_status->pwm_position, ins->pwm_shape) * (Sint32)track_status->pwm_depth / 16 / 256; //mus->cyd->channel[chan].pw = track_status->pw + mus_shape(track_status->pwm_position >> 1, ins->pwm_shape) * track_status->pwm_depth / 32;
+	mus->cyd->channel[chan].pw = track_status->pw + (Sint32)mus_shape(track_status->pwm_position, track_status->pwm_shape) * (Sint32)track_status->pwm_depth / 16 / 256; //mus->cyd->channel[chan].pw = track_status->pw + mus_shape(track_status->pwm_position >> 1, ins->pwm_shape) * track_status->pwm_depth / 32;
 }
 
 static void do_4op_pwm(MusEngine* mus, int chan, int i /*op number*/)
 {
-	MusChannel *chn = &mus->channel[chan];
-	MusInstrument *ins = chn->instrument;
 	MusTrackStatus *track_status = &mus->song_track[chan];
 
 	track_status->ops_status[i].pwm_position += track_status->ops_status[i].pwm_speed * 16;
-	mus->cyd->channel[chan].fm.ops[i].pw = track_status->ops_status[i].pw + mus_shape(track_status->ops_status[i].pwm_position, ins->ops[i].pwm_shape) * track_status->ops_status[i].pwm_depth / 16 / 256; //mus->cyd->channel[chan].fm.ops[i].pw = track_status->ops_status[i].pw + mus_shape(track_status->ops_status[i].pwm_position >> 1, ins->ops[i].pwm_shape) * track_status->ops_status[i].pwm_depth / 32;
+	mus->cyd->channel[chan].fm.ops[i].pw = track_status->ops_status[i].pw + mus_shape(track_status->ops_status[i].pwm_position, track_status->ops_status[i].pwm_shape) * track_status->ops_status[i].pwm_depth / 16 / 256; //mus->cyd->channel[chan].fm.ops[i].pw = track_status->ops_status[i].pw + mus_shape(track_status->ops_status[i].pwm_position >> 1, ins->ops[i].pwm_shape) * track_status->ops_status[i].pwm_depth / 32;
 }
 
 #endif
@@ -6768,6 +6762,10 @@ void mus_trigger_fm_op_internal(CydFm* fm, MusInstrument* ins, CydChannel* cydch
 	track->ops_status[i].tremolo_depth = ins->ops[i].tremolo_depth;
 	track->ops_status[i].tremolo_speed = ins->ops[i].tremolo_speed;
 	track->ops_status[i].tremolo_delay = ins->ops[i].tremolo_delay;
+
+	track->ops_status[i].vibrato_shape = ins->ops[i].vibrato_shape;
+	track->ops_status[i].tremolo_shape = ins->ops[i].tremolo_shape;
+	track->ops_status[i].pwm_shape = ins->ops[i].pwm_shape;
 
 	track->ops_status[i].slide_speed = 0;
 	
@@ -7198,6 +7196,10 @@ int mus_trigger_instrument_internal(MusEngine* mus, int chan, MusInstrument *ins
 	track->tremolo_depth = ins->tremolo_depth;
 	track->tremolo_speed = ins->tremolo_speed;
 
+	track->vibrato_shape = ins->vibrato_shape;
+	track->tremolo_shape = ins->tremolo_shape;
+	track->pwm_shape = ins->pwm_shape;
+
 	track->slide_speed = 0;
 
 	update_volumes(mus, track, chn, cydchn, (ins->flags & MUS_INST_RELATIVE_VOLUME) ? MAX_VOLUME : ins->volume);
@@ -7324,6 +7326,9 @@ int mus_trigger_instrument_internal(MusEngine* mus, int chan, MusInstrument *ins
 		
 		track->fm_tremolo_depth = ins->fm_tremolo_depth;
 		track->fm_tremolo_speed = ins->fm_tremolo_speed;
+
+		track->fm_vibrato_shape = ins->fm_vibrato_shape;
+		track->fm_tremolo_shape = ins->fm_tremolo_shape;
 		
 		fm->fm_curr_tremolo = 0;
 		fm->fm_tremolo = 0;
@@ -7833,7 +7838,7 @@ static void mus_advance_channel(MusEngine* mus, int chan)
 	if (((ctrl & MUS_CTRL_VIB) && !(ins->flags & MUS_INST_INVERT_VIBRATO_BIT)) || (!(ctrl & MUS_CTRL_VIB) && (ins->flags & MUS_INST_INVERT_VIBRATO_BIT)))
 	{
 		track_status->vibrato_position += vibspd * 256;
-		vib = (Sint32)mus_shape(track_status->vibrato_position, ins->vibrato_shape) * (Sint32)vibdep / 64 / 256;
+		vib = (Sint32)mus_shape(track_status->vibrato_position, track_status->vibrato_shape) * (Sint32)vibdep / 64 / 256;
 		if (track_status->vibrato_delay) --track_status->vibrato_delay;
 	}
 #endif
@@ -7843,7 +7848,7 @@ static void mus_advance_channel(MusEngine* mus, int chan)
 		if(track_status->tremolo_delay == 0)
 		{
 			track_status->tremolo_position += tremspd * 256;
-			trem = (Sint32)mus_shape(track_status->tremolo_position, ins->tremolo_shape) * (Sint32)tremdep / 64 / 256;
+			trem = (Sint32)mus_shape(track_status->tremolo_position, track_status->tremolo_shape) * (Sint32)tremdep / 64 / 256;
 		}
 		
 		if (track_status->tremolo_delay) --track_status->tremolo_delay;
@@ -7857,7 +7862,7 @@ static void mus_advance_channel(MusEngine* mus, int chan)
 	if(track_status->fm_vibrato_delay == 0)
 	{	
 		track_status->fm_vibrato_position += fm_vibspd * 256;
-		fm_vib = (Sint32)mus_shape(track_status->fm_vibrato_position, ins->fm_vibrato_shape) * (Sint32)fm_vibdep / 64 / 256;
+		fm_vib = (Sint32)mus_shape(track_status->fm_vibrato_position, track_status->fm_vibrato_shape) * (Sint32)fm_vibdep / 64 / 256;
 	}
 	
 	if(track_status->fm_tremolo_delay != 0)
@@ -7868,7 +7873,7 @@ static void mus_advance_channel(MusEngine* mus, int chan)
 	if(track_status->fm_tremolo_delay == 0)
 	{
 		track_status->fm_tremolo_position += fm_tremspd * 256;
-		fm_trem = (Sint32)mus_shape(track_status->fm_tremolo_position, ins->fm_tremolo_shape) * (Sint32)fm_tremdep / 64 / 256;
+		fm_trem = (Sint32)mus_shape(track_status->fm_tremolo_position, track_status->fm_tremolo_shape) * (Sint32)fm_tremdep / 64 / 256;
 	}
 	
 #ifndef CYD_DISABLE_PWM
@@ -7903,7 +7908,7 @@ static void mus_advance_channel(MusEngine* mus, int chan)
 				{
 					track_status->ops_status[i].vibrato_position += vibspd_ops[i] * 256;
 					
-					ops_vib[i] = (Sint32)mus_shape(track_status->ops_status[i].vibrato_position, ins->ops[i].vibrato_shape) * (Sint32)vibdep_ops[i] / 64 / 256;
+					ops_vib[i] = (Sint32)mus_shape(track_status->ops_status[i].vibrato_position, track_status->ops_status[i].vibrato_shape) * (Sint32)vibdep_ops[i] / 64 / 256;
 				}
 				
 				if (track_status->ops_status[i].vibrato_delay) --track_status->ops_status[i].vibrato_delay;
@@ -7914,7 +7919,7 @@ static void mus_advance_channel(MusEngine* mus, int chan)
 				if(track_status->ops_status[i].tremolo_delay == 0)
 				{
 					track_status->ops_status[i].tremolo_position += tremspd_ops[i] * 256;
-					ops_trem[i] = (Sint32)mus_shape(track_status->ops_status[i].tremolo_position, ins->ops[i].tremolo_shape) * (Sint32)tremdep_ops[i] / 64 / 256;
+					ops_trem[i] = (Sint32)mus_shape(track_status->ops_status[i].tremolo_position, track_status->ops_status[i].tremolo_shape) * (Sint32)tremdep_ops[i] / 64 / 256;
 				}
 				
 				if (track_status->ops_status[i].tremolo_delay) --track_status->ops_status[i].tremolo_delay;
@@ -8759,9 +8764,29 @@ void mus_set_song(MusEngine *mus, MusSong *song, Uint16 position)
 		mus->song_track[i].tremolo_depth = 0;
 		mus->song_track[i].vibrato_depth = 0;
 		mus->song_track[i].panbrello_depth = 0;
+		mus->song_track[i].pwm_depth = 0;
 
 		mus->song_track[i].panbrello_speed = 0;
 		mus->song_track[i].panbrello_depth = 0;
+
+		mus->song_track[i].fm_tremolo_depth = 0;
+		mus->song_track[i].fm_vibrato_depth = 0;
+
+		mus->song_track[i].tremolo_shape = 0;
+		mus->song_track[i].vibrato_shape = 0;
+		mus->song_track[i].pwm_shape = 0;
+		mus->song_track[i].panbrello_shape = 0;
+
+		for(int op = 0; op < CYD_FM_NUM_OPS; ++op)
+		{
+			mus->song_track[i].ops_status[op].tremolo_depth = 0;
+			mus->song_track[i].ops_status[op].vibrato_depth = 0;
+			mus->song_track[i].ops_status[op].pwm_depth = 0;
+
+			mus->song_track[i].ops_status[op].tremolo_shape = 0;
+			mus->song_track[i].ops_status[op].vibrato_shape = 0;
+			mus->song_track[i].ops_status[op].pwm_shape = 0;
+		}
 
 		if (song)
 		{
