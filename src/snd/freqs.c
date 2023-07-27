@@ -239,7 +239,7 @@ const Uint32 frequency_table[FREQ_TAB_SIZE] =
 };
 
 
-Uint32 get_freq(int note)
+Uint32 get_freq(Sint32 note)
 {
 	if (note <= 0)
 	{

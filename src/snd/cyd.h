@@ -326,7 +326,7 @@ void cyd_set_oversampling(CydEngine *cyd, int oversampling);
 void cyd_reserve_channels(CydEngine *cyd, int channels);
 void cyd_deinit(CydEngine *cyd);
 void cyd_reset(CydEngine *cyd);
-void cyd_set_frequency(CydEngine *cyd, CydChannel *chn, int subosc, Uint32 frequency);
+void cyd_set_frequency(CydEngine *cyd, CydChannel *chn, int subosc, Uint32 frequency, Uint16 note);
 void cyd_set_wavetable_frequency(CydEngine *cyd, CydChannel *chn, int subosc, Uint32 frequency);
 void cyd_reset_wavetable(CydEngine *cyd);
 void cyd_set_wavetable_offset(CydChannel *chn, Uint16 offset /* 0..0x1000 = 0-100% */);

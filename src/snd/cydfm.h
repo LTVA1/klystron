@@ -143,7 +143,7 @@ struct CydEngine_t;
 void cydfm_init(CydFm *fm);
 void cydfm_cycle(const struct CydEngine_t *cyd, CydFm *fm);
 void cydfm_cycle_oversample(const struct CydEngine_t *cyd, CydFm *fm);
-void cydfm_set_frequency(const struct CydEngine_t *cyd, CydFm *fm, Uint32 base_frequency);
+void cydfm_set_frequency(const struct CydEngine_t *cyd, CydFm *fm, Uint32 base_frequency, Uint16 note);
 Uint64 cydfm_modulate(const struct CydEngine_t *cyd, const CydFm *fm, Uint32 accumulator);
 CydWaveAcc cydfm_modulate_wave(const struct CydEngine_t *cyd, const CydFm *fm, const CydWavetableEntry *wave, CydWaveAcc accumulator);
 void cydfm_set_wave_entry(CydFm *fm, const CydWavetableEntry * entry);

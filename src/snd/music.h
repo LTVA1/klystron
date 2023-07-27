@@ -514,7 +514,8 @@ typedef struct
 
 	Uint8 vibrato_shape, tremolo_shape, pwm_shape, panbrello_shape;
 
-	Uint8 panbrello_speed, panbrello_depth;
+	Uint8 panbrello_speed;
+	Uint16 panbrello_depth;
 	
 	Uint8 fm_tremolo_speed, fm_tremolo_depth, fm_tremolo_shape; //wasn't there
 	Uint8 fm_vibrato_speed, fm_vibrato_depth, fm_vibrato_shape; //wasn't there
@@ -697,6 +698,8 @@ enum
 	MUS_FX_EXT_FINE_PORTA_UP = 0x0e10,
 	MUS_FX_EXT_FINE_PORTA_DN = 0x0e20,
 	MUS_FX_EXT_RETRIGGER = 0x0e90,
+
+	MUS_FX_RETRIGGER_EXTENDED = 0xe900,
 	
 	MUS_FX_PHASE_RESET = 0x2e00,
 	MUS_FX_NOISE_PHASE_RESET = 0x2e10,
@@ -713,6 +716,10 @@ enum
 	MUS_FX_EXT_FADE_VOLUME_UP = 0x0eb0,
 	MUS_FX_EXT_NOTE_CUT = 0x0ec0,
 	MUS_FX_EXT_NOTE_DELAY = 0x0ed0,
+
+	MUS_FX_NOTE_CUT_EXTENDED = 0xec00,
+	MUS_FX_NOTE_DELAY_EXTENDED = 0xed00,
+
 	MUS_FX_SET_SPEED = 0x0f00,
 	MUS_FX_SET_SPEED1 = 0x4100, //wasn't there
 	MUS_FX_SET_SPEED2 = 0x4200, //wasn't there
@@ -731,6 +738,21 @@ enum
 	MUS_FX_PAN_RIGHT_FINE = 0x2ea0,
 
 	MUS_FX_PANBRELLO = 0x9900,
+
+	MUS_FX_VIBRATO_SHAPE = 0x2eb0,
+	MUS_FX_TREMOLO_SHAPE = 0x2ec0,
+	MUS_FX_PWM_SHAPE = 0x2ed0,
+	MUS_FX_PANBRELLO_SHAPE = 0x2ee0,
+
+	MUS_FX_FM_VIBRATO_SHAPE = 0x2ef0,
+	MUS_FX_FM_TREMOLO_SHAPE = 0x34f0,
+
+	MUS_FX_SET_VIBRATO_SPEED = 0x9a00,
+	MUS_FX_SET_VIBRATO_SHAPE = 0x9b00,
+	MUS_FX_SET_TREMOLO_SPEED = 0x9c00,
+	MUS_FX_SET_TREMOLO_SHAPE = 0x9d00,
+	MUS_FX_SET_PWM_SPEED = 0x9e00,
+	MUS_FX_SET_PWM_SHAPE = 0x9f00,
 
 	MUS_FX_FADE_GLOBAL_VOLUME = 0x1a00,
 	MUS_FX_SET_GLOBAL_VOLUME = 0x1d00,

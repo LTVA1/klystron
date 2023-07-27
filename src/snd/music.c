@@ -488,7 +488,7 @@ static void mus_set_frequency(MusEngine *mus, int chan, Uint16 note, int divider
 #endif
 		}
 
-		cyd_set_frequency(mus->cyd, &mus->cyd->channel[chan], s, frequency / divider);
+		cyd_set_frequency(mus->cyd, &mus->cyd->channel[chan], s, frequency / divider, final);
 		
 		//debug("freq %d Hz, note %d", frequency / 16, note);
 		
@@ -3167,6 +3167,146 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 			}
 		}
 		break;
+
+		case MUS_FX_NOTE_CUT_EXTENDED:
+		{
+			if ((inst & 0xff) <= tick)
+			{
+				switch(ops_index)
+				{
+					case 0:
+					case 0xFF:
+					{
+						if (!(chn->flags & MUS_CHN_DISABLED))
+						{
+							cydchn->adsr.volume = 0;
+							track_status->volume = 0;
+						}
+						
+						if(ops_index == 0xFF)
+						{
+							for(int i = 0; i < CYD_FM_NUM_OPS; ++i)
+							{
+								if (!(chn->ops[i].flags & MUS_FM_OP_DISABLED))
+								{
+									cydchn->fm.ops[i].adsr.volume = 0;
+									track_status->ops_status[i].volume = 0;
+								}
+							}
+						}
+						
+						break;
+					}
+					
+					default:
+					{
+						if (!(chn->ops[ops_index - 1].flags & MUS_FM_OP_DISABLED))
+						{
+							cydchn->fm.ops[ops_index - 1].adsr.volume = 0;
+							track_status->ops_status[ops_index - 1].volume = 0;
+						}
+						
+						break;
+					}
+				}
+			}
+		}
+		break;
+
+		case MUS_FX_RETRIGGER_EXTENDED:
+		{
+			if ((inst & 0xff) > 0 && (tick % (inst & 0xff)) == 0)
+			{
+				switch(ops_index)
+				{
+					case 0:
+					case 0xFF:
+					{
+						Uint8 prev_vol_tr = track_status->volume;
+						Uint8 prev_vol_cyd = cydchn->adsr.volume;
+						
+						mus_trigger_instrument_internal(mus, chan, chn->instrument, chn->last_note, -1, false);
+						
+						track_status->volume = prev_vol_tr;
+						cydchn->adsr.volume = prev_vol_cyd;
+						
+						if(ops_index == 0xFF)
+						{
+							cydchn->fm.alg = chn->instrument->alg;
+							
+							track_status->fm_4op_vol = chn->instrument->fm_4op_vol;
+							cydchn->fm.fm_4op_vol = chn->instrument->fm_4op_vol;
+							
+							for(int i = 0; i < CYD_FM_NUM_OPS; ++i)
+							{
+								Uint8 prev_vol_tr1 = track_status->ops_status[i].volume;
+								Uint8 prev_vol_cyd1 = cydchn->fm.ops[i].adsr.volume;
+								
+								mus_trigger_fm_op_internal(&cydchn->fm, chn->instrument, cydchn, chn, track_status, mus, i, chn->ops[i].last_note, chan, 0, false);
+								
+								track_status->ops_status[i].volume = prev_vol_tr1;
+								cydchn->fm.ops[i].adsr.volume = prev_vol_cyd1;
+								
+								cydchn->fm.ops[i].adsr.envelope_state = ATTACK;
+								
+								if(!(cydchn->fm.ops[i].adsr.use_volume_envelope))
+								{
+									cydchn->fm.ops[i].adsr.envelope = 0x0;
+								
+									cydchn->fm.ops[i].adsr.env_speed = envspd(cyd, cydchn->fm.ops[i].adsr.a);
+									
+									if(cydchn->fm.ops[i].env_ksl_mult != 0.0 && cydchn->fm.ops[i].env_ksl_mult != 1.0)
+									{
+										cydchn->fm.ops[i].adsr.env_speed = (int)((double)envspd(cyd, cydchn->fm.ops[i].adsr.a) * cydchn->fm.ops[i].env_ksl_mult);
+									}
+								}
+								
+								//cyd_cycle_adsr(cyd, 0, 0, &cydchn->fm.ops[i].adsr, cydchn->fm.ops[i].env_ksl_mult);
+								cyd_cycle_fm_op_adsr(cyd, 0, 0, &cydchn->fm.ops[i].adsr, cydchn->fm.ops[i].env_ksl_mult, cydchn->fm.ops[i].ssg_eg_type | (((cydchn->fm.ops[i].flags & CYD_FM_OP_ENABLE_SSG_EG) ? 1 : 0) << 3));
+								
+								cydchn->fm.ops[i].flags |= CYD_FM_OP_ENABLE_GATE;
+							}
+						}
+						
+						break;
+					}
+					
+					default:
+					{
+						Uint8 prev_vol_tr1 = track_status->ops_status[ops_index - 1].volume;
+						Uint8 prev_vol_cyd1 = cydchn->fm.ops[ops_index - 1].adsr.volume;
+						
+						mus_trigger_fm_op_internal(&cydchn->fm, chn->instrument, cydchn, chn, track_status, mus, ops_index - 1, chn->ops[ops_index - 1].last_note, chan, 0, false);
+						
+						track_status->ops_status[ops_index - 1].volume = prev_vol_tr1;
+						cydchn->fm.ops[ops_index - 1].adsr.volume = prev_vol_cyd1;
+						
+						cydchn->fm.ops[ops_index - 1].adsr.envelope_state = ATTACK;
+						
+						if(!(cydchn->fm.ops[ops_index - 1].adsr.use_volume_envelope))
+						{
+							cydchn->fm.ops[ops_index - 1].adsr.envelope = 0x0;
+							
+							cydchn->fm.ops[ops_index - 1].adsr.env_speed = envspd(cyd, cydchn->fm.ops[ops_index - 1].adsr.a);
+							
+							if(cydchn->fm.ops[ops_index - 1].env_ksl_mult != 0.0 && cydchn->fm.ops[ops_index - 1].env_ksl_mult != 1.0)
+							{
+								cydchn->fm.ops[ops_index - 1].adsr.env_speed = (int)((double)envspd(cyd, cydchn->fm.ops[ops_index - 1].adsr.a) * cydchn->fm.ops[ops_index - 1].env_ksl_mult);
+							}
+						}
+						
+						//cyd_cycle_adsr(cyd, 0, 0, &cydchn->fm.ops[ops_index - 1].adsr, cydchn->fm.ops[ops_index - 1].env_ksl_mult);
+						cyd_cycle_fm_op_adsr(cyd, 0, 0, &cydchn->fm.ops[ops_index - 1].adsr, cydchn->fm.ops[ops_index - 1].env_ksl_mult, cydchn->fm.ops[ops_index - 1].ssg_eg_type | (((cydchn->fm.ops[ops_index - 1].flags & CYD_FM_OP_ENABLE_SSG_EG) ? 1 : 0) << 3));
+						
+						cydchn->fm.ops[ops_index - 1].flags |= CYD_FM_OP_ENABLE_GATE;
+						
+						break;
+					}
+				}
+			}
+		}
+		break;
+
 #ifdef STEREOOUTPUT
 		case MUS_FX_PAN_RIGHT:
 		case MUS_FX_PAN_LEFT:
@@ -3696,13 +3836,6 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 										//cyd_cycle_adsr(cyd, 0, 0, &cydchn->fm.ops[i].adsr, cydchn->fm.ops[i].env_ksl_mult);
 										cyd_cycle_fm_op_adsr(cyd, 0, 0, &cydchn->fm.ops[i].adsr, cydchn->fm.ops[i].env_ksl_mult, cydchn->fm.ops[i].ssg_eg_type | (((cydchn->fm.ops[i].flags & CYD_FM_OP_ENABLE_SSG_EG) ? 1 : 0) << 3));
 										
-										for (int s = 0; s < CYD_SUB_OSCS; ++s)
-										{
-											cydchn->fm.ops[i].subosc[s].accumulator = 0;
-											cydchn->fm.ops[i].subosc[s].noise_accumulator = 0;
-											cydchn->fm.ops[i].subosc[s].wave.acc = 0;
-										}
-										
 										cydchn->fm.ops[i].flags |= CYD_FM_OP_ENABLE_GATE;
 									}
 								}
@@ -3736,13 +3869,6 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 								
 								//cyd_cycle_adsr(cyd, 0, 0, &cydchn->fm.ops[ops_index - 1].adsr, cydchn->fm.ops[ops_index - 1].env_ksl_mult);
 								cyd_cycle_fm_op_adsr(cyd, 0, 0, &cydchn->fm.ops[ops_index - 1].adsr, cydchn->fm.ops[ops_index - 1].env_ksl_mult, cydchn->fm.ops[ops_index - 1].ssg_eg_type | (((cydchn->fm.ops[ops_index - 1].flags & CYD_FM_OP_ENABLE_SSG_EG) ? 1 : 0) << 3));
-								
-								for (int s = 0; s < CYD_SUB_OSCS; ++s)
-								{
-									cydchn->fm.ops[ops_index - 1].subosc[s].accumulator = 0;
-									cydchn->fm.ops[ops_index - 1].subosc[s].noise_accumulator = 0;
-									cydchn->fm.ops[ops_index - 1].subosc[s].wave.acc = 0;
-								}
 								
 								cydchn->fm.ops[ops_index - 1].flags |= CYD_FM_OP_ENABLE_GATE;
 								
@@ -3793,6 +3919,114 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 		
 		switch (inst & 0xfff0)
 		{
+			case MUS_FX_VIBRATO_SHAPE:
+			{
+				switch(ops_index)
+				{
+					case 0:
+					case 0xFF:
+					{
+						track_status->vibrato_shape = inst & 0xf;
+						break;
+					}
+
+					default:
+					{
+						track_status->ops_status[ops_index - 1].vibrato_shape = inst & 0xf;
+						break;
+					}
+				}
+
+				break;
+			}
+
+			case MUS_FX_TREMOLO_SHAPE:
+			{
+				switch(ops_index)
+				{
+					case 0:
+					case 0xFF:
+					{
+						track_status->tremolo_shape = inst & 0xf;
+						break;
+					}
+
+					default:
+					{
+						track_status->ops_status[ops_index - 1].tremolo_shape = inst & 0xf;
+						break;
+					}
+				}
+
+				break;
+			}
+
+			case MUS_FX_PWM_SHAPE:
+			{
+				switch(ops_index)
+				{
+					case 0:
+					case 0xFF:
+					{
+						track_status->pwm_shape = inst & 0xf;
+						break;
+					}
+
+					default:
+					{
+						track_status->ops_status[ops_index - 1].pwm_shape = inst & 0xf;
+						break;
+					}
+				}
+
+				break;
+			}
+
+			case MUS_FX_PANBRELLO_SHAPE:
+			{
+				switch(ops_index)
+				{
+					case 0:
+					case 0xFF:
+					{
+						track_status->panbrello_shape = inst & 0xf;
+						break;
+					}
+				}
+
+				break;
+			}
+
+			case MUS_FX_FM_VIBRATO_SHAPE:
+			{
+				switch(ops_index)
+				{
+					case 0:
+					case 0xFF:
+					{
+						track_status->fm_vibrato_shape = inst & 0xf;
+						break;
+					}
+				}
+
+				break;
+			}
+
+			case MUS_FX_FM_TREMOLO_SHAPE:
+			{
+				switch(ops_index)
+				{
+					case 0:
+					case 0xFF:
+					{
+						track_status->fm_tremolo_shape = inst & 0xf;
+						break;
+					}
+				}
+
+				break;
+			}
+
 			case MUS_FX_GLISSANDO_CONTROL:
 			{
 				switch(ops_index)
@@ -4364,36 +4598,6 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 					}
 				}
 				break;
-				
-				case MUS_FX_WAVETABLE_END_POINT: //wasn't there
-				{
-					switch(ops_index)
-					{
-						case 0:
-						case 0xFF:
-						{
-							cyd_set_wavetable_end_offset(cydchn, inst & 0xfff);
-							
-							if(ops_index == 0xFF)
-							{
-								for(int i = 0; i < CYD_FM_NUM_OPS; ++i)
-								{
-									cyd_set_fm_op_wavetable_end_offset(cydchn, inst & 0xfff, i);
-								}
-							}
-							
-							break;
-						}
-						
-						default:
-						{
-							cyd_set_fm_op_wavetable_end_offset(cydchn, inst & 0xfff, ops_index - 1);
-							
-							break;
-						}
-					}
-				}
-				break;
 #endif
 				
 				case MUS_FX_PW_FINE_SET: //wasn't there
@@ -4482,7 +4686,38 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 					}
 				}
 				break;*/
-				
+#ifndef CYD_DISABLE_WAVETABLE
+				case MUS_FX_WAVETABLE_END_POINT: //wasn't there
+				{
+					switch(ops_index)
+					{
+						case 0:
+						case 0xFF:
+						{
+							cyd_set_wavetable_end_offset(cydchn, ((inst & 0xff) << 4));
+							
+							if(ops_index == 0xFF)
+							{
+								for(int i = 0; i < CYD_FM_NUM_OPS; ++i)
+								{
+									cyd_set_fm_op_wavetable_end_offset(cydchn, ((inst & 0xff) << 4), i);
+								}
+							}
+							
+							break;
+						}
+						
+						default:
+						{
+							cyd_set_fm_op_wavetable_end_offset(cydchn, ((inst & 0xff) << 4), ops_index - 1);
+							
+							break;
+						}
+					}
+				}
+				break;
+#endif
+
 				case MUS_FX_SET_CSM_TIMER_NOTE:
 				{
 					if(ops_index == 0xFF || ops_index == 0)
@@ -8063,6 +8298,11 @@ int mus_advance_tick(void* udata)
 						{
 							delay = track_status->pattern->step[track_status->pattern_step].command[i1] & 0xf;
 						}
+
+						if ((track_status->pattern->step[track_status->pattern_step].command[i1] & 0xFF00) == MUS_FX_NOTE_DELAY_EXTENDED)
+						{
+							delay = track_status->pattern->step[track_status->pattern_step].command[i1] & 0xff;
+						}
 					}
 				}
 
@@ -9851,7 +10091,7 @@ int mus_load_instrument_RW(Uint8 version, RWops *ctx, MusInstrument *inst, CydWa
 
 					if(version < 43)
 					{
-						inst->ops[i].pwm_speed = my_min(0xff, (int)inst->pwm_speed * 0x10); //to account for better PWM low range
+						inst->ops[i].pwm_speed = my_min(0xff, (int)inst->ops[i].pwm_speed * 0x10); //to account for better PWM low range
 					}
 					
 					VER_READ(version, 34, 0xff, &inst->ops[i].tremolo_speed, 0);

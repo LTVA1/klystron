@@ -2718,7 +2718,7 @@ void cyd_output_buffer_stereo(int chan, void *_stream, int len, void *udata)
 }
 
 
-void cyd_set_frequency(CydEngine *cyd, CydChannel *chn, int subosc, Uint32 frequency)
+void cyd_set_frequency(CydEngine *cyd, CydChannel *chn, int subosc, Uint32 frequency, Uint16 note)
 {
 	if (frequency != 0)
 	{
@@ -2734,7 +2734,7 @@ void cyd_set_frequency(CydEngine *cyd, CydChannel *chn, int subosc, Uint32 frequ
 #ifndef CYD_DISABLE_FM
 	if (subosc == 0)
 	{
-		cydfm_set_frequency(cyd, &chn->fm, frequency);
+		cydfm_set_frequency(cyd, &chn->fm, frequency, note);
 		chn->true_freq = frequency;
 	}
 #endif

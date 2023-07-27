@@ -112,16 +112,19 @@ void cydfm_cycle(const CydEngine *cyd, CydFm *fm)
 }
 
 
-void cydfm_set_frequency(const CydEngine *cyd, CydFm *fm, Uint32 base_frequency)
+void cydfm_set_frequency(const CydEngine *cyd, CydFm *fm, Uint32 base_frequency, Uint16 note)
 {
+	Sint64 add_freq = 0;
+	add_freq = get_freq(note + (((Sint16)fm->fm_base_note - (Sint16)fm->fm_carrier_base_note) * 256) + fm->fm_finetune + fm->fm_vib);
+
 	if(fm->fm_freq_LUT == 0)
 	{
-		fm->period = ((Uint64)(ACC_LENGTH) / (Uint64)1024 * (Uint64)(base_frequency + ((fm->fm_base_note - fm->fm_carrier_base_note) << 8) + fm->fm_finetune + fm->fm_vib) / (Uint64)cyd->sample_rate) * (Uint64)harmonic[fm->harmonic & 15] / (Uint64)harmonic[fm->harmonic >> 4];
+		fm->period = ((Uint64)(ACC_LENGTH) / (Uint64)1024 * (Uint64)(add_freq) / (Uint64)cyd->sample_rate) * (Uint64)harmonic[fm->harmonic & 15] / (Uint64)harmonic[fm->harmonic >> 4];
 	}
 	
 	else
 	{
-		fm->period = ((Uint64)(ACC_LENGTH) / (Uint64)1024 * (Uint64)(base_frequency + ((fm->fm_base_note - fm->fm_carrier_base_note) << 8) + fm->fm_finetune + fm->fm_vib) / (Uint64)cyd->sample_rate) * (Uint64)harmonicOPN[fm->harmonic & 15] / (Uint64)harmonicOPN[fm->harmonic >> 4];
+		fm->period = ((Uint64)(ACC_LENGTH) / (Uint64)1024 * (Uint64)(add_freq) / (Uint64)cyd->sample_rate) * (Uint64)harmonicOPN[fm->harmonic & 15] / (Uint64)harmonicOPN[fm->harmonic >> 4];
 	}
 	
 	Sint16 vol_ksl_level_final = (fm->flags & CYD_FM_ENABLE_VOLUME_KEY_SCALING) ? fm->fm_vol_ksl_level : -1;
@@ -141,12 +144,12 @@ void cydfm_set_frequency(const CydEngine *cyd, CydFm *fm, Uint32 base_frequency)
 		
 		if(fm->fm_freq_LUT == 0)
 		{
-			fm->wave.frequency = ((Uint64)(WAVETABLE_RESOLUTION) * (Uint64)fm->wave_entry->sample_rate / (Uint64)cyd->sample_rate * (Uint64)(base_frequency + ((fm->fm_base_note - fm->fm_carrier_base_note) << 8) + fm->fm_finetune + fm->fm_vib) / (Uint64)get_freq(fm->wave_entry->base_note)) * (Uint64)harmonic[fm->harmonic & 15] / (Uint64)harmonic[fm->harmonic >> 4];
+			fm->wave.frequency = ((Uint64)(WAVETABLE_RESOLUTION) * (Uint64)fm->wave_entry->sample_rate / (Uint64)cyd->sample_rate * (Uint64)(add_freq) / (Uint64)get_freq(fm->wave_entry->base_note)) * (Uint64)harmonic[fm->harmonic & 15] / (Uint64)harmonic[fm->harmonic >> 4];
 		}
 		
 		else
 		{
-			fm->wave.frequency = ((Uint64)(WAVETABLE_RESOLUTION) * (Uint64)fm->wave_entry->sample_rate / (Uint64)cyd->sample_rate * (Uint64)(base_frequency + ((fm->fm_base_note - fm->fm_carrier_base_note) << 8) + fm->fm_finetune + fm->fm_vib) / (Uint64)get_freq(fm->wave_entry->base_note)) * (Uint64)harmonicOPN[fm->harmonic & 15] / (Uint64)harmonicOPN[fm->harmonic >> 4];
+			fm->wave.frequency = ((Uint64)(WAVETABLE_RESOLUTION) * (Uint64)fm->wave_entry->sample_rate / (Uint64)cyd->sample_rate * (Uint64)(add_freq) / (Uint64)get_freq(fm->wave_entry->base_note)) * (Uint64)harmonicOPN[fm->harmonic & 15] / (Uint64)harmonicOPN[fm->harmonic >> 4];
 		}
 	}
 }
