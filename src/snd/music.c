@@ -4197,10 +4197,7 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 				}
 			}
 			break;
-		}
-		
-		switch (inst & 0xfff0)
-		{
+
 			case MUS_FX_EXT_TOGGLE_FILTER:
 			{
 				switch(ops_index)
@@ -4717,6 +4714,221 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 				}
 				break;
 #endif
+				case MUS_FX_SET_VIBRATO_SPEED:
+				{
+					switch(ops_index)
+					{
+						case 0:
+						case 0xFF:
+						{
+							track_status->vibrato_speed = inst & 0xff;
+							break;
+						}
+
+						default:
+						{
+							track_status->ops_status[ops_index - 1].vibrato_speed = inst & 0xff;
+							break;
+						}
+					}
+
+					break;
+				}
+
+				case MUS_FX_SET_VIBRATO_DEPTH:
+				{
+					switch(ops_index)
+					{
+						case 0:
+						case 0xFF:
+						{
+							track_status->vibrato_depth = inst & 0xff;
+							break;
+						}
+
+						default:
+						{
+							track_status->ops_status[ops_index - 1].vibrato_depth = inst & 0xff;
+							break;
+						}
+					}
+					
+					break;
+				}
+
+				case MUS_FX_SET_TREMOLO_SPEED:
+				{
+					switch(ops_index)
+					{
+						case 0:
+						case 0xFF:
+						{
+							track_status->tremolo_speed = inst & 0xff;
+							break;
+						}
+
+						default:
+						{
+							track_status->ops_status[ops_index - 1].tremolo_speed = inst & 0xff;
+							break;
+						}
+					}
+
+					break;
+				}
+
+				case MUS_FX_SET_TREMOLO_DEPTH:
+				{
+					switch(ops_index)
+					{
+						case 0:
+						case 0xFF:
+						{
+							track_status->tremolo_depth = inst & 0xff;
+							break;
+						}
+
+						default:
+						{
+							track_status->ops_status[ops_index - 1].tremolo_depth = inst & 0xff;
+							break;
+						}
+					}
+					
+					break;
+				}
+
+				case MUS_FX_SET_PWM_SPEED:
+				{
+					switch(ops_index)
+					{
+						case 0:
+						case 0xFF:
+						{
+							track_status->pwm_speed = inst & 0xff;
+							break;
+						}
+
+						default:
+						{
+							track_status->ops_status[ops_index - 1].pwm_speed = inst & 0xff;
+							break;
+						}
+					}
+
+					break;
+				}
+
+				case MUS_FX_SET_PWM_DEPTH:
+				{
+					switch(ops_index)
+					{
+						case 0:
+						case 0xFF:
+						{
+							track_status->pwm_depth = inst & 0xff;
+							break;
+						}
+
+						default:
+						{
+							track_status->ops_status[ops_index - 1].pwm_depth = inst & 0xff;
+							break;
+						}
+					}
+					
+					break;
+				}
+
+				case MUS_FX_SET_PANBRELLO_SPEED:
+				{
+					switch(ops_index)
+					{
+						case 0:
+						case 0xFF:
+						{
+							track_status->panbrello_speed = inst & 0xff;
+							break;
+						}
+					}
+
+					break;
+				}
+
+				case MUS_FX_SET_PANBRELLO_DEPTH:
+				{
+					switch(ops_index)
+					{
+						case 0:
+						case 0xFF:
+						{
+							track_status->panbrello_depth = inst & 0xff;
+							break;
+						}
+					}
+					
+					break;
+				}
+
+				case MUS_FX_SET_FM_VIBRATO_SPEED:
+				{
+					switch(ops_index)
+					{
+						case 0:
+						case 0xFF:
+						{
+							track_status->fm_vibrato_speed = inst & 0xff;
+							break;
+						}
+					}
+
+					break;
+				}
+
+				case MUS_FX_SET_FM_VIBRATO_DEPTH:
+				{
+					switch(ops_index)
+					{
+						case 0:
+						case 0xFF:
+						{
+							track_status->fm_vibrato_depth = inst & 0xff;
+							break;
+						}
+					}
+					
+					break;
+				}
+
+				case MUS_FX_SET_FM_TREMOLO_SPEED:
+				{
+					switch(ops_index)
+					{
+						case 0:
+						case 0xFF:
+						{
+							track_status->fm_tremolo_speed = inst & 0xff;
+							break;
+						}
+					}
+
+					break;
+				}
+
+				case MUS_FX_SET_FM_TREMOLO_DEPTH:
+				{
+					switch(ops_index)
+					{
+						case 0:
+						case 0xFF:
+						{
+							track_status->fm_tremolo_depth = inst & 0xff;
+							break;
+						}
+					}
+					
+					break;
+				}
 
 				case MUS_FX_SET_CSM_TIMER_NOTE:
 				{
