@@ -3926,13 +3926,23 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 					case 0:
 					case 0xFF:
 					{
-						track_status->vibrato_shape = inst & 0xf;
+						track_status->vibrato_shape = inst & 0x7;
+
+						if(inst & 0x8)
+						{
+							track_status->vibrato_position = 0; //retrigger
+						}
 						break;
 					}
 
 					default:
 					{
-						track_status->ops_status[ops_index - 1].vibrato_shape = inst & 0xf;
+						track_status->ops_status[ops_index - 1].vibrato_shape = inst & 0x7;
+
+						if(inst & 0x8)
+						{
+							track_status->ops_status[ops_index - 1].vibrato_position = 0; //retrigger
+						}
 						break;
 					}
 				}
@@ -3947,13 +3957,23 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 					case 0:
 					case 0xFF:
 					{
-						track_status->tremolo_shape = inst & 0xf;
+						track_status->tremolo_shape = inst & 0x7;
+
+						if(inst & 0x8)
+						{
+							track_status->tremolo_position = 0; //retrigger
+						}
 						break;
 					}
 
 					default:
 					{
-						track_status->ops_status[ops_index - 1].tremolo_shape = inst & 0xf;
+						track_status->ops_status[ops_index - 1].tremolo_shape = inst & 0x7;
+
+						if(inst & 0x8)
+						{
+							track_status->ops_status[ops_index - 1].tremolo_position = 0; //retrigger
+						}
 						break;
 					}
 				}
@@ -3968,13 +3988,23 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 					case 0:
 					case 0xFF:
 					{
-						track_status->pwm_shape = inst & 0xf;
+						track_status->pwm_shape = inst & 0x7;
+
+						if(inst & 0x8)
+						{
+							track_status->pwm_position = 0; //retrigger
+						}
 						break;
 					}
 
 					default:
 					{
-						track_status->ops_status[ops_index - 1].pwm_shape = inst & 0xf;
+						track_status->ops_status[ops_index - 1].pwm_shape = inst & 0x7;
+
+						if(inst & 0x8)
+						{
+							track_status->ops_status[ops_index - 1].pwm_position = 0; //retrigger
+						}
 						break;
 					}
 				}
@@ -3989,7 +4019,12 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 					case 0:
 					case 0xFF:
 					{
-						track_status->panbrello_shape = inst & 0xf;
+						track_status->panbrello_shape = inst & 0x7;
+
+						if(inst & 0x8)
+						{
+							track_status->panbrello_position = 0; //retrigger
+						}
 						break;
 					}
 				}
@@ -4004,7 +4039,12 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 					case 0:
 					case 0xFF:
 					{
-						track_status->fm_vibrato_shape = inst & 0xf;
+						track_status->fm_vibrato_shape = inst & 0x7;
+
+						if(inst & 0x8)
+						{
+							track_status->fm_vibrato_position = 0; //retrigger
+						}
 						break;
 					}
 				}
@@ -4019,7 +4059,12 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 					case 0:
 					case 0xFF:
 					{
-						track_status->fm_tremolo_shape = inst & 0xf;
+						track_status->fm_tremolo_shape = inst & 0x7;
+
+						if(inst & 0x8)
+						{
+							track_status->fm_tremolo_position = 0; //retrigger
+						}
 						break;
 					}
 				}
