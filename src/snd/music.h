@@ -521,7 +521,7 @@ typedef struct
 	Uint8 fm_vibrato_speed, fm_vibrato_depth, fm_vibrato_shape; //wasn't there
 	Uint16 fm_vibrato_position, fm_tremolo_position; //wasn't there
 	
-	Uint8 fm_4op_vol;
+	Sint16 fm_4op_vol;
 	
 	MusFmOpTrackStatus ops_status[CYD_FM_NUM_OPS];
 	

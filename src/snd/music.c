@@ -740,6 +740,7 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 					for(int s = 0; s < CYD_SUB_OSCS; ++s)
 					{
 						cydchn->subosc[s].accumulator = 0;
+						cydchn->subosc[s].random = RANDOM_SEED; //reset LFSR as well
 					}
 					
 					if(ops_index == 0xFF)
@@ -749,6 +750,7 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 							for(int s = 0; s < CYD_SUB_OSCS; ++s)
 							{
 								cydchn->fm.ops[i].subosc[s].accumulator = 0;
+								cydchn->fm.ops[i].subosc[s].random = RANDOM_SEED;
 							}
 						}
 					}
@@ -759,6 +761,7 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 					for(int s = 0; s < CYD_SUB_OSCS; ++s)
 					{
 						cydchn->fm.ops[ops_index - 1].subosc[s].accumulator = 0;
+						cydchn->fm.ops[ops_index - 1].subosc[s].random = RANDOM_SEED;
 					}
 				}
 			}
@@ -794,6 +797,7 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 					for(int s = 0; s < CYD_SUB_OSCS; ++s)
 					{
 						cydchn->subosc[s].noise_accumulator = 0;
+						cydchn->subosc[s].random = RANDOM_SEED; //reset LFSR as well
 					}
 					
 					if(ops_index == 0xFF)
@@ -803,6 +807,7 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 							for(int s = 0; s < CYD_SUB_OSCS; ++s)
 							{
 								cydchn->fm.ops[i].subosc[s].noise_accumulator = 0;
+								cydchn->fm.ops[i].subosc[s].random = RANDOM_SEED;
 							}
 						}
 					}
@@ -813,6 +818,7 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 					for(int s = 0; s < CYD_SUB_OSCS; ++s)
 					{
 						cydchn->fm.ops[ops_index - 1].subosc[s].noise_accumulator = 0;
+						cydchn->fm.ops[ops_index - 1].subosc[s].random = RANDOM_SEED;
 					}
 				}
 			}
@@ -4357,14 +4363,11 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 								{
 									if(ops_index == 0xFF)
 									{
-										if((int)track_status->fm_4op_vol + (int)(inst & 0xf) < 0)
+										track_status->fm_4op_vol -= (inst & 0xf);
+
+										if(track_status->fm_4op_vol < 0)
 										{
 											track_status->fm_4op_vol = 0;
-										}
-										
-										else
-										{
-											track_status->fm_4op_vol -= (inst & 0xf);
 										}
 									}
 								}
@@ -4405,14 +4408,11 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 								
 								if(ops_index == 0xFF)
 								{
-									if(track_status->fm_4op_vol + (inst & 0xf) > 0xff)
+									track_status->fm_4op_vol += (inst & 0xf);
+
+									if(track_status->fm_4op_vol > 0xff)
 									{
 										track_status->fm_4op_vol = 0xff;
-									}
-									
-									else
-									{
-										track_status->fm_4op_vol += (inst & 0xf);
 									}
 								}
 								
