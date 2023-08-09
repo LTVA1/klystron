@@ -2836,6 +2836,11 @@ void cyd_enable_gate(CydEngine *cyd, CydChannel *chn, Uint8 enable)
 						{
 							chn->fm.ops[i].adsr.env_speed = (int)((double)envspd(cyd, chn->fm.ops[i].adsr.a) * chn->fm.ops[i].env_ksl_mult);
 						}
+
+						if(!(chn->fm.ops[i].adsr.use_volume_envelope))
+						{
+							chn->fm.ops[i].adsr.envelope = (Uint32)chn->fm.ops[i].env_offset << 16;
+						}
 					}
 				}
 			}

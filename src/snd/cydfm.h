@@ -89,6 +89,8 @@ typedef struct //wasn't there
 	
 	Sint32 mod[CYD_SUB_OSCS], noise_mod[CYD_SUB_OSCS], wave_mod[CYD_SUB_OSCS];
 	//Uint32 mod, noise_mod, wave_mod;
+
+	Uint8 env_offset;
 } CydFmOp;
 
 typedef struct

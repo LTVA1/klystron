@@ -7837,6 +7837,8 @@ int mus_trigger_instrument_internal(MusEngine* mus, int chan, MusInstrument *ins
 			{
 				chn->ops[i].trigger_delay = ins->ops[i].trigger_delay;
 				cydchn->fm.ops[i].trigger_delay = ins->ops[i].trigger_delay;
+
+				cydchn->fm.ops[i].env_offset = ins->ops[i].env_offset;
 				
 				//debug("trig inst trig del %d op %d", cydchn->fm.ops[i].trigger_delay, i);
 				
@@ -10358,6 +10360,7 @@ int mus_load_instrument_RW(Uint8 version, RWops *ctx, MusInstrument *inst, CydWa
 				}
 				
 				VER_READ(version, 34, 0xff, &inst->ops[i].trigger_delay, 0);
+				VER_READ(version, 44, 0xff, &inst->ops[i].env_offset, 0);
 				
 				if(inst->ops[i].cydflags & CYD_FM_OP_ENABLE_CSM_TIMER)
 				{

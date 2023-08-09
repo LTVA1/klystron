@@ -51,7 +51,7 @@ OTHER DEALINGS IN THE SOFTWARE.
 #define MUS_MAX_GROOVES 64
 #define MUS_MAX_GROOVE_LENGTH 128
 
-#define MUS_VERSION 43
+#define MUS_VERSION 44
 
 #define MUS_SONG_TITLE_LEN 255
 #define MUS_INSTRUMENT_NAME_LEN 255
@@ -105,8 +105,6 @@ typedef struct //wasn't there
 	
 	Uint16* program[MUS_MAX_MACROS_OP];
 	Uint8* program_unite_bits[MUS_MAX_MACROS_OP];
-	
-	Uint8 attack_start;
 	
     Uint8 sync_source, ring_mod; // 0xff == self, 0xfb-0xfe -- other ops
     Uint16 pw;
