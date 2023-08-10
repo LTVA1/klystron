@@ -356,6 +356,8 @@ typedef struct
 	Sint32 portamento_speed; //for effects with memory
 	Sint32 volume_slide_speed;
 	Sint32 CSM_timer_portamento_speed;
+	Sint32 cutoff_slide_speed;
+	Sint32 pw_slide_speed;
 	
 } MusFmOpChannel;
 
@@ -397,6 +399,8 @@ typedef struct
 	Sint32 portamento_speed; //for effects with memory
 	Sint32 volume_slide_speed;
 	Sint32 fourop_master_volume_volume_slide_speed;
+	Sint32 cutoff_slide_speed;
+	Sint32 pw_slide_speed;
 	
 } MusChannel;
 
@@ -574,6 +578,8 @@ enum
 	MUS_CHN_DO_PORTAMENTO = 16,
 	MUS_CHN_DO_VOLUME_SLIDE = 32,
 	MUS_CHN_DO_FOUROP_MASTER_VOLUME_SLIDE = 64,
+	MUS_CHN_DO_PW_SLIDE = 128,
+	MUS_CHN_DO_CUTOFF_SLIDE = 256,
 };
 
 enum
@@ -589,6 +595,8 @@ enum
 	MUS_FM_OP_DO_VOLUME_SLIDE = MUS_CHN_DO_VOLUME_SLIDE,
 
 	MUS_FM_OP_DO_CSM_TIMER_PORTAMENTO = 64,
+	MUS_FM_OP_DO_PW_SLIDE = MUS_CHN_DO_PW_SLIDE,
+	MUS_FM_OP_DO_CUTOFF_SLIDE = MUS_CHN_DO_CUTOFF_SLIDE,
 };
 
 enum
@@ -992,17 +1000,17 @@ enum //song flags
 	MUS_USE_OLD_EFFECTS_BEHAVIOUR = 65536 << 7,
 
 	/*new behaviour:
-	C-4 00 .. 02ff
-	... .. .. ....
-	... .. .. ....
-	... .. .. 0200
+	C-4 00 .. .... 02ff
+	... .. .. .... ....
+	... .. .. .... ....
+	... .. .. .... 0200
 	portamento happens each tick until 0200 is encountered
 
 	equivalent old behaviour:
-	C-4 00 .. 02ff
-	... .. .. 02ff
-	... .. .. 02ff
-	... .. .. ....
+	C-4 00 .. .... 02ff
+	... .. .. .... 02ff
+	... .. .. .... 02ff
+	... .. .. .... ....
 	*/
 };
 
