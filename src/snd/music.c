@@ -1192,7 +1192,14 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 	{
 		case MUS_FX_CSM_TIMER_PORTA_UP:
 		{
-			if(ops_index == 0xFF || ops_index == 0)
+			Uint32 flags = MUS_USE_OLD_EFFECTS_BEHAVIOUR;
+
+			if(mus->song)
+			{
+				flags = mus->song->flags;
+			}
+
+			if((flags & MUS_USE_OLD_EFFECTS_BEHAVIOUR) || from_program) //from program we have old behaviour
 			{
 				if(ops_index == 0xFF)
 				{
@@ -1212,20 +1219,62 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 						}
 					}
 				}
+				
+				else
+				{
+					if(cydchn->fm.ops[ops_index - 1].flags & CYD_FM_OP_ENABLE_CSM_TIMER)
+					{
+						if((Uint32)chn->ops[ops_index - 1].CSM_timer_note + (inst & 0xff) <= (FREQ_TAB_SIZE << 8))
+						{
+							chn->ops[ops_index - 1].CSM_timer_note += (inst & 0xff);
+						}
+						
+						else
+						{
+							chn->ops[ops_index - 1].CSM_timer_note = (FREQ_TAB_SIZE << 8);
+						}
+					}
+				}
 			}
-			
+
 			else
 			{
-				if(cydchn->fm.ops[ops_index - 1].flags & CYD_FM_OP_ENABLE_CSM_TIMER)
+				if(ops_index == 0xFF)
 				{
-					if((Uint32)chn->ops[ops_index - 1].CSM_timer_note + (inst & 0xff) <= (FREQ_TAB_SIZE << 8))
+					for(int i = 0; i < CYD_FM_NUM_OPS; ++i)
 					{
-						chn->ops[ops_index - 1].CSM_timer_note += (inst & 0xff);
+						if(cydchn->fm.ops[i].flags & CYD_FM_OP_ENABLE_CSM_TIMER)
+						{
+							if(inst & 0xff)
+							{
+								chn->ops[i].flags |= MUS_FM_OP_DO_CSM_TIMER_PORTAMENTO;
+							}
+
+							else
+							{
+								chn->ops[i].flags &= ~(MUS_FM_OP_DO_CSM_TIMER_PORTAMENTO);
+							}
+
+							chn->ops[i].CSM_timer_portamento_speed = (inst & 0xff);
+						}
 					}
-					
-					else
+				}
+				
+				else
+				{
+					if(cydchn->fm.ops[ops_index - 1].flags & CYD_FM_OP_ENABLE_CSM_TIMER)
 					{
-						chn->ops[ops_index - 1].CSM_timer_note = (FREQ_TAB_SIZE << 8);
+						if(inst & 0xff)
+						{
+							chn->ops[ops_index - 1].flags |= MUS_FM_OP_DO_CSM_TIMER_PORTAMENTO;
+						}
+
+						else
+						{
+							chn->ops[ops_index - 1].flags &= ~(MUS_FM_OP_DO_CSM_TIMER_PORTAMENTO);
+						}
+
+						chn->ops[ops_index - 1].CSM_timer_portamento_speed = (inst & 0xff);
 					}
 				}
 			}
@@ -1234,7 +1283,14 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 		
 		case MUS_FX_CSM_TIMER_PORTA_DN:
 		{
-			if(ops_index == 0xFF || ops_index == 0)
+			Uint32 flags = MUS_USE_OLD_EFFECTS_BEHAVIOUR;
+
+			if(mus->song)
+			{
+				flags = mus->song->flags;
+			}
+
+			if((flags & MUS_USE_OLD_EFFECTS_BEHAVIOUR) || from_program) //from program we have old behaviour
 			{
 				if(ops_index == 0xFF)
 				{
@@ -1254,20 +1310,62 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 						}
 					}
 				}
+				
+				else
+				{
+					if(cydchn->fm.ops[ops_index - 1].flags & CYD_FM_OP_ENABLE_CSM_TIMER)
+					{
+						if((Sint32)chn->ops[ops_index - 1].CSM_timer_note - (inst & 0xff) > 0)
+						{
+							chn->ops[ops_index - 1].CSM_timer_note -= (inst & 0xff);
+						}
+						
+						else
+						{
+							chn->ops[ops_index - 1].CSM_timer_note = 0;
+						}
+					}
+				}
 			}
-			
+
 			else
 			{
-				if(cydchn->fm.ops[ops_index - 1].flags & CYD_FM_OP_ENABLE_CSM_TIMER)
+				if(ops_index == 0xFF)
 				{
-					if((Sint32)chn->ops[ops_index - 1].CSM_timer_note - (inst & 0xff) > 0)
+					for(int i = 0; i < CYD_FM_NUM_OPS; ++i)
 					{
-						chn->ops[ops_index - 1].CSM_timer_note -= (inst & 0xff);
+						if(cydchn->fm.ops[i].flags & CYD_FM_OP_ENABLE_CSM_TIMER)
+						{
+							if(inst & 0xff)
+							{
+								chn->ops[i].flags |= MUS_FM_OP_DO_CSM_TIMER_PORTAMENTO;
+							}
+
+							else
+							{
+								chn->ops[i].flags &= ~(MUS_FM_OP_DO_CSM_TIMER_PORTAMENTO);
+							}
+
+							chn->ops[i].CSM_timer_portamento_speed = -1 * (inst & 0xff);
+						}
 					}
-					
-					else
+				}
+				
+				else
+				{
+					if(cydchn->fm.ops[ops_index - 1].flags & CYD_FM_OP_ENABLE_CSM_TIMER)
 					{
-						chn->ops[ops_index - 1].CSM_timer_note = 0;
+						if(inst & 0xff)
+						{
+							chn->ops[ops_index - 1].flags |= MUS_FM_OP_DO_CSM_TIMER_PORTAMENTO;
+						}
+
+						else
+						{
+							chn->ops[ops_index - 1].flags &= ~(MUS_FM_OP_DO_CSM_TIMER_PORTAMENTO);
+						}
+
+						chn->ops[ops_index - 1].CSM_timer_portamento_speed = -1 * (inst & 0xff);
 					}
 				}
 			}
@@ -2318,43 +2416,112 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 		
 		case MUS_FX_PORTA_UP:
 		{
-			switch(ops_index)
-			{
-				case 0:
-				case 0xFF:
-				{
-					Uint32 prev = chn->note;
-					chn->note += ((inst & 0xff) << 2);
-					if (prev > chn->note) chn->note = 0xffff;
+			Uint32 flags = MUS_USE_OLD_EFFECTS_BEHAVIOUR;
 
-					mus_set_slide(mus, chan, chn->note);
-					
-					if(ops_index == 0xFF)
+			if(mus->song)
+			{
+				flags = mus->song->flags;
+			}
+
+			if((flags & MUS_USE_OLD_EFFECTS_BEHAVIOUR) || from_program) //from program we have old behaviour
+			{
+				switch(ops_index)
+				{
+					case 0:
+					case 0xFF:
 					{
-						for(int i = 0; i < CYD_FM_NUM_OPS; ++i)
+						Uint32 prev = chn->note;
+						chn->note += ((inst & 0xff) << 2);
+						if (prev > chn->note) chn->note = 0xffff;
+
+						mus_set_slide(mus, chan, chn->note);
+						
+						if(ops_index == 0xFF)
 						{
-							Uint32 prev = chn->ops[i].note;
-							chn->ops[i].note += ((inst & 0xff) << 2);
-							if (prev > chn->ops[i].note) chn->ops[i].note = 0xffff;
-							
-							chn->ops[i].target_note = chn->ops[i].note;
+							for(int i = 0; i < CYD_FM_NUM_OPS; ++i)
+							{
+								Uint32 prev = chn->ops[i].note;
+								chn->ops[i].note += ((inst & 0xff) << 2);
+								if (prev > chn->ops[i].note) chn->ops[i].note = 0xffff;
+								
+								chn->ops[i].target_note = chn->ops[i].note;
+							}
 						}
+						
+						break;
 					}
 					
-					break;
+					default:
+					{
+						Uint32 prev = chn->ops[ops_index - 1].note;
+						chn->ops[ops_index - 1].note += ((inst & 0xff) << 2);
+						if (prev > chn->ops[ops_index - 1].note) chn->ops[ops_index - 1].note = 0xffff;
+						
+						chn->ops[ops_index - 1].target_note = chn->ops[ops_index - 1].note;
+						
+						//debug("chn->ops[ops_index - 1].target_note %d", chn->ops[ops_index - 1].target_note);
+						
+						break;
+					}
 				}
-				
-				default:
+			}
+
+			else
+			{
+				switch(ops_index)
 				{
-					Uint32 prev = chn->ops[ops_index - 1].note;
-					chn->ops[ops_index - 1].note += ((inst & 0xff) << 2);
-					if (prev > chn->ops[ops_index - 1].note) chn->ops[ops_index - 1].note = 0xffff;
+					case 0:
+					case 0xFF:
+					{
+						if(inst & 0xff)
+						{
+							chn->flags |= MUS_CHN_DO_PORTAMENTO;
+						}
+
+						else
+						{
+							chn->flags &= ~(MUS_CHN_DO_PORTAMENTO);
+						}
+
+						chn->portamento_speed = ((inst & 0xff) << 2);
+
+						if(ops_index == 0xFF)
+						{
+							for(int i = 0; i < CYD_FM_NUM_OPS; ++i)
+							{
+								if(inst & 0xff)
+								{
+									chn->ops[i].flags |= MUS_FM_OP_DO_PORTAMENTO;
+								}
+
+								else
+								{
+									chn->ops[i].flags &= ~(MUS_FM_OP_DO_PORTAMENTO);
+								}
+
+								chn->ops[i].portamento_speed = ((inst & 0xff) << 2);
+							}
+						}
+						
+						break;
+					}
 					
-					chn->ops[ops_index - 1].target_note = chn->ops[ops_index - 1].note;
-					
-					//debug("chn->ops[ops_index - 1].target_note %d", chn->ops[ops_index - 1].target_note);
-					
-					break;
+					default:
+					{
+						if(inst & 0xff)
+						{
+							chn->ops[ops_index - 1].flags |= MUS_FM_OP_DO_PORTAMENTO;
+						}
+
+						else
+						{
+							chn->ops[ops_index - 1].flags &= ~(MUS_FM_OP_DO_PORTAMENTO);
+						}
+
+						chn->ops[ops_index - 1].portamento_speed = ((inst & 0xff) << 2);
+
+						break;
+					}
 				}
 			}
 		}
@@ -2362,41 +2529,110 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 
 		case MUS_FX_PORTA_DN:
 		{
-			switch(ops_index)
-			{
-				case 0:
-				case 0xFF:
-				{
-					Sint32 prev = chn->note;
-					chn->note -= ((inst & 0xff) << 2);
-					if (prev < chn->note) chn->note = 0x0;
+			Uint32 flags = MUS_USE_OLD_EFFECTS_BEHAVIOUR;
 
-					mus_set_slide(mus, chan, chn->note);
-					
-					if(ops_index == 0xFF)
+			if(mus->song)
+			{
+				flags = mus->song->flags;
+			}
+
+			if((flags & MUS_USE_OLD_EFFECTS_BEHAVIOUR) || from_program) //from program we have old behaviour
+			{
+				switch(ops_index)
+				{
+					case 0:
+					case 0xFF:
 					{
-						for(int i = 0; i < CYD_FM_NUM_OPS; ++i)
+						Sint32 prev = chn->note;
+						chn->note -= ((inst & 0xff) << 2);
+						if (prev < chn->note) chn->note = 0x0;
+
+						mus_set_slide(mus, chan, chn->note);
+						
+						if(ops_index == 0xFF)
 						{
-							Uint32 prev = chn->ops[i].note;
-							chn->ops[i].note -= ((inst & 0xff) << 2);
-							if (prev < chn->ops[i].note) chn->ops[i].note = 0x0;
-							
-							chn->ops[i].target_note = chn->ops[i].note;
+							for(int i = 0; i < CYD_FM_NUM_OPS; ++i)
+							{
+								Uint32 prev = chn->ops[i].note;
+								chn->ops[i].note -= ((inst & 0xff) << 2);
+								if (prev < chn->ops[i].note) chn->ops[i].note = 0x0;
+								
+								chn->ops[i].target_note = chn->ops[i].note;
+							}
 						}
+						
+						break;
 					}
 					
-					break;
+					default:
+					{
+						Uint32 prev = chn->ops[ops_index - 1].note;
+						chn->ops[ops_index - 1].note -= ((inst & 0xff) << 2);
+						if (prev < chn->ops[ops_index - 1].note) chn->ops[ops_index - 1].note = 0x0;
+						
+						chn->ops[ops_index - 1].target_note = chn->ops[ops_index - 1].note;
+						
+						break;
+					}
 				}
-				
-				default:
+			}
+
+			else
+			{
+				switch(ops_index)
 				{
-					Uint32 prev = chn->ops[ops_index - 1].note;
-					chn->ops[ops_index - 1].note -= ((inst & 0xff) << 2);
-					if (prev < chn->ops[ops_index - 1].note) chn->ops[ops_index - 1].note = 0x0;
+					case 0:
+					case 0xFF:
+					{
+						if(inst & 0xff)
+						{
+							chn->flags |= MUS_CHN_DO_PORTAMENTO;
+						}
+
+						else
+						{
+							chn->flags &= ~(MUS_CHN_DO_PORTAMENTO);
+						}
+
+						chn->portamento_speed = -1 * ((inst & 0xff) << 2);
+
+						if(ops_index == 0xFF)
+						{
+							for(int i = 0; i < CYD_FM_NUM_OPS; ++i)
+							{
+								if(inst & 0xff)
+								{
+									chn->ops[i].flags |= MUS_FM_OP_DO_PORTAMENTO;
+								}
+
+								else
+								{
+									chn->ops[i].flags &= ~(MUS_FM_OP_DO_PORTAMENTO);
+								}
+
+								chn->ops[i].portamento_speed = -1 * ((inst & 0xff) << 2);
+							}
+						}
+						
+						break;
+					}
 					
-					chn->ops[ops_index - 1].target_note = chn->ops[ops_index - 1].note;
-					
-					break;
+					default:
+					{
+						if(inst & 0xff)
+						{
+							chn->ops[ops_index - 1].flags |= MUS_FM_OP_DO_PORTAMENTO;
+						}
+
+						else
+						{
+							chn->ops[ops_index - 1].flags &= ~(MUS_FM_OP_DO_PORTAMENTO);
+						}
+
+						chn->ops[ops_index - 1].portamento_speed = -1 * ((inst & 0xff) << 2);
+
+						break;
+					}
 				}
 			}
 		}
@@ -3098,60 +3334,138 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 
 		case MUS_FX_FADE_VOLUME:
 		{
-			switch(ops_index)
-			{
-				case 0:
-				case 0xFF:
-				{
-					if (!(chn->flags & MUS_CHN_DISABLED))
-					{
-						track_status->volume -= inst & 0xf;
-						if (track_status->volume > MAX_VOLUME) track_status->volume = 0;
-						track_status->volume += (inst >> 4) & 0xf;
-						if (track_status->volume > MAX_VOLUME) track_status->volume = MAX_VOLUME;
+			Uint32 flags = MUS_USE_OLD_EFFECTS_BEHAVIOUR;
 
-						update_volumes(mus, track_status, chn, cydchn, track_status->volume);
-					}
-					
-					if(ops_index == 0xFF)
-					{
-						if(track_status->fm_4op_vol + ((inst >> 4) & 0xf) > 0xff)
-						{
-							track_status->fm_4op_vol = 0xff;
-						}
-						
-						else
-						{
-							track_status->fm_4op_vol += ((inst >> 4) & 0xf);
-						}
-						
-						if((int)track_status->fm_4op_vol - (int)(inst & 0xf) < 0)
-						{
-							track_status->fm_4op_vol = 0;
-						}
-						
-						else
-						{
-							track_status->fm_4op_vol -= (inst & 0xf);
-						}
-					}
-					
-					break;
-				}
-				
-				default:
+			if(mus->song)
+			{
+				flags = mus->song->flags;
+			}
+
+			if((flags & MUS_USE_OLD_EFFECTS_BEHAVIOUR) || from_program) //from program we have old behaviour
+			{
+				switch(ops_index)
 				{
-					if (!(chn->ops[ops_index - 1].flags & MUS_FM_OP_DISABLED))
+					case 0:
+					case 0xFF:
 					{
-						track_status->ops_status[ops_index - 1].volume -= inst & 0xf;
-						if (track_status->ops_status[ops_index - 1].volume > MAX_VOLUME) track_status->ops_status[ops_index - 1].volume = 0;
-						track_status->ops_status[ops_index - 1].volume += (inst >> 4) & 0xf;
-						if (track_status->ops_status[ops_index - 1].volume > MAX_VOLUME) track_status->ops_status[ops_index - 1].volume = MAX_VOLUME;
+						if (!(chn->flags & MUS_CHN_DISABLED))
+						{
+							track_status->volume -= inst & 0xf;
+							if (track_status->volume > MAX_VOLUME) track_status->volume = 0;
+							track_status->volume += (inst >> 4) & 0xf;
+							if (track_status->volume > MAX_VOLUME) track_status->volume = MAX_VOLUME;
+
+							update_volumes(mus, track_status, chn, cydchn, track_status->volume);
+						}
 						
-						update_fm_op_volume(mus, track_status, chn, cydchn, track_status->ops_status[ops_index - 1].volume, ops_index - 1);
+						if(ops_index == 0xFF)
+						{
+							if(track_status->fm_4op_vol + ((inst >> 4) & 0xf) > 0xff)
+							{
+								track_status->fm_4op_vol = 0xff;
+							}
+							
+							else
+							{
+								track_status->fm_4op_vol += ((inst >> 4) & 0xf);
+							}
+							
+							if((int)track_status->fm_4op_vol - (int)(inst & 0xf) < 0)
+							{
+								track_status->fm_4op_vol = 0;
+							}
+							
+							else
+							{
+								track_status->fm_4op_vol -= (inst & 0xf);
+							}
+						}
+						
+						break;
 					}
 					
-					break;
+					default:
+					{
+						if (!(chn->ops[ops_index - 1].flags & MUS_FM_OP_DISABLED))
+						{
+							track_status->ops_status[ops_index - 1].volume -= inst & 0xf;
+							if (track_status->ops_status[ops_index - 1].volume > MAX_VOLUME) track_status->ops_status[ops_index - 1].volume = 0;
+							track_status->ops_status[ops_index - 1].volume += (inst >> 4) & 0xf;
+							if (track_status->ops_status[ops_index - 1].volume > MAX_VOLUME) track_status->ops_status[ops_index - 1].volume = MAX_VOLUME;
+							
+							update_fm_op_volume(mus, track_status, chn, cydchn, track_status->ops_status[ops_index - 1].volume, ops_index - 1);
+						}
+						
+						break;
+					}
+				}
+			}
+
+			else
+			{
+				switch(ops_index)
+				{
+					case 0:
+					case 0xFF:
+					{
+						if (!(chn->flags & MUS_CHN_DISABLED))
+						{
+							if(inst & 0xff)
+							{
+								chn->flags |= MUS_CHN_DO_VOLUME_SLIDE;
+							}
+
+							else
+							{
+								chn->flags &= ~(MUS_CHN_DO_VOLUME_SLIDE);
+							}
+
+							chn->volume_slide_speed = 0;
+							chn->volume_slide_speed += (inst >> 4) & 0xf;
+							chn->volume_slide_speed -= inst & 0xf;
+						}
+						
+						if(ops_index == 0xFF)
+						{
+							if(inst & 0xff)
+							{
+								chn->flags |= MUS_CHN_DO_FOUROP_MASTER_VOLUME_SLIDE;
+							}
+
+							else
+							{
+								chn->flags &= ~(MUS_CHN_DO_FOUROP_MASTER_VOLUME_SLIDE);
+							}
+
+							chn->fourop_master_volume_volume_slide_speed = 0;
+							chn->fourop_master_volume_volume_slide_speed += (inst >> 4) & 0xf;
+							chn->fourop_master_volume_volume_slide_speed -= inst & 0xf;
+						}
+						
+						break;
+					}
+					
+					default:
+					{
+						if (!(chn->ops[ops_index - 1].flags & MUS_FM_OP_DISABLED))
+						{
+							if(inst & 0xff)
+							{
+								chn->ops[ops_index - 1].flags |= MUS_FM_OP_DO_VOLUME_SLIDE;
+							}
+
+							else
+							{
+								chn->ops[ops_index - 1].flags &= ~(MUS_FM_OP_DO_VOLUME_SLIDE);
+							}
+
+							chn->ops[ops_index - 1].volume_slide_speed = 0;
+							chn->ops[ops_index - 1].volume_slide_speed += (inst >> 4) & 0xf;
+							chn->ops[ops_index - 1].volume_slide_speed -= inst & 0xf;
+						}
+						
+						break;
+					}
 				}
 			}
 		}
@@ -5597,38 +5911,107 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 
 				case MUS_FX_PORTA_UP_SEMI:
 				{
-					switch(ops_index)
+					Uint32 flags = MUS_USE_OLD_EFFECTS_BEHAVIOUR;
+
+					if(mus->song)
 					{
-						case 0:
-						case 0xFF:
+						flags = mus->song->flags;
+					}
+
+					if((flags & MUS_USE_OLD_EFFECTS_BEHAVIOUR) || from_program) //from program we have old behaviour
+					{
+						switch(ops_index)
 						{
-							Uint32 prev = chn->note;
-							chn->note += (inst & 0xff) << 8;
-							if (prev > chn->note || chn->note >= (FREQ_TAB_SIZE << 8)) chn->note = ((FREQ_TAB_SIZE - 1) << 8);
-							mus_set_slide(mus, chan, chn->note);
-							
-							if(ops_index == 0xFF)
+							case 0:
+							case 0xFF:
 							{
-								for(int i = 0; i < CYD_FM_NUM_OPS; ++i)
+								Uint32 prev = chn->note;
+								chn->note += (inst & 0xff) << 8;
+								if (prev > chn->note || chn->note >= (FREQ_TAB_SIZE << 8)) chn->note = ((FREQ_TAB_SIZE - 1) << 8);
+								mus_set_slide(mus, chan, chn->note);
+								
+								if(ops_index == 0xFF)
 								{
-									Uint32 prev = chn->ops[i].note;
-									chn->ops[i].note += (inst & 0xff) << 8;
-									if (prev > chn->ops[i].note || chn->ops[i].note >= (FREQ_TAB_SIZE << 8)) chn->ops[i].note = ((FREQ_TAB_SIZE - 1) << 8);
-									
-									chn->ops[i].target_note = chn->ops[i].note;
+									for(int i = 0; i < CYD_FM_NUM_OPS; ++i)
+									{
+										Uint32 prev = chn->ops[i].note;
+										chn->ops[i].note += (inst & 0xff) << 8;
+										if (prev > chn->ops[i].note || chn->ops[i].note >= (FREQ_TAB_SIZE << 8)) chn->ops[i].note = ((FREQ_TAB_SIZE - 1) << 8);
+										
+										chn->ops[i].target_note = chn->ops[i].note;
+									}
 								}
+								
+								break;
 							}
 							
-							break;
+							default:
+							{
+								Uint32 prev = chn->ops[ops_index - 1].note;
+								chn->ops[ops_index - 1].note += (inst & 0xff) << 8;
+								if (prev > chn->ops[ops_index - 1].note || chn->ops[ops_index - 1].note >= (FREQ_TAB_SIZE << 8)) chn->ops[ops_index - 1].note = ((FREQ_TAB_SIZE - 1) << 8);
+								
+								chn->ops[ops_index - 1].target_note = chn->ops[ops_index - 1].note;
+							}
 						}
-						
-						default:
+					}
+
+					else
+					{
+						switch(ops_index)
 						{
-							Uint32 prev = chn->ops[ops_index - 1].note;
-							chn->ops[ops_index - 1].note += (inst & 0xff) << 8;
-							if (prev > chn->ops[ops_index - 1].note || chn->ops[ops_index - 1].note >= (FREQ_TAB_SIZE << 8)) chn->ops[ops_index - 1].note = ((FREQ_TAB_SIZE - 1) << 8);
+							case 0:
+							case 0xFF:
+							{
+								if(inst & 0xff)
+								{
+									chn->flags |= MUS_CHN_DO_PORTAMENTO;
+								}
+
+								else
+								{
+									chn->flags &= ~(MUS_CHN_DO_PORTAMENTO);
+								}
+
+								chn->portamento_speed = ((inst & 0xff) << 8);
+
+								if(ops_index == 0xFF)
+								{
+									for(int i = 0; i < CYD_FM_NUM_OPS; ++i)
+									{
+										if(inst & 0xff)
+										{
+											chn->ops[i].flags |= MUS_FM_OP_DO_PORTAMENTO;
+										}
+
+										else
+										{
+											chn->ops[i].flags &= ~(MUS_FM_OP_DO_PORTAMENTO);
+										}
+
+										chn->ops[i].portamento_speed = ((inst & 0xff) << 8);
+									}
+								}
+								
+								break;
+							}
 							
-							chn->ops[ops_index - 1].target_note = chn->ops[ops_index - 1].note;
+							default:
+							{
+								if(inst & 0xff)
+								{
+									chn->ops[ops_index - 1].flags |= MUS_FM_OP_DO_PORTAMENTO;
+								}
+
+								else
+								{
+									chn->ops[ops_index - 1].flags &= ~(MUS_FM_OP_DO_PORTAMENTO);
+								}
+
+								chn->ops[ops_index - 1].portamento_speed = ((inst & 0xff) << 8);
+
+								break;
+							}
 						}
 					}
 				}
@@ -5636,38 +6019,107 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 
 				case MUS_FX_PORTA_DN_SEMI:
 				{
-					switch(ops_index)
+					Uint32 flags = MUS_USE_OLD_EFFECTS_BEHAVIOUR;
+
+					if(mus->song)
 					{
-						case 0:
-						case 0xFF:
+						flags = mus->song->flags;
+					}
+
+					if((flags & MUS_USE_OLD_EFFECTS_BEHAVIOUR) || from_program) //from program we have old behaviour
+					{
+						switch(ops_index)
 						{
-							Uint32 prev = chn->note;
-							chn->note -= (inst & 0xff) << 8;
-							if (prev < chn->note) chn->note = 0x0;
-							mus_set_slide(mus, chan, chn->note);
-							
-							if(ops_index == 0xFF)
+							case 0:
+							case 0xFF:
 							{
-								for(int i = 0; i < CYD_FM_NUM_OPS; ++i)
+								Uint32 prev = chn->note;
+								chn->note -= (inst & 0xff) << 8;
+								if (prev < chn->note) chn->note = 0x0;
+								mus_set_slide(mus, chan, chn->note);
+								
+								if(ops_index == 0xFF)
 								{
-									Uint32 prev = chn->ops[i].note;
-									chn->ops[i].note -= (inst & 0xff) << 8;
-									if (prev < chn->ops[i].note) chn->ops[i].note = 0x0;
-									
-									chn->ops[i].target_note = chn->ops[i].note;
+									for(int i = 0; i < CYD_FM_NUM_OPS; ++i)
+									{
+										Uint32 prev = chn->ops[i].note;
+										chn->ops[i].note -= (inst & 0xff) << 8;
+										if (prev < chn->ops[i].note) chn->ops[i].note = 0x0;
+										
+										chn->ops[i].target_note = chn->ops[i].note;
+									}
 								}
+								
+								break;
 							}
 							
-							break;
+							default:
+							{
+								Uint32 prev = chn->ops[ops_index - 1].note;
+								chn->ops[ops_index - 1].note -= (inst & 0xff) << 8;
+								if (prev < chn->ops[ops_index - 1].note) chn->ops[ops_index - 1].note = 0x0;
+								
+								chn->ops[ops_index - 1].target_note = chn->ops[ops_index - 1].note;
+							}
 						}
-						
-						default:
+					}
+
+					else
+					{
+						switch(ops_index)
 						{
-							Uint32 prev = chn->ops[ops_index - 1].note;
-							chn->ops[ops_index - 1].note -= (inst & 0xff) << 8;
-							if (prev < chn->ops[ops_index - 1].note) chn->ops[ops_index - 1].note = 0x0;
+							case 0:
+							case 0xFF:
+							{
+								if(inst & 0xff)
+								{
+									chn->flags |= MUS_CHN_DO_PORTAMENTO;
+								}
+
+								else
+								{
+									chn->flags &= ~(MUS_CHN_DO_PORTAMENTO);
+								}
+
+								chn->portamento_speed = -1 * ((inst & 0xff) << 8);
+
+								if(ops_index == 0xFF)
+								{
+									for(int i = 0; i < CYD_FM_NUM_OPS; ++i)
+									{
+										if(inst & 0xff)
+										{
+											chn->ops[i].flags |= MUS_FM_OP_DO_PORTAMENTO;
+										}
+
+										else
+										{
+											chn->ops[i].flags &= ~(MUS_FM_OP_DO_PORTAMENTO);
+										}
+
+										chn->ops[i].portamento_speed = -1 * ((inst & 0xff) << 8);
+									}
+								}
+								
+								break;
+							}
 							
-							chn->ops[ops_index - 1].target_note = chn->ops[ops_index - 1].note;
+							default:
+							{
+								if(inst & 0xff)
+								{
+									chn->ops[ops_index - 1].flags |= MUS_FM_OP_DO_PORTAMENTO;
+								}
+
+								else
+								{
+									chn->ops[ops_index - 1].flags &= ~(MUS_FM_OP_DO_PORTAMENTO);
+								}
+
+								chn->ops[ops_index - 1].portamento_speed = -1 * ((inst & 0xff) << 8);
+
+								break;
+							}
 						}
 					}
 				}
@@ -5947,11 +6399,7 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 							
 							if(ops_index == 0xFF)
 							{
-								for(int i = 0; i < CYD_FM_NUM_OPS; ++i)
-								{
-									track_status->ops_status[i].volume = my_min(MAX_VOLUME, inst & 0xff);
-									update_fm_op_volume(mus, track_status, chn, cydchn, track_status->ops_status[i].volume, i);
-								}
+								track_status->fm_4op_vol = (int)(inst & 0xff) * (int)chn->instrument->fm_4op_vol / 0xff;
 							}
 							
 							break;
@@ -7261,8 +7709,8 @@ void mus_trigger_fm_op_internal(CydFm* fm, MusInstrument* ins, CydChannel* cydch
 
 	track->ops_status[i].slide_speed = 0;
 	
-	update_fm_op_volume(mus, track, chn, cydchn, ((ins->ops[i].flags & MUS_FM_OP_RELATIVE_VOLUME) ? MAX_VOLUME : ins->ops[i].volume), i);
 	chn->ops[i].program_volume = MAX_VOLUME;
+	update_fm_op_volume(mus, track, chn, cydchn, ((ins->ops[i].flags & MUS_FM_OP_RELATIVE_VOLUME) ? MAX_VOLUME : ins->ops[i].volume), i);
 	
 	if(fm->ops[i].flags & CYD_FM_OP_ENABLE_KEY_SYNC)
 	{
@@ -7694,8 +8142,8 @@ int mus_trigger_instrument_internal(MusEngine* mus, int chan, MusInstrument *ins
 
 	track->slide_speed = 0;
 
-	update_volumes(mus, track, chn, cydchn, (ins->flags & MUS_INST_RELATIVE_VOLUME) ? MAX_VOLUME : ins->volume);
 	chn->program_volume = MAX_VOLUME;
+	update_volumes(mus, track, chn, cydchn, (ins->flags & MUS_INST_RELATIVE_VOLUME) ? MAX_VOLUME : ins->volume);
 
 	cydchn->sync_source = ins->sync_source == 0xff ? chan : ins->sync_source;
 	cydchn->ring_mod = ins->ring_mod == 0xff ? chan : ins->ring_mod;
@@ -8433,6 +8881,82 @@ static void mus_advance_channel(MusEngine* mus, int chan)
 	}
 	
 	cydchn->fm.fm_vib = fm_vib;
+
+	if(mus->channel[chan].flags & MUS_CHN_DO_PORTAMENTO)
+	{
+		Sint32 temp_note = mus->channel[chan].note;
+		temp_note += mus->channel[chan].portamento_speed;
+
+		if(temp_note < 0) temp_note = 0;
+		if(temp_note > 0xffff) temp_note = 0xffff;
+
+		mus->channel[chan].note = temp_note;
+		mus_set_slide(mus, chan, mus->channel[chan].note);
+	}
+
+	if(mus->channel[chan].flags & MUS_CHN_DO_VOLUME_SLIDE)
+	{
+		Sint32 temp = mus->song_track[chan].volume;
+		temp += mus->channel[chan].volume_slide_speed;
+
+		if(temp < 0) temp = 0;
+		if(temp > MAX_VOLUME) temp = MAX_VOLUME;
+
+		mus->song_track[chan].volume = temp;
+		update_volumes(mus, &mus->song_track[chan], &mus->channel[chan], cydchn, mus->song_track[chan].volume);
+	}
+
+	if(mus->channel[chan].flags & MUS_CHN_DO_FOUROP_MASTER_VOLUME_SLIDE)
+	{
+		Sint32 temp = mus->song_track[chan].fm_4op_vol;
+		temp += mus->channel[chan].fourop_master_volume_volume_slide_speed;
+
+		if(temp < 0) temp = 0;
+		if(temp > 0xff) temp = 0xff;
+
+		mus->song_track[chan].fm_4op_vol = temp;
+	}
+
+	if(cydchn->fm.flags & CYD_FM_ENABLE_4OP)
+	{
+		for(int i = 0; i < CYD_FM_NUM_OPS; ++i)
+		{
+			if(mus->channel[chan].ops[i].flags & MUS_FM_OP_DO_PORTAMENTO)
+			{
+				Sint32 temp_note = mus->channel[chan].ops[i].note;
+				temp_note += mus->channel[chan].ops[i].portamento_speed;
+
+				if(temp_note < 0) temp_note = 0;
+				if(temp_note > 0xffff) temp_note = 0xffff;
+
+				mus->channel[chan].ops[i].note = temp_note;
+				mus->channel[chan].ops[i].target_note = mus->channel[chan].ops[i].note;
+			}
+
+			if(mus->channel[chan].ops[i].flags & MUS_FM_OP_DO_CSM_TIMER_PORTAMENTO)
+			{
+				Sint32 temp_note = mus->channel[chan].ops[i].CSM_timer_note;
+				temp_note += mus->channel[chan].ops[i].CSM_timer_portamento_speed;
+
+				if(temp_note < 0) temp_note = 0;
+				if(temp_note > (FREQ_TAB_SIZE << 8)) temp_note = (FREQ_TAB_SIZE << 8);
+
+				mus->channel[chan].ops[i].CSM_timer_note = temp_note;
+			}
+
+			if(mus->channel[chan].ops[i].flags & MUS_FM_OP_DO_VOLUME_SLIDE)
+			{
+				Sint32 temp = mus->song_track[chan].ops_status[i].volume;
+				temp += mus->channel[chan].ops[i].volume_slide_speed;
+
+				if(temp < 0) temp = 0;
+				if(temp > MAX_VOLUME) temp = MAX_VOLUME;
+
+				mus->song_track[chan].ops_status[i].volume = temp;
+				update_fm_op_volume(mus, &mus->song_track[chan], &mus->channel[chan], cydchn, mus->song_track[chan].ops_status[i].volume, i);
+			}
+		}
+	}
 
 	Sint32 intermediate_note = (mus->channel[chan].fixed_note != 0xffff ? mus->channel[chan].fixed_note : mus->channel[chan].note);
 
@@ -9276,6 +9800,8 @@ void mus_set_song(MusEngine *mus, MusSong *song, Uint16 position)
 		mus->song_track[i].pwm_shape = 0;
 		mus->song_track[i].panbrello_shape = 0;
 
+		mus->channel[i].program_volume = MAX_VOLUME;
+
 		for(int op = 0; op < CYD_FM_NUM_OPS; ++op)
 		{
 			mus->song_track[i].ops_status[op].tremolo_depth = 0;
@@ -9318,6 +9844,7 @@ void mus_set_song(MusEngine *mus, MusSong *song, Uint16 position)
 		mus->channel[chan].program_volume = MAX_VOLUME;
 		
 		mus->channel[chan].flags &= ~MUS_CHN_GLISSANDO; //disable glissando
+		mus->channel[chan].flags &= ~(MUS_CHN_DO_FOUROP_MASTER_VOLUME_SLIDE | MUS_CHN_DO_PORTAMENTO | MUS_CHN_DO_VOLUME_SLIDE); //disable effects with memory
 
 		for(int n = 0; n < MUS_MAX_NESTEDNESS; ++n)
 		{
@@ -9346,7 +9873,9 @@ void mus_set_song(MusEngine *mus, MusSong *song, Uint16 position)
 
 			mus->channel[chan].ops[op].program_volume = MAX_VOLUME;
 
-			mus->channel[chan].ops[op].flags &= ~MUS_CHN_GLISSANDO;
+			mus->channel[chan].ops[op].flags &= ~MUS_FM_OP_GLISSANDO; //disable glissando
+
+			mus->channel[chan].ops[op].flags &= ~(MUS_FM_OP_DO_PORTAMENTO | MUS_FM_OP_DO_VOLUME_SLIDE); //disable effects with memory
 			
 			for(int n = 0; n < MUS_MAX_NESTEDNESS; ++n)
 			{
@@ -11436,6 +11965,11 @@ int mus_load_song_RW(RWops *ctx, MusSong *song, CydWavetableEntry *wavetable_ent
 					my_RWread(ctx, &song->grooves[i][j], 1, sizeof(song->grooves[i][j]));
 				}
 			}
+		}
+
+		if((version < 44) && !(song->flags & MUS_USE_OLD_EFFECTS_BEHAVIOUR)) //newer modules use new effects behaviour
+		{
+			song->flags |= MUS_USE_OLD_EFFECTS_BEHAVIOUR;
 		}
 
 		if (version >= 9) my_RWread(ctx, &song->multiplex_period, 1, sizeof(song->multiplex_period));

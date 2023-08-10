@@ -352,6 +352,10 @@ typedef struct
 	Uint16 triggered_note; //note at which the op was triggered
 	
 	Uint16 CSM_timer_note;
+
+	Sint32 portamento_speed; //for effects with memory
+	Sint32 volume_slide_speed;
+	Sint32 CSM_timer_portamento_speed;
 	
 } MusFmOpChannel;
 
@@ -389,6 +393,10 @@ typedef struct
 	Sint16 buzz_offset;
 	
 	MusFmOpChannel ops[CYD_FM_NUM_OPS];
+
+	Sint32 portamento_speed; //for effects with memory
+	Sint32 volume_slide_speed;
+	Sint32 fourop_master_volume_volume_slide_speed;
 	
 } MusChannel;
 
@@ -561,6 +569,11 @@ enum
 	MUS_CHN_DISABLED = 4,
 
 	MUS_CHN_GLISSANDO = 8,
+
+	//flags for effects with memory
+	MUS_CHN_DO_PORTAMENTO = 16,
+	MUS_CHN_DO_VOLUME_SLIDE = 32,
+	MUS_CHN_DO_FOUROP_MASTER_VOLUME_SLIDE = 64,
 };
 
 enum
@@ -570,6 +583,12 @@ enum
 	MUS_FM_OP_DISABLED = MUS_CHN_DISABLED,
 
 	MUS_FM_OP_GLISSANDO = MUS_CHN_GLISSANDO,
+
+	//flags for effects with memory
+	MUS_FM_OP_DO_PORTAMENTO = MUS_CHN_DO_PORTAMENTO,
+	MUS_FM_OP_DO_VOLUME_SLIDE = MUS_CHN_DO_VOLUME_SLIDE,
+
+	MUS_FM_OP_DO_CSM_TIMER_PORTAMENTO = 64,
 };
 
 enum
@@ -969,6 +988,22 @@ enum //song flags
 	
 	MUS_USE_GROOVE = 65536 << 5, //used in song playback, can change
 	MUS_SAVE_GROOVE = 65536 << 6, //used in saving/loading only
+
+	MUS_USE_OLD_EFFECTS_BEHAVIOUR = 65536 << 7,
+
+	/*new behaviour:
+	C-4 00 .. 02ff
+	... .. .. ....
+	... .. .. ....
+	... .. .. 0200
+	portamento happens each tick until 0200 is encountered
+
+	equivalent old behaviour:
+	C-4 00 .. 02ff
+	... .. .. 02ff
+	... .. .. 02ff
+	... .. .. ....
+	*/
 };
 
 enum
