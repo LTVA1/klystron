@@ -401,6 +401,7 @@ typedef struct
 	Sint32 fourop_master_volume_volume_slide_speed;
 	Sint32 cutoff_slide_speed;
 	Sint32 pw_slide_speed;
+	Sint32 panning_slide_speed;
 	
 } MusChannel;
 
@@ -580,6 +581,7 @@ enum
 	MUS_CHN_DO_FOUROP_MASTER_VOLUME_SLIDE = 64,
 	MUS_CHN_DO_PW_SLIDE = 128,
 	MUS_CHN_DO_CUTOFF_SLIDE = 256,
+	MUS_CHN_DO_PANNING_SLIDE = 512,
 };
 
 enum

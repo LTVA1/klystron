@@ -3907,25 +3907,61 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 		case MUS_FX_PAN_RIGHT:
 		case MUS_FX_PAN_LEFT:
 		{
-			if(ops_index == 0 || ops_index == 0xFF)
+			Uint32 flags = MUS_USE_OLD_EFFECTS_BEHAVIOUR;
+
+			if(mus->song)
 			{
-				int p = cydchn->panning;
-				
-				if ((inst & 0xff00) == MUS_FX_PAN_LEFT)
-				{
-					p -= inst & 0x00ff;
-				}
-				
-				else
-				{
-					p += inst & 0x00ff;
-				}
+				flags = mus->song->flags;
+			}
 
-				p = my_min(CYD_PAN_RIGHT, my_max(CYD_PAN_LEFT, p));
-				
-				cydchn->init_panning = p;
+			if((flags & MUS_USE_OLD_EFFECTS_BEHAVIOUR) || from_program) //from program we have old behaviour
+			{
+				if(ops_index == 0 || ops_index == 0xFF)
+				{
+					int p = cydchn->panning;
+					
+					if ((inst & 0xff00) == MUS_FX_PAN_LEFT)
+					{
+						p -= inst & 0x00ff;
+					}
+					
+					else
+					{
+						p += inst & 0x00ff;
+					}
 
-				cyd_set_panning(mus->cyd, cydchn, p);
+					p = my_min(CYD_PAN_RIGHT, my_max(CYD_PAN_LEFT, p));
+					
+					cydchn->init_panning = p;
+
+					cyd_set_panning(mus->cyd, cydchn, p);
+				}
+			}
+
+			else
+			{
+				if(ops_index == 0 || ops_index == 0xFF)
+				{
+					if(inst & 0xff)
+					{
+						chn->flags |= MUS_CHN_DO_PANNING_SLIDE;
+					}
+
+					else
+					{
+						chn->flags &= ~MUS_CHN_DO_PANNING_SLIDE;
+					}
+					
+					if ((inst & 0xff00) == MUS_FX_PAN_LEFT)
+					{
+						chn->panning_slide_speed = -1 * (inst & 0xff);
+					}
+					
+					else
+					{
+						chn->panning_slide_speed = (inst & 0xff);
+					}
+				}
 			}
 		}
 		break;
@@ -7230,11 +7266,11 @@ static void mus_exec_track_command(MusEngine *mus, int chan, int first_tick)
 	switch (vol & 0xf0)
 	{
 		case MUS_NOTE_VOLUME_PAN_LEFT:
-				do_command(mus, chan, mus->song_counter, MUS_FX_PAN_LEFT | ((Uint16)(vol & 0xf) * 2), 0, mus->channel[chan].instrument != NULL ? ((mus->channel[chan].instrument->fm_flags & CYD_FM_FOUROP_USE_MAIN_INST_PROG) ? 0xFF : 0) : 0, 0);
+				do_command(mus, chan, mus->song_counter, MUS_FX_PAN_LEFT | ((Uint16)(vol & 0xf) * 2), 1, mus->channel[chan].instrument != NULL ? ((mus->channel[chan].instrument->fm_flags & CYD_FM_FOUROP_USE_MAIN_INST_PROG) ? 0xFF : 0) : 0, 0);
 			break;
 
 		case MUS_NOTE_VOLUME_PAN_RIGHT:
-				do_command(mus, chan, mus->song_counter, MUS_FX_PAN_RIGHT | ((Uint16)(vol & 0xf) * 2), 0, mus->channel[chan].instrument != NULL ? ((mus->channel[chan].instrument->fm_flags & CYD_FM_FOUROP_USE_MAIN_INST_PROG) ? 0xFF : 0) : 0, 0);
+				do_command(mus, chan, mus->song_counter, MUS_FX_PAN_RIGHT | ((Uint16)(vol & 0xf) * 2), 1, mus->channel[chan].instrument != NULL ? ((mus->channel[chan].instrument->fm_flags & CYD_FM_FOUROP_USE_MAIN_INST_PROG) ? 0xFF : 0) : 0, 0);
 			break;
 
 		case MUS_NOTE_VOLUME_SET_PAN:
@@ -7249,11 +7285,11 @@ static void mus_exec_track_command(MusEngine *mus, int chan, int first_tick)
 		break;
 
 		case MUS_NOTE_VOLUME_FADE_UP:
-			do_command(mus, chan, mus->song_counter, MUS_FX_FADE_VOLUME | ((Uint16)(vol & 0xf) << 4), 0, mus->channel[chan].instrument != NULL ? ((mus->channel[chan].instrument->fm_flags & CYD_FM_FOUROP_USE_MAIN_INST_PROG) ? 0xFF : 0) : 0, 0);
+			do_command(mus, chan, mus->song_counter, MUS_FX_FADE_VOLUME | ((Uint16)(vol & 0xf) << 4), 1, mus->channel[chan].instrument != NULL ? ((mus->channel[chan].instrument->fm_flags & CYD_FM_FOUROP_USE_MAIN_INST_PROG) ? 0xFF : 0) : 0, 0);
 		break;
 
 		case MUS_NOTE_VOLUME_FADE_DN:
-			do_command(mus, chan, mus->song_counter, MUS_FX_FADE_VOLUME | ((Uint16)(vol & 0xf)), 0, mus->channel[chan].instrument != NULL ? ((mus->channel[chan].instrument->fm_flags & CYD_FM_FOUROP_USE_MAIN_INST_PROG) ? 0xFF : 0) : 0, 0);
+			do_command(mus, chan, mus->song_counter, MUS_FX_FADE_VOLUME | ((Uint16)(vol & 0xf)), 1, mus->channel[chan].instrument != NULL ? ((mus->channel[chan].instrument->fm_flags & CYD_FM_FOUROP_USE_MAIN_INST_PROG) ? 0xFF : 0) : 0, 0);
 		break;
 		
 		case MUS_NOTE_VOLUME_FADE_DN_FINE:
@@ -9217,6 +9253,25 @@ static void mus_advance_channel(MusEngine* mus, int chan)
 		cyd_set_filter_coeffs(mus->cyd, cydchn, mus->song_track[chan].filter_cutoff, mus->song_track[chan].filter_resonance);
 	}
 
+	if(mus->channel[chan].flags & MUS_CHN_DO_PANNING_SLIDE)
+	{
+		Sint32 temp = cydchn->panning;
+		temp += mus->channel[chan].panning_slide_speed;
+
+		if(temp < CYD_PAN_LEFT) temp = CYD_PAN_LEFT;
+		if(temp > CYD_PAN_RIGHT) temp = CYD_PAN_RIGHT;
+
+		cydchn->init_panning = temp;
+
+		cyd_set_panning(mus->cyd, cydchn, temp);
+	}
+
+	/*p = my_min(CYD_PAN_RIGHT, my_max(CYD_PAN_LEFT, p));
+					
+					cydchn->init_panning = p;
+
+					cyd_set_panning(mus->cyd, cydchn, p);*/
+
 	if(cydchn->fm.flags & CYD_FM_ENABLE_4OP)
 	{
 		for(int i = 0; i < CYD_FM_NUM_OPS; ++i)
@@ -10182,7 +10237,7 @@ void mus_set_song(MusEngine *mus, MusSong *song, Uint16 position)
 		mus->channel[chan].program_volume = MAX_VOLUME;
 		
 		mus->channel[chan].flags &= ~MUS_CHN_GLISSANDO; //disable glissando
-		mus->channel[chan].flags &= ~(MUS_CHN_DO_FOUROP_MASTER_VOLUME_SLIDE | MUS_CHN_DO_PORTAMENTO | MUS_CHN_DO_VOLUME_SLIDE | MUS_CHN_DO_CUTOFF_SLIDE | MUS_CHN_DO_PW_SLIDE); //disable effects with memory
+		mus->channel[chan].flags &= ~(MUS_CHN_DO_FOUROP_MASTER_VOLUME_SLIDE | MUS_CHN_DO_PORTAMENTO | MUS_CHN_DO_VOLUME_SLIDE | MUS_CHN_DO_CUTOFF_SLIDE | MUS_CHN_DO_PW_SLIDE | MUS_CHN_DO_PANNING_SLIDE); //disable effects with memory
 
 		for(int n = 0; n < MUS_MAX_NESTEDNESS; ++n)
 		{
