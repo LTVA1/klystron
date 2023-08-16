@@ -9266,12 +9266,6 @@ static void mus_advance_channel(MusEngine* mus, int chan)
 		cyd_set_panning(mus->cyd, cydchn, temp);
 	}
 
-	/*p = my_min(CYD_PAN_RIGHT, my_max(CYD_PAN_LEFT, p));
-					
-					cydchn->init_panning = p;
-
-					cyd_set_panning(mus->cyd, cydchn, p);*/
-
 	if(cydchn->fm.flags & CYD_FM_ENABLE_4OP)
 	{
 		for(int i = 0; i < CYD_FM_NUM_OPS; ++i)
