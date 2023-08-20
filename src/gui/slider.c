@@ -191,6 +191,15 @@ void slider(GfxDomain *dest_surface, const SDL_Rect *_area, const SDL_Event *eve
 			int pressed = check_event(event, &area, drag_begin, MAKEPTR(event), param, MAKEPTR(shrunk ? &motion_area : &dragarea));
 			pressed |= check_drag_event(event, &area, drag_motion, MAKEPTR(param));
 			button(dest_surface, &area, param->gfx, pressed ? BEV_SLIDER_HANDLE_ACTIVE : BEV_SLIDER_HANDLE, (param->orientation == SLIDER_HORIZONTAL) ? DECAL_GRAB_HORIZ : DECAL_GRAB_VERT);
+
+#ifndef STANDALONE_COMPILE
+			if((_param == &mused.pattern_slider_param) && mused.selection.drag_selection && pressed) //fix selection emerging when you scroll patterns using right vertical slider
+			{
+				mused.selection.drag_selection_program = false;
+				mused.jump_in_program = true;
+				mused.selection.start = mused.selection.end = -1;
+			}
+#endif
 		}
 		
 		{

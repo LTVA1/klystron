@@ -358,6 +358,8 @@ typedef struct
 	Sint32 CSM_timer_portamento_speed;
 	Sint32 cutoff_slide_speed;
 	Sint32 pw_slide_speed;
+	Sint32 wavetable_start_offset_speed;
+	Sint32 wavetable_end_offset_speed;
 	
 } MusFmOpChannel;
 
@@ -402,6 +404,10 @@ typedef struct
 	Sint32 cutoff_slide_speed;
 	Sint32 pw_slide_speed;
 	Sint32 panning_slide_speed;
+	Sint32 wavetable_start_offset_speed;
+	Sint32 wavetable_end_offset_speed;
+	Sint32 fm_wavetable_start_offset_speed;
+	Sint32 fm_wavetable_end_offset_speed;
 	
 } MusChannel;
 
@@ -582,6 +588,10 @@ enum
 	MUS_CHN_DO_PW_SLIDE = 128,
 	MUS_CHN_DO_CUTOFF_SLIDE = 256,
 	MUS_CHN_DO_PANNING_SLIDE = 512,
+	MUS_CHN_DO_WAVETABLE_START_OFFSET_SLIDE = 1024,
+	MUS_CHN_DO_WAVETABLE_END_OFFSET_SLIDE = 2048,
+	MUS_CHN_DO_FM_WAVETABLE_START_OFFSET_SLIDE = 4096,
+	MUS_CHN_DO_FM_WAVETABLE_END_OFFSET_SLIDE = 8192,
 };
 
 enum
@@ -599,6 +609,8 @@ enum
 	MUS_FM_OP_DO_CSM_TIMER_PORTAMENTO = 64,
 	MUS_FM_OP_DO_PW_SLIDE = MUS_CHN_DO_PW_SLIDE,
 	MUS_FM_OP_DO_CUTOFF_SLIDE = MUS_CHN_DO_CUTOFF_SLIDE,
+	MUS_FM_OP_DO_WAVETABLE_START_OFFSET_SLIDE = MUS_CHN_DO_WAVETABLE_START_OFFSET_SLIDE,
+	MUS_FM_OP_DO_WAVETABLE_END_OFFSET_SLIDE = MUS_CHN_DO_WAVETABLE_END_OFFSET_SLIDE,
 };
 
 enum
