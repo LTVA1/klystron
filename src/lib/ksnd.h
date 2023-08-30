@@ -34,6 +34,7 @@ typedef struct
 	char *instrument_name[255]; /**< Instrument names as an array */
 	int n_instruments;			/**< Number of instruments used by the song */
 	int n_channels;				/**< Number of channels used by the song */
+	char *song_message;			/**< Song message as a null-terminated string */
 } KSongInfo;
 
 

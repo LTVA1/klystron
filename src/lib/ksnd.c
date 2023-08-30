@@ -258,6 +258,7 @@ KLYSAPI const KSongInfo * KSND_GetSongInfo(KSong *song, KSongInfo *data)
 	data->song_title = song->song.title;
 	data->n_instruments = song->song.num_instruments;
 	data->n_channels = song->song.num_channels;
+	data->song_message = song->song.song_message;
 	
 	for (int i = 0; i < data->n_instruments; ++i)
 		data->instrument_name[i] = song->song.instrument[i].name;
