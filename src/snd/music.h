@@ -559,7 +559,7 @@ typedef struct
 	// ----
 	MusTrackStatus song_track[MUS_MAX_CHANNELS];
 	MusSong *song;
-	Uint8 song_counter;
+	Uint16 song_counter;
 	Sint32 song_position; //was Uint16 song_position;
 	CydEngine *cyd;
 	Uint8 current_tick;

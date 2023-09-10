@@ -10529,6 +10529,12 @@ int mus_advance_tick(void* udata)
 					advance_pattern_step = true;
 				}
 			}
+
+			if ((mus->song->flags & MUS_NO_REPEAT) && (mus->song_position >= mus->song->song_length - 1)) //this is solely for 1-row playback (press F7)
+			{
+				advance_pattern_step = false;
+				mus->song_counter = 0xfff;
+			}
 			
 			if(advance_pattern_step)
 			{
@@ -10684,12 +10690,17 @@ int mus_advance_tick(void* udata)
 				
 				mus->song_counter = 0;
 				
-				++mus->song_position;
-				
+				if(((mus->song->flags & MUS_NO_REPEAT) && mus->song_position < mus->song->song_length) || !(mus->song->flags & MUS_NO_REPEAT))
+				{
+					++mus->song_position;
+				}
+
 				if (mus->song_position >= mus->song->song_length)
 				{
 					if (mus->song->flags & MUS_NO_REPEAT)
+					{
 						return 0;
+					}
 
 					mus->song_position = mus->song->loop_point;
 					
@@ -10704,6 +10715,8 @@ int mus_advance_tick(void* udata)
 				}
 			}
 		}
+
+		//debug("song pos %d, pat pos %d", mus->song_position, mus->song_track[0].pattern_step);
 
 		for (int i = 0; i < mus->cyd->n_channels; ++i)
 		{
