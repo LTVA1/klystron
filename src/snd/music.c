@@ -10530,7 +10530,7 @@ int mus_advance_tick(void* udata)
 				}
 			}
 
-			if ((mus->song->flags & MUS_NO_REPEAT) && (mus->song_position >= mus->song->song_length - 1)) //this is solely for 1-row playback (press F7)
+			if ((mus->song->flags & MUS_NO_REPEAT) && (mus->song_position >= mus->song->song_length - 1) && (mus->flags & MUS_ENGINE_PLAY_ONE_STEP)) //this is solely for 1-row playback (press F7)
 			{
 				advance_pattern_step = false;
 				mus->song_counter = 0xfff;

@@ -647,6 +647,7 @@ enum
 	MUS_EXT_SYNC = 1,
 	
 	MUS_ENGINE_USE_GROOVE = 2,
+	MUS_ENGINE_PLAY_ONE_STEP = 4, //for klystrack only
 };
 
 #define MUS_NOTE_VOLUME_SET_PAN 0xa0
