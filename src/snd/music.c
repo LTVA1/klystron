@@ -8738,6 +8738,8 @@ int mus_trigger_instrument_internal(MusEngine* mus, int chan, MusInstrument *ins
 							cyd_set_wave_entry(cydchn, NULL);
 						}
 					}
+
+					note = ((Uint16)ins->note_to_sample_array[note >> 8].actual_note << 8) + ((Uint16)((int)ins->base_note - MIDDLE_C) << 8);
 				}
 				
 				else
@@ -11584,6 +11586,8 @@ int mus_load_instrument_RW(Uint8 version, RWops *ctx, MusInstrument *inst, CydWa
 				
 				VER_READ(version, 42, 0xff, &inst->note_to_sample_array[note].flags, 0);
 				VER_READ(version, 42, 0xff, &inst->note_to_sample_array[note].sample, 0);
+
+				VER_READ(version, 45, 0xff, &inst->note_to_sample_array[note].actual_note, 0);
 			}
 		}
 	}
@@ -12337,7 +12341,7 @@ void mus_get_default_instrument(MusInstrument *inst)
 	
 	for(int i = 0; i < FREQ_TAB_SIZE; i++)
 	{
-		inst->note_to_sample_array[i] = (MusInstNoteToSample) { .note = i, .sample = MUS_NOTE_TO_SAMPLE_NONE, .flags = 0 };
+		inst->note_to_sample_array[i] = (MusInstNoteToSample) { .note = i, .sample = MUS_NOTE_TO_SAMPLE_NONE, .flags = 0, .actual_note = i };
 	}
 	
 	for(int i = 0; i < CYD_FM_NUM_OPS; ++i)

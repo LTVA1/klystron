@@ -51,7 +51,7 @@ OTHER DEALINGS IN THE SOFTWARE.
 #define MUS_MAX_GROOVES 64
 #define MUS_MAX_GROOVE_LENGTH 128
 
-#define MUS_VERSION 44
+#define MUS_VERSION 45
 
 #define MUS_SONG_TITLE_LEN 255
 #define MUS_INSTRUMENT_NAME_LEN 255
@@ -158,6 +158,7 @@ typedef struct
 	Uint8 note;
 	Uint8 sample;
 	Uint8 flags;
+	Uint8 actual_note; //note at which the sample actually plays, e.g. we make sample play when C-3 note in pattern is entered but we make it play at B-4 pitch with this setting
 } MusInstNoteToSample;
 
 typedef struct
