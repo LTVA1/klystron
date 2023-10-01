@@ -129,7 +129,7 @@ typedef struct //wasn't there
 	
     Uint8 feedback;
     Uint16 cutoff;
-    Uint8 resonance; //was 0-3, now 0-15
+    Uint8 resonance; //was 0-3, then was 0-15, now 0-255
 	Uint8 slope;
     Uint8 flttype;
 	Uint8 trigger_delay; //how many ticks to wait after general trigger to trigger specific operator, can be very creative
@@ -138,6 +138,9 @@ typedef struct //wasn't there
 	
 	Uint8 CSM_timer_note;
 	Sint8 CSM_timer_finetune;
+
+	Uint8 phase_reset_timer_note;
+	Sint8 phase_reset_timer_finetune;
 	
 	Uint8 num_macros; //how many macros operator has, 1 by default, max 16
 	char program_names[MUS_MAX_MACROS_OP][MUS_MACRO_NAME_LEN + 1];
@@ -197,7 +200,7 @@ typedef struct
 	Uint8 noise_note; //wasn't there
 	
 	Uint16 cutoff;
-	Uint8 resonance; //was 0-3, now 0-15
+	Uint8 resonance; //was 0-3, then was 0-15, now 0-255
 	Uint8 flttype;
 	Uint8 ym_env_shape;
 	Sint16 buzz_offset;
@@ -262,6 +265,9 @@ typedef struct
 	Uint8 local_sample;
 	
 	MusInstNoteToSample note_to_sample_array[FREQ_TAB_SIZE];
+
+	Uint8 phase_reset_timer_note;
+	Sint8 phase_reset_timer_finetune;
 } MusInstrument;
 
 enum
@@ -299,6 +305,8 @@ enum
 	MUS_INST_BIND_LOCAL_SAMPLES_TO_NOTES = 65536 << 3,
 
 	MUS_INST_RETRIGGER_ON_SLIDE = 65536 << 4, //for FamiTracker/other trackers where note is triggered even if slide command is present compatibility
+
+	MUS_INST_LINK_PHASE_RESET_TIMER_NOTE = 65536 << 5, //if phase reset timer note changes with inst note
 };
 
 enum
@@ -353,6 +361,7 @@ typedef struct
 	Uint16 triggered_note; //note at which the op was triggered
 	
 	Uint16 CSM_timer_note;
+	Uint16 phase_reset_timer_note;
 
 	Sint32 portamento_speed; //for effects with memory
 	Sint32 volume_slide_speed;
@@ -361,6 +370,7 @@ typedef struct
 	Sint32 pw_slide_speed;
 	Sint32 wavetable_start_offset_speed;
 	Sint32 wavetable_end_offset_speed;
+	Sint32 phase_reset_timer_portamento_speed;
 	
 } MusFmOpChannel;
 
@@ -409,6 +419,9 @@ typedef struct
 	Sint32 wavetable_end_offset_speed;
 	Sint32 fm_wavetable_start_offset_speed;
 	Sint32 fm_wavetable_end_offset_speed;
+	Sint32 phase_reset_timer_portamento_speed;
+
+	Uint16 phase_reset_timer_note;
 	
 } MusChannel;
 
@@ -593,6 +606,7 @@ enum
 	MUS_CHN_DO_WAVETABLE_END_OFFSET_SLIDE = 2048,
 	MUS_CHN_DO_FM_WAVETABLE_START_OFFSET_SLIDE = 4096,
 	MUS_CHN_DO_FM_WAVETABLE_END_OFFSET_SLIDE = 8192,
+	MUS_CHN_DO_PHASE_RESET_TIMER_PORTAMENTO = 16384,
 };
 
 enum
@@ -612,6 +626,7 @@ enum
 	MUS_FM_OP_DO_CUTOFF_SLIDE = MUS_CHN_DO_CUTOFF_SLIDE,
 	MUS_FM_OP_DO_WAVETABLE_START_OFFSET_SLIDE = MUS_CHN_DO_WAVETABLE_START_OFFSET_SLIDE,
 	MUS_FM_OP_DO_WAVETABLE_END_OFFSET_SLIDE = MUS_CHN_DO_WAVETABLE_END_OFFSET_SLIDE,
+	MUS_FM_OP_DO_PHASE_RESET_TIMER_PORTAMENTO = MUS_CHN_DO_PHASE_RESET_TIMER_PORTAMENTO,
 };
 
 enum
@@ -679,6 +694,11 @@ enum
 	MUS_FX_SET_CSM_TIMER_FINETUNE = 0xf300,
 	MUS_FX_CSM_TIMER_PORTA_UP = 0xf100,
 	MUS_FX_CSM_TIMER_PORTA_DN = 0xf200,
+
+	MUS_FX_SET_PHASE_RESET_TIMER_NOTE = 0xf400,
+	MUS_FX_SET_PHASE_RESET_TIMER_FINETUNE = 0xf700,
+	MUS_FX_PHASE_RESET_TIMER_PORTA_UP = 0xf500,
+	MUS_FX_PHASE_RESET_TIMER_PORTA_DN = 0xf600,
 	
 	/*MUS_FX_SET_FREQUENCY_LOWER_BYTE = 0xf400,
 	MUS_FX_SET_FREQUENCY_MIDDLE_BYTE = 0xf500,

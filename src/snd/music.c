@@ -1371,6 +1371,312 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 			}
 		}
 		break;
+
+		case MUS_FX_PHASE_RESET_TIMER_PORTA_UP:
+		{
+			Uint32 flags = MUS_USE_OLD_EFFECTS_BEHAVIOUR;
+
+			if(mus->song)
+			{
+				flags = mus->song->flags;
+			}
+
+			if((flags & MUS_USE_OLD_EFFECTS_BEHAVIOUR) || from_program) //from program we have old behaviour
+			{
+				if(ops_index == 0)
+				{
+					if(cydchn->flags & CYD_CHN_ENABLE_PHASE_RESET_TIMER)
+					{
+						if((Uint32)chn->phase_reset_timer_note + (inst & 0xff) <= (FREQ_TAB_SIZE << 8))
+						{
+							chn->phase_reset_timer_note += (inst & 0xff);
+						}
+						
+						else
+						{
+							chn->phase_reset_timer_note = (FREQ_TAB_SIZE << 8);
+						}
+					}
+				}
+
+				if(ops_index == 0xFF)
+				{
+					if(cydchn->flags & CYD_CHN_ENABLE_PHASE_RESET_TIMER)
+					{
+						if((Uint32)chn->phase_reset_timer_note + (inst & 0xff) <= (FREQ_TAB_SIZE << 8))
+						{
+							chn->phase_reset_timer_note += (inst & 0xff);
+						}
+						
+						else
+						{
+							chn->phase_reset_timer_note = (FREQ_TAB_SIZE << 8);
+						}
+					}
+
+					for(int i = 0; i < CYD_FM_NUM_OPS; ++i)
+					{
+						if(cydchn->fm.ops[i].flags & CYD_FM_OP_ENABLE_PHASE_RESET_TIMER)
+						{
+							if((Uint32)chn->ops[i].phase_reset_timer_note + (inst & 0xff) <= (FREQ_TAB_SIZE << 8))
+							{
+								chn->ops[i].phase_reset_timer_note += (inst & 0xff);
+							}
+							
+							else
+							{
+								chn->ops[i].phase_reset_timer_note = (FREQ_TAB_SIZE << 8);
+							}
+						}
+					}
+				}
+				
+				else
+				{
+					if(cydchn->fm.ops[ops_index - 1].flags & CYD_FM_OP_ENABLE_PHASE_RESET_TIMER)
+					{
+						if((Uint32)chn->ops[ops_index - 1].phase_reset_timer_note + (inst & 0xff) <= (FREQ_TAB_SIZE << 8))
+						{
+							chn->ops[ops_index - 1].phase_reset_timer_note += (inst & 0xff);
+						}
+						
+						else
+						{
+							chn->ops[ops_index - 1].phase_reset_timer_note = (FREQ_TAB_SIZE << 8);
+						}
+					}
+				}
+			}
+
+			else
+			{
+				if(ops_index == 0)
+				{
+					if(cydchn->flags & CYD_CHN_ENABLE_PHASE_RESET_TIMER)
+					{
+						if(inst & 0xff)
+						{
+							chn->flags |= MUS_CHN_DO_PHASE_RESET_TIMER_PORTAMENTO;
+						}
+
+						else
+						{
+							chn->flags &= ~(MUS_CHN_DO_PHASE_RESET_TIMER_PORTAMENTO);
+						}
+
+						chn->phase_reset_timer_portamento_speed = (inst & 0xff);
+					}
+				}
+
+				if(ops_index == 0xFF)
+				{
+					if(cydchn->flags & CYD_CHN_ENABLE_PHASE_RESET_TIMER)
+					{
+						if(inst & 0xff)
+						{
+							chn->flags |= MUS_CHN_DO_PHASE_RESET_TIMER_PORTAMENTO;
+						}
+
+						else
+						{
+							chn->flags &= ~(MUS_CHN_DO_PHASE_RESET_TIMER_PORTAMENTO);
+						}
+
+						chn->phase_reset_timer_portamento_speed = (inst & 0xff);
+					}
+
+					for(int i = 0; i < CYD_FM_NUM_OPS; ++i)
+					{
+						if(cydchn->fm.ops[i].flags & CYD_FM_OP_ENABLE_PHASE_RESET_TIMER)
+						{
+							if(inst & 0xff)
+							{
+								chn->ops[i].flags |= MUS_FM_OP_DO_PHASE_RESET_TIMER_PORTAMENTO;
+							}
+
+							else
+							{
+								chn->ops[i].flags &= ~(MUS_FM_OP_DO_PHASE_RESET_TIMER_PORTAMENTO);
+							}
+
+							chn->ops[i].phase_reset_timer_portamento_speed = (inst & 0xff);
+						}
+					}
+				}
+				
+				else
+				{
+					if(cydchn->fm.ops[ops_index - 1].flags & CYD_FM_OP_ENABLE_PHASE_RESET_TIMER)
+					{
+						if(inst & 0xff)
+						{
+							chn->ops[ops_index - 1].flags |= MUS_FM_OP_DO_PHASE_RESET_TIMER_PORTAMENTO;
+						}
+
+						else
+						{
+							chn->ops[ops_index - 1].flags &= ~(MUS_FM_OP_DO_PHASE_RESET_TIMER_PORTAMENTO);
+						}
+
+						chn->ops[ops_index - 1].phase_reset_timer_portamento_speed = (inst & 0xff);
+					}
+				}
+			}
+		}
+		break;
+		
+		case MUS_FX_PHASE_RESET_TIMER_PORTA_DN:
+		{
+			Uint32 flags = MUS_USE_OLD_EFFECTS_BEHAVIOUR;
+
+			if(mus->song)
+			{
+				flags = mus->song->flags;
+			}
+
+			if((flags & MUS_USE_OLD_EFFECTS_BEHAVIOUR) || from_program) //from program we have old behaviour
+			{
+				if(ops_index == 0)
+				{
+					if(cydchn->flags & CYD_CHN_ENABLE_PHASE_RESET_TIMER)
+					{
+						if((Sint32)chn->phase_reset_timer_note - (inst & 0xff) > 0)
+						{
+							chn->phase_reset_timer_note -= (inst & 0xff);
+						}
+						
+						else
+						{
+							chn->phase_reset_timer_note = 0;
+						}
+					}
+				}
+
+				if(ops_index == 0xFF)
+				{
+					if(cydchn->flags & CYD_CHN_ENABLE_PHASE_RESET_TIMER)
+					{
+						if((Sint32)chn->phase_reset_timer_note - (inst & 0xff) > 0)
+						{
+							chn->phase_reset_timer_note -= (inst & 0xff);
+						}
+						
+						else
+						{
+							chn->phase_reset_timer_note = 0;
+						}
+					}
+
+					for(int i = 0; i < CYD_FM_NUM_OPS; ++i)
+					{
+						if(cydchn->fm.ops[i].flags & CYD_FM_OP_ENABLE_PHASE_RESET_TIMER)
+						{
+							if((Sint32)chn->ops[i].CSM_timer_note - (inst & 0xff) > 0)
+							{
+								chn->ops[i].phase_reset_timer_note -= (inst & 0xff);
+							}
+							
+							else
+							{
+								chn->ops[i].phase_reset_timer_note = 0;
+							}
+						}
+					}
+				}
+				
+				else
+				{
+					if(cydchn->fm.ops[ops_index - 1].flags & CYD_FM_OP_ENABLE_PHASE_RESET_TIMER)
+					{
+						if((Sint32)chn->ops[ops_index - 1].phase_reset_timer_note - (inst & 0xff) > 0)
+						{
+							chn->ops[ops_index - 1].phase_reset_timer_note -= (inst & 0xff);
+						}
+						
+						else
+						{
+							chn->ops[ops_index - 1].phase_reset_timer_note = 0;
+						}
+					}
+				}
+			}
+
+			else
+			{
+				if(ops_index == 0)
+				{
+					if(cydchn->flags & CYD_CHN_ENABLE_PHASE_RESET_TIMER)
+					{
+						if(inst & 0xff)
+						{
+							chn->flags |= MUS_CHN_DO_PHASE_RESET_TIMER_PORTAMENTO;
+						}
+
+						else
+						{
+							chn->flags &= ~(MUS_CHN_DO_PHASE_RESET_TIMER_PORTAMENTO);
+						}
+
+						chn->phase_reset_timer_portamento_speed = -1 * (inst & 0xff);
+					}
+				}
+
+				if(ops_index == 0xFF)
+				{
+					if(cydchn->flags & CYD_CHN_ENABLE_PHASE_RESET_TIMER)
+					{
+						if(inst & 0xff)
+						{
+							chn->flags |= MUS_CHN_DO_PHASE_RESET_TIMER_PORTAMENTO;
+						}
+
+						else
+						{
+							chn->flags &= ~(MUS_CHN_DO_PHASE_RESET_TIMER_PORTAMENTO);
+						}
+
+						chn->phase_reset_timer_portamento_speed = -1 * (inst & 0xff);
+					}
+
+					for(int i = 0; i < CYD_FM_NUM_OPS; ++i)
+					{
+						if(cydchn->fm.ops[i].flags & CYD_FM_OP_ENABLE_PHASE_RESET_TIMER)
+						{
+							if(inst & 0xff)
+							{
+								chn->ops[i].flags |= MUS_FM_OP_DO_PHASE_RESET_TIMER_PORTAMENTO;
+							}
+
+							else
+							{
+								chn->ops[i].flags &= ~(MUS_FM_OP_DO_PHASE_RESET_TIMER_PORTAMENTO);
+							}
+
+							chn->ops[i].phase_reset_timer_portamento_speed = -1 * (inst & 0xff);
+						}
+					}
+				}
+				
+				else
+				{
+					if(cydchn->fm.ops[ops_index - 1].flags & CYD_FM_OP_ENABLE_PHASE_RESET_TIMER)
+					{
+						if(inst & 0xff)
+						{
+							chn->ops[ops_index - 1].flags |= MUS_FM_OP_DO_PHASE_RESET_TIMER_PORTAMENTO;
+						}
+
+						else
+						{
+							chn->ops[ops_index - 1].flags &= ~(MUS_FM_OP_DO_PHASE_RESET_TIMER_PORTAMENTO);
+						}
+
+						chn->ops[ops_index - 1].phase_reset_timer_portamento_speed = -1 * (inst & 0xff);
+					}
+				}
+			}
+		}
+		break;
 		
 		case MUS_FX_FM_TRIGGER_OP1_RELEASE:
 		case MUS_FX_FM_TRIGGER_OP2_RELEASE:
@@ -6038,6 +6344,56 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 					}
 				}
 				break;
+
+				case MUS_FX_SET_PHASE_RESET_TIMER_NOTE:
+				{
+					if(ops_index == 0xFF || ops_index == 0)
+					{
+						if(ops_index == 0)
+						{
+							chn->phase_reset_timer_note = (chn->phase_reset_timer_note & 0x00ff) | ((inst & 0xff) << 8);
+						}
+
+						if(ops_index == 0xFF)
+						{
+							for(int i = 0; i < CYD_FM_NUM_OPS; ++i)
+							{
+								chn->ops[i].phase_reset_timer_note = (chn->ops[i].phase_reset_timer_note & 0x00ff) | ((inst & 0xff) << 8);
+							}
+						}
+					}
+					
+					else
+					{
+						chn->ops[ops_index - 1].phase_reset_timer_note = (chn->ops[ops_index - 1].phase_reset_timer_note & 0x00ff) | ((inst & 0xff) << 8);
+					}
+				}
+				break;
+				
+				case MUS_FX_SET_PHASE_RESET_TIMER_FINETUNE:
+				{
+					if(ops_index == 0)
+					{
+						chn->phase_reset_timer_note = (chn->phase_reset_timer_note & 0xff00) | (inst & 0xff);
+					}
+					
+					if(ops_index == 0xFF || ops_index == 0)
+					{
+						if(ops_index == 0xFF)
+						{
+							for(int i = 0; i < CYD_FM_NUM_OPS; ++i)
+							{
+								chn->ops[i].phase_reset_timer_note = (chn->ops[i].phase_reset_timer_note & 0xff00) | (inst & 0xff);
+							}
+						}
+					}
+					
+					else
+					{
+						chn->ops[ops_index - 1].phase_reset_timer_note = (chn->ops[ops_index - 1].phase_reset_timer_note & 0x00ff) | (inst & 0xff);
+					}
+				}
+				break;
 				
 				case MUS_FX_FM_SET_4OP_ALGORITHM:
 				{
@@ -8512,6 +8868,28 @@ void mus_trigger_fm_op_internal(CydFm* fm, MusInstrument* ins, CydChannel* cydch
 	{
 		fm->ops[i].csm.frequency = 0;
 	}
+
+	if(ins->ops[i].cydflags & CYD_FM_OP_ENABLE_PHASE_RESET_TIMER)
+	{
+		chn->ops[i].phase_reset_timer_note = ((Uint16)ins->ops[i].phase_reset_timer_note << 8) + ins->ops[i].phase_reset_timer_finetune;
+		Uint32 frequency = get_freq(chn->ops[i].phase_reset_timer_note);
+		
+		fm->ops[i].phase_reset.frequency = (Uint64)(ACC_LENGTH) / (Uint64)1024 * (Uint64)(frequency) / (Uint64)mus->cyd->sample_rate;
+	}
+	
+	if((ins->ops[i].flags & MUS_FM_OP_LINK_PHASE_RESET_TIMER_NOTE) && (ins->ops[i].cydflags & CYD_FM_OP_ENABLE_PHASE_RESET_TIMER))
+	{
+		chn->ops[i].phase_reset_timer_note = ((ins->ops[i].phase_reset_timer_note << 8) + ins->ops[i].phase_reset_timer_finetune) + chn->ops[i].note - ((cydchn->fm.flags & CYD_FM_ENABLE_3CH_EXP_MODE) ? ((ins->ops[i].base_note << 8) + ins->ops[i].finetune) : ((ins->base_note << 8) + ins->finetune));
+		
+		Uint32 frequency = get_freq(chn->ops[i].phase_reset_timer_note);
+		
+		fm->ops[i].phase_reset.frequency = (Uint64)(ACC_LENGTH) / (Uint64)1024 * (Uint64)(frequency) / (Uint64)mus->cyd->sample_rate;
+	}
+	
+	if(!(ins->ops[i].cydflags & CYD_FM_OP_ENABLE_PHASE_RESET_TIMER))
+	{
+		fm->ops[i].phase_reset.frequency = 0;
+	}
 	
 	for (int s = 0; s < CYD_SUB_OSCS; ++s)
 	{
@@ -8934,6 +9312,28 @@ int mus_trigger_instrument_internal(MusEngine* mus, int chan, MusInstrument *ins
 	}
 
 #endif
+
+	if(ins->cydflags & CYD_CHN_ENABLE_PHASE_RESET_TIMER)
+	{
+		chn->phase_reset_timer_note = ((Uint16)ins->phase_reset_timer_note << 8) + ins->phase_reset_timer_finetune;
+		Uint32 frequency = get_freq(chn->phase_reset_timer_note);
+		
+		cydchn->phase_reset.frequency = (Uint64)(ACC_LENGTH) / (Uint64)1024 * (Uint64)(frequency) / (Uint64)mus->cyd->sample_rate;
+	}
+	
+	if((ins->flags & MUS_INST_LINK_PHASE_RESET_TIMER_NOTE) && (ins->cydflags & CYD_CHN_ENABLE_PHASE_RESET_TIMER))
+	{
+		chn->phase_reset_timer_note = (((Uint16)ins->phase_reset_timer_note << 8) + ins->phase_reset_timer_finetune) + chn->note - ((ins->base_note << 8) + ins->finetune);
+		
+		Uint32 frequency = get_freq(chn->phase_reset_timer_note);
+		
+		cydchn->phase_reset.frequency = (Uint64)(ACC_LENGTH) / (Uint64)1024 * (Uint64)(frequency) / (Uint64)mus->cyd->sample_rate;
+	}
+	
+	if(!(ins->cydflags & CYD_CHN_ENABLE_PHASE_RESET_TIMER))
+	{
+		cydchn->phase_reset.frequency = 0;
+	}
 
 #ifndef CYD_DISABLE_FM
 	cydchn->fm.flags = 0;
@@ -9606,6 +10006,17 @@ static void mus_advance_channel(MusEngine* mus, int chan)
 		mus_set_slide(mus, chan, mus->channel[chan].note);
 	}
 
+	if(mus->channel[chan].flags & MUS_CHN_DO_PHASE_RESET_TIMER_PORTAMENTO)
+	{
+		Sint32 temp_note = mus->channel[chan].phase_reset_timer_note;
+		temp_note += mus->channel[chan].phase_reset_timer_portamento_speed;
+
+		if(temp_note < 0) temp_note = 0;
+		if(temp_note > 0xffff) temp_note = 0xffff;
+
+		mus->channel[chan].phase_reset_timer_note = temp_note;
+	}
+
 	if(mus->channel[chan].flags & MUS_CHN_DO_VOLUME_SLIDE)
 	{
 		Sint32 temp = mus->song_track[chan].volume;
@@ -9817,13 +10228,24 @@ static void mus_advance_channel(MusEngine* mus, int chan)
 			if(mus->channel[chan].ops[i].flags & MUS_FM_OP_DO_PORTAMENTO)
 			{
 				Sint32 temp_note = mus->channel[chan].ops[i].note;
-				temp_note += mus->channel[chan].ops[i].portamento_speed;
+				temp_note += mus->channel[chan].ops[i].phase_reset_timer_portamento_speed;
 
 				if(temp_note < 0) temp_note = 0;
 				if(temp_note > 0xffff) temp_note = 0xffff;
 
 				mus->channel[chan].ops[i].note = temp_note;
 				mus->channel[chan].ops[i].target_note = mus->channel[chan].ops[i].note;
+			}
+
+			if(mus->channel[chan].ops[i].flags & MUS_FM_OP_DO_PHASE_RESET_TIMER_PORTAMENTO)
+			{
+				Sint32 temp_note = mus->channel[chan].ops[i].phase_reset_timer_note;
+				temp_note += mus->channel[chan].ops[i].portamento_speed;
+
+				if(temp_note < 0) temp_note = 0;
+				if(temp_note > 0xffff) temp_note = 0xffff;
+
+				mus->channel[chan].ops[i].phase_reset_timer_note = temp_note;
 			}
 
 			if(mus->channel[chan].ops[i].flags & MUS_FM_OP_DO_CSM_TIMER_PORTAMENTO)
@@ -9994,6 +10416,13 @@ static void mus_advance_channel(MusEngine* mus, int chan)
 		cydchn->fm.fm_tremolo = fm_trem;
 		cydchn->fm.fm_tremolo_interpolation_counter = 0;	
 	}
+
+	if(cydchn->flags & CYD_CHN_ENABLE_PHASE_RESET_TIMER)
+	{
+		Uint32 frequency = get_freq(chn->phase_reset_timer_note);
+
+		cydchn->phase_reset.frequency = (Uint64)(ACC_LENGTH) / (Uint64)1024 * (Uint64)(frequency) / (Uint64)mus->cyd->sample_rate;
+	}
 	
 	if(cydchn->fm.flags & CYD_FM_ENABLE_4OP)
 	{
@@ -10021,6 +10450,13 @@ static void mus_advance_channel(MusEngine* mus, int chan)
 				Uint32 frequency = get_freq(chn->ops[i].CSM_timer_note);
 
 				cydchn->fm.ops[i].csm.frequency = (Uint64)(ACC_LENGTH) / (Uint64)1024 * (Uint64)(frequency) / (Uint64)mus->cyd->sample_rate;
+			}
+
+			if(cydchn->fm.ops[i].flags & CYD_FM_OP_ENABLE_PHASE_RESET_TIMER)
+			{
+				Uint32 frequency = get_freq(chn->ops[i].phase_reset_timer_note);
+
+				cydchn->fm.ops[i].phase_reset.frequency = (Uint64)(ACC_LENGTH) / (Uint64)1024 * (Uint64)(frequency) / (Uint64)mus->cyd->sample_rate;
 			}
 			
 			if(track_status->ops_status[i].tremolo_delay == 0)
@@ -10870,7 +11306,8 @@ void mus_set_song(MusEngine *mus, MusSong *song, Uint16 position)
 		mus->channel[chan].flags &= ~MUS_CHN_GLISSANDO; //disable glissando
 		mus->channel[chan].flags &= ~(MUS_CHN_DO_FOUROP_MASTER_VOLUME_SLIDE | MUS_CHN_DO_PORTAMENTO | MUS_CHN_DO_VOLUME_SLIDE | 
 		MUS_CHN_DO_CUTOFF_SLIDE | MUS_CHN_DO_PW_SLIDE | MUS_CHN_DO_PANNING_SLIDE | MUS_CHN_DO_WAVETABLE_START_OFFSET_SLIDE |
-		MUS_CHN_DO_WAVETABLE_END_OFFSET_SLIDE | MUS_CHN_DO_FM_WAVETABLE_START_OFFSET_SLIDE | MUS_CHN_DO_FM_WAVETABLE_END_OFFSET_SLIDE); //disable effects with memory
+		MUS_CHN_DO_WAVETABLE_END_OFFSET_SLIDE | MUS_CHN_DO_FM_WAVETABLE_START_OFFSET_SLIDE | MUS_CHN_DO_FM_WAVETABLE_END_OFFSET_SLIDE |
+		MUS_CHN_DO_PHASE_RESET_TIMER_PORTAMENTO); //disable effects with memory
 
 		for(int n = 0; n < MUS_MAX_NESTEDNESS; ++n)
 		{
@@ -10902,7 +11339,8 @@ void mus_set_song(MusEngine *mus, MusSong *song, Uint16 position)
 			mus->channel[chan].ops[op].flags &= ~MUS_FM_OP_GLISSANDO; //disable glissando
 
 			mus->channel[chan].ops[op].flags &= ~(MUS_FM_OP_DO_PORTAMENTO | MUS_FM_OP_DO_VOLUME_SLIDE | MUS_FM_OP_DO_CUTOFF_SLIDE | 
-			MUS_FM_OP_DO_PW_SLIDE | MUS_FM_OP_DO_WAVETABLE_START_OFFSET_SLIDE | MUS_FM_OP_DO_WAVETABLE_END_OFFSET_SLIDE); //disable effects with memory
+			MUS_FM_OP_DO_PW_SLIDE | MUS_FM_OP_DO_WAVETABLE_START_OFFSET_SLIDE | MUS_FM_OP_DO_WAVETABLE_END_OFFSET_SLIDE |
+			MUS_FM_OP_DO_PHASE_RESET_TIMER_PORTAMENTO); //disable effects with memory
 			
 			for(int n = 0; n < MUS_MAX_NESTEDNESS; ++n)
 			{
@@ -12322,6 +12760,8 @@ void mus_get_default_instrument(MusInstrument *inst)
 	
 	inst->local_samples[0] = (CydWavetableEntry*)calloc(1, sizeof(CydWavetableEntry));
 	inst->local_sample_names[0] = (char*)calloc(1, sizeof(char) * MUS_WAVETABLE_NAME_LEN);
+
+	inst->phase_reset_timer_note = MIDDLE_C;
 	
 	cyd_wave_entry_init(inst->local_samples[0], NULL, 0, 0, 0, 0, 0);
 	
@@ -12384,6 +12824,7 @@ void mus_get_default_instrument(MusInstrument *inst)
 		inst->ops[i].vibrato_delay = 0;
 		
 		inst->ops[i].CSM_timer_note = MIDDLE_C;
+		inst->ops[i].phase_reset_timer_note = MIDDLE_C;
 		inst->ops[i].CSM_timer_finetune = 0;
 		
 		inst->ops[i].program[0] = (Uint16*)calloc(1, MUS_PROG_LEN * sizeof(Uint16));
@@ -12433,6 +12874,8 @@ void mus_get_empty_instrument(MusInstrument *inst)
 	
 	inst->local_samples[0] = (CydWavetableEntry*)calloc(1, sizeof(CydWavetableEntry));
 	inst->local_sample_names[0] = (char*)calloc(1, sizeof(char) * MUS_WAVETABLE_NAME_LEN);
+
+	inst->phase_reset_timer_note = MIDDLE_C;
 	
 	cyd_wave_entry_init(inst->local_samples[0], NULL, 0, 0, 0, 0, 0);
 	
@@ -12493,6 +12936,7 @@ void mus_get_empty_instrument(MusInstrument *inst)
 		inst->ops[i].noise_note = MIDDLE_C;
 		
 		inst->ops[i].CSM_timer_note = MIDDLE_C;
+		inst->ops[i].phase_reset_timer_note = MIDDLE_C;
 
 		for (int p = 0; p < MUS_PROG_LEN; ++p)
 		{

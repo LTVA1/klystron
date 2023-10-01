@@ -94,6 +94,8 @@ typedef struct
 	Sint8 finetune;
 	
 	Uint8 sine_acc_shift; //0-F
+
+	Cyd_phase_reset_timer phase_reset; //kinda like hard sync but with internal timer instead of source sync channel; stolen from TSU
 	
 	//Uint64 counter; //for general debug purposes
 } CydChannel;
@@ -133,6 +135,7 @@ enum
 	CYD_CHN_ENABLE_ENVELOPE_KEY_SCALING = 131072,
 	
 	CYD_CHN_ENABLE_SINE = 262144,
+	CYD_CHN_ENABLE_PHASE_RESET_TIMER = 524288,
 	//CYD_CHN_ENABLE_WAVE_MORPH = 262144,
 	//CYD_CHN_LOOP_WAVE_MORPH = 524288,
 	//CYD_CHN_PING_PONG_WAVE_MORPH = 1048576,
@@ -206,6 +209,8 @@ enum
 	
 	CYD_FM_OP_ENABLE_SINE = CYD_CHN_ENABLE_SINE, //262144
 	CYD_FM_OP_ENABLE_CSM_TIMER = 524288,
+
+	CYD_FM_OP_ENABLE_PHASE_RESET_TIMER = 1048576,
 	
 	CYD_FM_OP_ENABLE_EXPONENTIAL_VOLUME = CYD_CHN_ENABLE_EXPONENTIAL_VOLUME, //16777216
 	CYD_FM_OP_ENABLE_EXPONENTIAL_ATTACK = CYD_CHN_ENABLE_EXPONENTIAL_ATTACK, //33554432
@@ -231,6 +236,7 @@ enum
 	MUS_FM_OP_SEVERAL_MACROS = 4096, //if operator has more than 1 macro
 	MUS_FM_OP_LINK_CSM_TIMER_NOTE = 8192, //if CSM timer note changes with FM operator note
 	MUS_FM_OP_USE_VOLUME_ENVELOPE = 16384,
+	MUS_FM_OP_LINK_PHASE_RESET_TIMER_NOTE = 32768, //if phase reset timer note changes with FM operator note
 };
 
 enum {

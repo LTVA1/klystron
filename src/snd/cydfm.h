@@ -23,6 +23,13 @@ typedef struct //wasn't there
 
 typedef struct //wasn't there
 {
+	Uint32 accumulator;
+	Uint32 frequency;
+
+} Cyd_phase_reset_timer;
+
+typedef struct //wasn't there
+{
 	Uint8 harmonic; //freq mult
     
     Uint32 flags;
@@ -84,6 +91,7 @@ typedef struct //wasn't there
 	Sint32 trigger_delay;
 	
 	Cyd_CSM_timer csm; //each time acc overflows (each cycle) oscillator phase is rest, and envelope is put into release state starting from max sustain level (so ADSR doesn't give you volume control, only volume param does)
+	Cyd_phase_reset_timer phase_reset; //kinda like hard sync but with internal timer instead of source sync channel; stolen from TSU
 	
 	Uint8 sine_acc_shift; //0-F
 	

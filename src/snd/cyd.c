@@ -1418,6 +1418,23 @@ static Sint32 cyd_output_fm_ops(CydEngine *cyd, CydChannel *chn, int chan_num, /
 			
 			chn->fm.ops[i].csm.accumulator &= ACC_LENGTH - 1;
 		}
+
+		if((chn->fm.ops[i].flags & CYD_FM_OP_ENABLE_PHASE_RESET_TIMER) && chn->fm.ops[i].phase_reset.frequency != 0)
+		{
+			chn->fm.ops[i].phase_reset.accumulator += chn->fm.ops[i].phase_reset.frequency;
+			
+			if(chn->fm.ops[i].phase_reset.accumulator & ACC_LENGTH) //on every cycle:
+			{
+				for (int sub = 0; sub < CYD_SUB_OSCS; ++sub) //reset all accumulators
+				{
+					chn->fm.ops[i].subosc[sub].accumulator = 0;
+					chn->fm.ops[i].subosc[sub].noise_accumulator = 0;
+					chn->fm.ops[i].subosc[sub].wave.acc = 0;
+				}
+			}
+			
+			chn->fm.ops[i].phase_reset.accumulator &= ACC_LENGTH - 1;
+		}
 		
 		Uint64 acc, noise_acc, wave_acc[CYD_SUB_OSCS];
 		UNUSED(noise_acc);
@@ -2084,6 +2101,23 @@ static Sint32 cyd_output_channel(CydEngine *cyd, CydChannel *chn)
 #ifndef CYD_DISABLE_FM
 		cydfm_cycle_oversample(cyd, &chn->fm);
 #endif
+	}
+
+	if((chn->flags & CYD_CHN_ENABLE_PHASE_RESET_TIMER) && chn->phase_reset.frequency != 0)
+	{
+		chn->phase_reset.accumulator += chn->phase_reset.frequency;
+		
+		if(chn->phase_reset.accumulator & ACC_LENGTH) //on every cycle:
+		{
+			for (int sub = 0; sub < CYD_SUB_OSCS; ++sub) //reset all accumulators
+			{
+				chn->subosc[sub].accumulator = 0;
+				chn->subosc[sub].noise_accumulator = 0;
+				chn->subosc[sub].wave.acc = 0;
+			}
+		}
+		
+		chn->phase_reset.accumulator &= ACC_LENGTH - 1;
 	}
 	
 	return (ovr >> cyd->oversample);
