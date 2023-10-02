@@ -12029,6 +12029,12 @@ int mus_load_instrument_RW(Uint8 version, RWops *ctx, MusInstrument *inst, CydWa
 			}
 		}
 	}
+
+	if(inst->cydflags & CYD_CHN_ENABLE_PHASE_RESET_TIMER)
+	{
+		VER_READ(version, 45, 0xff, &inst->phase_reset_timer_note, 0);
+		VER_READ(version, 45, 0xff, &inst->phase_reset_timer_finetune, 0);
+	}
 	
 	if(((inst->cydflags & CYD_CHN_ENABLE_FM) && version >= 31) || version < 31)
 	{
@@ -12362,6 +12368,12 @@ int mus_load_instrument_RW(Uint8 version, RWops *ctx, MusInstrument *inst, CydWa
 				{
 					VER_READ(version, 37, 0xff, &inst->ops[i].CSM_timer_note, 0);
 					VER_READ(version, 37, 0xff, &inst->ops[i].CSM_timer_finetune, 0);
+				}
+
+				if(inst->ops[i].cydflags & CYD_FM_OP_ENABLE_PHASE_RESET_TIMER)
+				{
+					VER_READ(version, 45, 0xff, &inst->ops[i].phase_reset_timer_note, 0);
+					VER_READ(version, 45, 0xff, &inst->ops[i].phase_reset_timer_finetune, 0);
 				}
 				
 				if(inst->ops[i].cydflags & CYD_FM_OP_ENABLE_FILTER)
