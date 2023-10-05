@@ -33,8 +33,8 @@ OTHER DEALINGS IN THE SOFTWARE.
 
 #ifndef STANDALONE_COMPILE
 
-#include <../../../src/mused.h> //wasn't there
-#include <../../../src/view.h> //wasn't there
+#include "../../../src/mused.h" //wasn't there
+#include "../../../src/view.h" //wasn't there
 
 #endif
 
