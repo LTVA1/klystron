@@ -9765,7 +9765,7 @@ static void mus_advance_channel(MusEngine* mus, int chan)
 		
 		for(int i = 0; i < CYD_FM_NUM_OPS; ++i)
 		{
-			if(mus->channel[chan].ops[i].program_flags)
+			if(mus->channel[chan].ops[i].program_flags && !(mus->cyd->channel[chan].fm.flags & CYD_FM_FOUROP_USE_MAIN_INST_PROG))
 			{
 				for(int pr = 0; pr < mus->channel[chan].instrument->ops[i].num_macros; ++pr)
 				{
