@@ -787,6 +787,185 @@ static void do_command(MusEngine *mus, int chan, int tick, Uint16 inst, int from
 			}
 		}
 		break;
+
+		case MUS_FX_EXT_TOGGLE_PHASE_RESET_TIMER:
+		{
+			switch(ops_index)
+			{
+				case 0:
+				case 0xFF:
+				{
+					if ((tick == (inst & 0xf) && (inst & 0xf)) || (mus->channel[chan].prog_period[prog_number] <= 1 && (inst & 0xf) == 1))
+					{
+						cydchn->flags |= CYD_CHN_ENABLE_PHASE_RESET_TIMER;
+					}
+					
+					if(!(inst & 0xf))
+					{
+						cydchn->flags &= ~(CYD_CHN_ENABLE_PHASE_RESET_TIMER);
+					}
+					
+					if(ops_index == 0xFF)
+					{
+						for(int i = 0; i < CYD_FM_NUM_OPS; ++i)
+						{
+							if ((tick == (inst & 0xf) && (inst & 0xf)) || (mus->channel[chan].ops[i].prog_period[prog_number] <= 1 && (inst & 0xf) == 1))
+							{
+								cydchn->fm.ops[i].flags |= CYD_FM_OP_ENABLE_PHASE_RESET_TIMER;
+							}
+							
+							if(!(inst & 0xf))
+							{
+								cydchn->fm.ops[i].flags &= ~(CYD_FM_OP_ENABLE_PHASE_RESET_TIMER);
+							}
+						}
+					}
+					
+					break;
+				}
+				
+				default:
+				{
+					if ((tick == (inst & 0xf) && (inst & 0xf)) || (mus->channel[chan].ops[ops_index - 1].prog_period[prog_number] <= 1 && (inst & 0xf) == 1))
+					{
+						cydchn->fm.ops[ops_index - 1].flags |= CYD_FM_OP_ENABLE_PHASE_RESET_TIMER;
+					}
+					
+					if(!(inst & 0xf))
+					{
+						cydchn->fm.ops[ops_index - 1].flags &= ~(CYD_FM_OP_ENABLE_PHASE_RESET_TIMER);
+					}
+					
+					break;
+				}
+			}
+		}
+		break;
+
+		case MUS_FX_EXT_TOGGLE_RING_MOD:
+		{
+			switch(ops_index)
+			{
+				case 0:
+				case 0xFF:
+				{
+					if ((tick == (inst & 0xf) && (inst & 0xf)) || (mus->channel[chan].prog_period[prog_number] <= 1 && (inst & 0xf) == 1))
+					{
+						cydchn->flags |= CYD_CHN_ENABLE_RING_MODULATION;
+					}
+					
+					if(!(inst & 0xf))
+					{
+						cydchn->flags &= ~(CYD_CHN_ENABLE_RING_MODULATION);
+					}
+					
+					if(ops_index == 0xFF)
+					{
+						for(int i = 0; i < CYD_FM_NUM_OPS; ++i)
+						{
+							if ((tick == (inst & 0xf) && (inst & 0xf)) || (mus->channel[chan].ops[i].prog_period[prog_number] <= 1 && (inst & 0xf) == 1))
+							{
+								cydchn->fm.ops[i].flags |= CYD_FM_OP_ENABLE_RING_MODULATION;
+							}
+							
+							if(!(inst & 0xf))
+							{
+								cydchn->fm.ops[i].flags &= ~(CYD_FM_OP_ENABLE_RING_MODULATION);
+							}
+						}
+					}
+					
+					break;
+				}
+				
+				default:
+				{
+					if ((tick == (inst & 0xf) && (inst & 0xf)) || (mus->channel[chan].ops[ops_index - 1].prog_period[prog_number] <= 1 && (inst & 0xf) == 1))
+					{
+						cydchn->fm.ops[ops_index - 1].flags |= CYD_FM_OP_ENABLE_RING_MODULATION;
+					}
+					
+					if(!(inst & 0xf))
+					{
+						cydchn->fm.ops[ops_index - 1].flags &= ~(CYD_FM_OP_ENABLE_RING_MODULATION);
+					}
+					
+					break;
+				}
+			}
+		}
+		break;
+
+		case MUS_FX_EXT_TOGGLE_SYNC:
+		{
+			switch(ops_index)
+			{
+				case 0:
+				case 0xFF:
+				{
+					if ((tick == (inst & 0xf) && (inst & 0xf)) || (mus->channel[chan].prog_period[prog_number] <= 1 && (inst & 0xf) == 1))
+					{
+						cydchn->flags |= CYD_CHN_ENABLE_SYNC;
+					}
+					
+					if(!(inst & 0xf))
+					{
+						cydchn->flags &= ~(CYD_CHN_ENABLE_SYNC);
+					}
+					
+					if(ops_index == 0xFF)
+					{
+						for(int i = 0; i < CYD_FM_NUM_OPS; ++i)
+						{
+							if ((tick == (inst & 0xf) && (inst & 0xf)) || (mus->channel[chan].ops[i].prog_period[prog_number] <= 1 && (inst & 0xf) == 1))
+							{
+								cydchn->fm.ops[i].flags |= CYD_FM_OP_ENABLE_SYNC;
+							}
+							
+							if(!(inst & 0xf))
+							{
+								cydchn->fm.ops[i].flags &= ~(CYD_FM_OP_ENABLE_SYNC);
+							}
+						}
+					}
+					
+					break;
+				}
+				
+				default:
+				{
+					if ((tick == (inst & 0xf) && (inst & 0xf)) || (mus->channel[chan].ops[ops_index - 1].prog_period[prog_number] <= 1 && (inst & 0xf) == 1))
+					{
+						cydchn->fm.ops[ops_index - 1].flags |= CYD_FM_OP_ENABLE_SYNC;
+					}
+					
+					if(!(inst & 0xf))
+					{
+						cydchn->fm.ops[ops_index - 1].flags &= ~(CYD_FM_OP_ENABLE_SYNC);
+					}
+					
+					break;
+				}
+			}
+		}
+		break;
+
+		case MUS_FX_EXT_TOGGLE_FX_BUS:
+		{
+			if ((tick == (inst & 0xf) && (inst & 0xf)) || (mus->channel[chan].prog_period[prog_number] <= 1 && (inst & 0xf) == 1))
+			{
+				if(chn->instrument)
+				{
+					cydchn->flags |= CYD_CHN_ENABLE_FX;
+				}
+			}
+
+			if(!(inst & 0xf))
+			{
+				cydchn->flags &= ~CYD_CHN_ENABLE_FX;
+			}
+		}
+		break;
 		
 		case MUS_FX_NOISE_PHASE_RESET:
 		{

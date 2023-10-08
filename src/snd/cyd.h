@@ -76,7 +76,7 @@ typedef struct
 	const CydWavetableEntry *wave_entry;
 	CydOscState subosc[CYD_SUB_OSCS];
 	CydFilter flts[CYD_NUMBER_OF_FILTER_MODULES];
-	int fx_bus;
+	Uint8 fx_bus;
 	
 #ifndef CYD_DISABLE_FM
 	CydFm fm;
