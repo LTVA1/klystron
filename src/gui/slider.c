@@ -93,16 +93,16 @@ void slider(GfxDomain *dest_surface, const SDL_Rect *_area, const SDL_Event *eve
 		copy_rect(&my_area, _area);
 		
 #ifndef STANDALONE_COMPILE
-		if((_param == &mused.program_slider_param) && mused.show_fx_lfo_settings)
+		if((_param == &mused.program_slider_param || _param == &mused.point_env_slider_param) && mused.show_fx_lfo_settings)
 		{
 			my_area.y -= 60;
 			my_area.h += 60;
 		}
 		
-		if((_param == &mused.point_env_slider_param) && mused.show_fx_lfo_settings)
+		if((_param == &mused.program_slider_param || _param == &mused.point_env_slider_param) && mused.show_timer_lfo_settings)
 		{
-			my_area.y -= 60;
-			my_area.h += 60;
+			my_area.y -= 130;
+			my_area.h += 130;
 		}
 #endif
 

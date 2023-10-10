@@ -27,6 +27,7 @@ KLYSAPI KSong* KSND_LoadSong(KPlayer* player, const char *path)
 	KSong *song = calloc(sizeof(*song), 1);
 	
 	int i = 0;
+	
 	for (i = 0; i < CYD_WAVE_MAX_ENTRIES; ++i)
 	{
 		cyd_wave_entry_init(&song->wavetable_entries[i], NULL, 0, 0, 0, 0, 0);
