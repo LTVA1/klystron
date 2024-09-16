@@ -35,14 +35,14 @@ typedef unsigned long char32_t;
 
 char32_t *unicode_strdup(const char32_t *s1)
 {
-  char32_t *str;
+  /*char32_t *str;
   size_t size = strlen(s1) * 4 + 1;
 
   str = calloc(1, size);
   if (str) {
     memcpy(str, s1, size);
-  }
-  return str;
+  }*/
+  return (char32_t*)NULL;
 }
 
 static int tile_width(TileDescriptor *desc)
